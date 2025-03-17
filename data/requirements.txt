@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+requests
+xmltodict
+python-dotenv
+kafka-python
+pyspark
+pillow
+boto3
+mysql-connector-python
+elasticsearch
+python-dateutil
+pandas>=1.0.5

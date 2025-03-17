@@ -1,0 +1,14 @@
+# docker/Dockerfile.spark
+FROM bitnami/spark:latest
+
+USER root
+WORKDIR /app
+
+COPY requirements.txt .
+RUN apt-get update && apt-get install -y python3-pip && \
+    pip3 install --upgrade pip && pip3 install -r requirements.txt
+
+COPY . /app/
+
+# spark-submit 명령어에 Kafka 패키지 추가 (Spark 버전에 맞게 조정)
+CMD [ "spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.5", "--master", "local[*]", "app/spark/spark_processing.py" ]
