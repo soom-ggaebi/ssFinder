@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ssfinderssafy
+      MYSQL_DATABASE: ssfinder
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data/var/lib/mysql
+
+#  mongodb:
+#    image: mongo:latest
+#    container_name: mongodb
+#    restart: always
+#    ports:
+#      - "27017:27017"
+#    volumes:
+#      - mongo_data:/data/db
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    user: root
+    restart: always
+    ports:
+      - "8081:8080"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+
+  backend:
+    build: ./ssfinder-be
+    container_name: spring
+    depends_on:
+      - mysql
+      - redis
+    ports:
+      - "8080:8080"
+
+#  fastapi:
+#    build: ./data
+#    container_name: data
+#    depends_on:
+#      - mongodb
+#    ports:
+#      - "5000:5000"
+
+volumes:
+  mysql_data:
+  mongo_data:
