@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/map_widget.dart';
+import '../../widgets/custom_draggable_sheet.dart';
+import './found_items_list.dart';
 import 'package:geolocator/geolocator.dart';
 
 class FoundPage extends StatelessWidget {
@@ -9,25 +11,32 @@ class FoundPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('주웠어요')),
-      body: FutureBuilder<Position>(
-        future: getLocationData(),
-        builder: (context, snapshot) {
-          // 로딩 상태
-          if (!snapshot.hasData &&
-              snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
+      body: Stack(
+        children: [ 
+          FutureBuilder<Position>(
+            future: getLocationData(),
+            builder: (context, snapshot) {
+              // 로딩 상태
+              if (!snapshot.hasData &&
+                  snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
 
-          // 권한 허가된 상태
-          if (snapshot.hasData) {
-            Position pos = snapshot.data!;
-            return MapWidget(latitude: pos.latitude, longitude: pos.longitude);
-          }
-          // 권한 없는 상태
-          else {
-            return MapWidget();
-          }
-        },
+              // 권한 허가된 상태
+              if (snapshot.hasData) {
+                Position pos = snapshot.data!;
+                return MapWidget(latitude: pos.latitude, longitude: pos.longitude);
+              }
+              // 권한 없는 상태
+              else {
+                return MapWidget();
+              }
+            },
+          ),
+          CustomDraggableSheet(
+            builder: (scrollController) => FoundItemsList(scrollController: scrollController),
+          ),
+        ],
       ),
     );
   }

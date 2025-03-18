@@ -10,6 +10,7 @@ class MyApp extends StatelessWidget {
         splashFactory: NoSplash.splashFactory,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
       ),
       home: const HomePage(),
     );
