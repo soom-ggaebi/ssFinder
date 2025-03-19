@@ -19,10 +19,3 @@ services:
     ports:
       - 8080:8080
     container_name: ssfinder-be-container
-
-  certbot:
-    image: certbot/certbot:latest
-    container_name: certbot
-    volumes:
-      - /home/ubuntu/app/certbot/www:/var/www/certbot
-      - /home/ubuntu/app/certbot/conf:/etc/letsencrypt
