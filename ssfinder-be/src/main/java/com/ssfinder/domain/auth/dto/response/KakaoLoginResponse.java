@@ -16,7 +16,7 @@ package com.ssfinder.domain.auth.dto.response;
 public record KakaoLoginResponse (
         String accessToken,
         String refreshToken,
-        Integer expiresIn
+        Long expiresIn // TODO access token 기준인지 refresh token 기준인지?
 ){
 
 
