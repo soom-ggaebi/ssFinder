@@ -1,5 +1,6 @@
 package com.ssfinder.domain.auth.service;
 
+import com.ssfinder.domain.auth.dto.TokenPair;
 import com.ssfinder.domain.auth.dto.request.KakaoLoginRequest;
 import com.ssfinder.domain.auth.dto.response.KakaoLoginResponse;
 import com.ssfinder.domain.user.entity.User;
@@ -8,12 +9,13 @@ import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * packageName    : com.ssfinder.domain.auth.service<br>
- * fileName       : *.java<br>
+ * fileName       : AuthService.java<br>
  * author         : okeio<br>
  * date           : 2025-03-19<br>
  * description    :  <br>
@@ -29,6 +31,10 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
+    private final TokenService tokenService;
+
+    @Value("${jwt.access-token-validity}")
+    private long accessTokenValidity;
 
     public KakaoLoginResponse kakaoLoginOrRegister(KakaoLoginRequest kakaoLoginRequest) {
         User user = userRepository.findByProviderId(kakaoLoginRequest.providerId())
@@ -36,9 +42,9 @@ public class AuthService {
                 .orElseGet(() -> registerUser(kakaoLoginRequest));
 
         // redis 토큰 발급
+        TokenPair tokenPair = tokenService.generateTokens(user.getId());
 
-
-        return new KakaoLoginResponse();
+        return new KakaoLoginResponse(tokenPair.accessToken(), tokenPair.refreshToken(), accessTokenValidity);
     }
 
 
@@ -48,14 +54,14 @@ public class AuthService {
             return userRepository.save(existingUser);
         } catch (Exception e) {
             log.error("Error while updating kakao user info: {}", kakaoLoginRequest.email(), e);
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+            throw new CustomException(ErrorCode.USER_REGISTRATION_FAILED);
         }
     }
 
     private User registerUser(KakaoLoginRequest kakaoLoginRequest) {
         User user = kakaoLoginRequest.toUserEntity();
 
-        // 전화번호 암호화 진행
+        // TODO 전화번호 암호화 진행
 
 
         return userRepository.save(user);
