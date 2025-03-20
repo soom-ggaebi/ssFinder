@@ -41,4 +41,8 @@ public record ApiResponse<T>(
     public static <T> ApiResponse<T> fail(CustomException e) {
         return new ApiResponse<>(e.getErrorCode().getHttpStatus(), false, null, ExceptionDto.of(e.getErrorCode()), LocalDateTime.now());
     }
+
+    public static <T> ApiResponse<T> fail(CustomException e, String message) {
+        return new ApiResponse<>(e.getErrorCode().getHttpStatus(), false, null, ExceptionDto.of(e.getErrorCode(), message), LocalDateTime.now());
+    }
 }
