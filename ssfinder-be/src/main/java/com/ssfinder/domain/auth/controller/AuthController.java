@@ -7,7 +7,6 @@ import com.ssfinder.domain.auth.dto.response.KakaoLoginResponse;
 import com.ssfinder.domain.auth.service.AuthService;
 import com.ssfinder.domain.auth.service.TokenService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
-import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import com.ssfinder.global.common.response.ApiResponse;
@@ -15,10 +14,10 @@ import com.ssfinder.global.util.JwtUtility;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -36,7 +35,8 @@ import java.util.Map;
  * <br>
  */
 @Slf4j
-@RestController("/api/auth")
+@RestController
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
