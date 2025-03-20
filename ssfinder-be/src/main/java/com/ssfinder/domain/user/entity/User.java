@@ -45,7 +45,7 @@ public class User {
     @Email
     private String email;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false)
     private String phone;
 
     @Column(nullable = false, length = 6)
@@ -60,6 +60,6 @@ public class User {
     @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime deletedAt;
 
-    @Column(name = "provider_id", nullable = false)
+    @Column(name = "provider_id", nullable = false, unique = true)
     private String providerId;
 }

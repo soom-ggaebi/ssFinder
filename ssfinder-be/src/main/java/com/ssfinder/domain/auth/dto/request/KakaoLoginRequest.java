@@ -27,15 +27,18 @@ import java.time.LocalDateTime;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record KakaoLoginRequest (
         @NotBlank String name,
+        @NotBlank String profileNickname,
         @NotBlank @Email String email,
         @Pattern(regexp = "\\d{4}") String birthyear,
         @Pattern(regexp = "\\d{4}") String birthday,
         @NotBlank String gender,
+        @NotBlank String phoneNumber,
         @NotBlank String providerId
 ){
     public User toUserEntity() {
         return User.builder()
                 .name(name)
+                .nickname(profileNickname)
                 .email(email)
                 .birth(LocalDate.of(
                         Integer.parseInt(birthyear),
@@ -44,6 +47,7 @@ public record KakaoLoginRequest (
                 ))
                 .gender(Gender.valueOf(gender.toUpperCase()))
                 .providerId(providerId)
+                .phone(phoneNumber)
                 .createdAt(LocalDateTime.now())
                 .build();
     }
