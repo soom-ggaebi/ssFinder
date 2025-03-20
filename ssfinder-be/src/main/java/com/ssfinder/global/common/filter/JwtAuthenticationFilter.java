@@ -2,7 +2,7 @@ package com.ssfinder.global.common.filter;
 
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.ErrorCode;
-import com.ssfinder.global.util.JwtUtility;
+import com.ssfinder.global.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,7 +22,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtUtility jwtUtility;
+    private final JwtUtil jwtUtil;
     private final UserService userService;
 
     private static final String[] AllowUrls = new String[]{
@@ -45,7 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
-        if (jwtUtility.validateToken(token)) {
+        if (jwtUtil.validateToken(token)) {
             processValidAccessToken(token);
         } else {
             writeErrorResponse(response, ErrorCode.INVALID_TOKEN);
@@ -56,7 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void processValidAccessToken(String accessToken) {
-        UserDetails userDetails = userService.loadUserByUsername(jwtUtility.getUserIdFromToken(accessToken));
+        UserDetails userDetails = userService.loadUserByUsername(jwtUtil.getUserIdFromToken(accessToken));
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 

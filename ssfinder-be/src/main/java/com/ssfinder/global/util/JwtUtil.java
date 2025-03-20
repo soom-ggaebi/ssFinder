@@ -17,7 +17,7 @@ import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
-public class JwtUtility {
+public class JwtUtil {
 
     @Value("${jwt.secret}")
     private String secretKey;

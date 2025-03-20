@@ -2,7 +2,7 @@ package com.ssfinder.global.config;
 
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.filter.JwtAuthenticationFilter;
-import com.ssfinder.global.util.JwtUtility;
+import com.ssfinder.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,12 +31,12 @@ public class SecurityConfig {
             "/agarang", "/ws/**", "/app/**"
     };
 
-    private final JwtUtility jwtUtility;
+    private final JwtUtil jwtUtil;
     private final UserService userService;
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtUtility, userService);
+        return new JwtAuthenticationFilter(jwtUtil, userService);
     }
 
     @Bean

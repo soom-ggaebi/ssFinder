@@ -3,7 +3,7 @@ package com.ssfinder.domain.auth.service;
 import com.ssfinder.domain.auth.dto.TokenPair;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
-import com.ssfinder.global.util.JwtUtility;
+import com.ssfinder.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -18,11 +18,11 @@ public class TokenService {
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    private final JwtUtility jwtUtility;
+    private final JwtUtil jwtUtil;
 
     public TokenPair generateTokens(int userId) {
-        String accessToken = jwtUtility.generateAccessToken(userId);
-        String refreshToken = jwtUtility.generateRefreshToken(userId);
+        String accessToken = jwtUtil.generateAccessToken(userId);
+        String refreshToken = jwtUtil.generateRefreshToken(userId);
 
         saveRefreshToken(userId, refreshToken);
         return new TokenPair(accessToken, refreshToken);
