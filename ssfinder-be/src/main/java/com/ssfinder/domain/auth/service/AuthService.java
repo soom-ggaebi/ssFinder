@@ -7,6 +7,7 @@ import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.repository.UserRepository;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
+import com.ssfinder.global.converter.PhoneNumberEncryptConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
     private final UserRepository userRepository;
     private final TokenService tokenService;
+    private final PhoneNumberEncryptConverter phoneNumberEncryptConverter;
 
     @Value("${jwt.access-token-validity}")
     private long accessTokenValidity;
@@ -61,8 +63,9 @@ public class AuthService {
     private User registerUser(KakaoLoginRequest kakaoLoginRequest) {
         User user = kakaoLoginRequest.toUserEntity();
 
-        // TODO 전화번호 암호화 진행
-
+        // 전화번호 암호화 진행
+        String encryptedPhoneNumber = phoneNumberEncryptConverter.convertToDatabaseColumn(kakaoLoginRequest.phoneNumber());
+        user.setPhone(encryptedPhoneNumber);
 
         return userRepository.save(user);
     }
