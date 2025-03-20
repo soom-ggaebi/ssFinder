@@ -1,0 +1,73 @@
+package com.ssfinder.domain.lost.entity;
+
+import com.ssfinder.domain.item.entity.ItemCategory;
+import com.ssfinder.domain.user.entity.User;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+/**
+ * packageName    : com.ssfinder.domain.lost.entity<br>
+ * fileName       : LostItem.java<br>
+ * author         : joker901010<br>
+ * date           : 2025-03-19<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-03-19          joker901010           최초생성<br>
+ * <br>
+ */
+@Entity
+@Table(name = "lost_item")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
+public class LostItem {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    private User user;
+
+    @ManyToOne
+    @JoinColumn(name = "item_category_id", referencedColumnName = "id", nullable = false)
+    private ItemCategory itemCategory;
+
+    @Column(length = 100, nullable = false)
+    private String title;
+
+    @Column(length = 10, nullable = false)
+    private String color;
+
+    // Temporal 어노테이션 사용여부 확인 필요
+    @Column(name = "lost_at", nullable = false)
+    private LocalDate lostAt;
+
+    @Column(length = 100, nullable = false)
+    private String location;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String detail;
+
+    @Column(length = 100)
+    private String image;
+
+    @Column(length = 5, nullable = false)
+    private Status status=Status.LOST;
+
+    @Column(name = "created_at", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    @Temporal(TemporalType.TIMESTAMP)
+    private LocalDateTime updatedAt;
+}
