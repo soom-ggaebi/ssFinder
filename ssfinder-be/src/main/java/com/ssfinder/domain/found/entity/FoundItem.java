@@ -43,7 +43,6 @@ public class FoundItem {
     @Column(nullable = false, length = 100)
     private String name;
 
-    // Temporal 어노테이션 사용여부 확인 필요
     @Column(name = "found_at", nullable = false)
     private LocalDate foundAt;
 
@@ -54,6 +53,7 @@ public class FoundItem {
     private String color;
 
     @Column(nullable = false, length = 11)
+    @Enumerated(EnumType.STRING)
     private String status;
 
     @Lob
@@ -63,7 +63,7 @@ public class FoundItem {
     @Column(length = 20)
     private String phone;
 
-    @Column(length = 100)
+    @Column(length = 255)
     private String image;
 
     @Column(name = "management_id", length = 20)
@@ -73,11 +73,9 @@ public class FoundItem {
     private String storedAt;
 
     @Column(name = "created_at", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime updatedAt;
 
 }

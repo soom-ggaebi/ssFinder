@@ -13,5 +13,5 @@ package com.ssfinder.domain.found.entity;
  * <br>
  */
 public enum Status {
-    STORED, RECEIVED , TRANSFERRED
+    STORED,RECEIVED,TRANSFERRED
 }

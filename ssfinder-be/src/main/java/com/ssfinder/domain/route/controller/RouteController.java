@@ -1,5 +1,6 @@
 package com.ssfinder.domain.route.controller;
 
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 2025-03-19          joker901010           최초생성<br>
  * <br>
  */
-@RestController("/api/routes")
+@RestController
+@RequestMapping("/api/routes")
 public class RouteController {
 }

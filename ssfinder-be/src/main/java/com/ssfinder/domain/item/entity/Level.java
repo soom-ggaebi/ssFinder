@@ -13,5 +13,5 @@ package com.ssfinder.domain.item.entity;
  * <br>
  */
 public enum Level {
-    중분류, 대분류
+    MAJOR,MINOR
 }

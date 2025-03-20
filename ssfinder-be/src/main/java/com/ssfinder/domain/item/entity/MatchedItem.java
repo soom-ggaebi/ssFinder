@@ -43,6 +43,5 @@ public class MatchedItem {
     private Integer score;
 
     @Column(name = "matched_at", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime matchedAt;
 }

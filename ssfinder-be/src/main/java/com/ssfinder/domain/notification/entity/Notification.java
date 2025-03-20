@@ -42,7 +42,6 @@ public class Notification {
     private String body;
 
     @Column(name = "scheduled_at")
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime scheduledAt;
 
     @Column(name = "flag_send", nullable = false)

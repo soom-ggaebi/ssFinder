@@ -1,11 +1,12 @@
-package com.ssfinder.domain.found.controller;
+package com.ssfinder.domain.route.service;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 /**
- * packageName    : com.ssfinder.domain.found.controller<br>
- * fileName       : FoundController.java<br>
+ * packageName    : com.ssfinder.domain.route.service<br>
+ * fileName       : RouteService.java<br>
  * author         : joker901010<br>
  * date           : 2025-03-19<br>
  * description    :  <br>
@@ -15,7 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
  * 2025-03-19          joker901010           최초생성<br>
  * <br>
  */
-@RestController
-@RequestMapping("/api/found")
-public class FoundController {
+@Slf4j
+@Service
+@Transactional
+public class RouteService {
 }

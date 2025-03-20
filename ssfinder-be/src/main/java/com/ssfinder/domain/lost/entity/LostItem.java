@@ -46,7 +46,6 @@ public class LostItem {
     @Column(length = 10, nullable = false)
     private String color;
 
-    // Temporal 어노테이션 사용여부 확인 필요
     @Column(name = "lost_at", nullable = false)
     private LocalDate lostAt;
 
@@ -61,13 +60,12 @@ public class LostItem {
     private String image;
 
     @Column(length = 5, nullable = false)
+    @Enumerated(EnumType.STRING)
     private Status status=Status.LOST;
 
     @Column(name = "created_at", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime updatedAt;
 }

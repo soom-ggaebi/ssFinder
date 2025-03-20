@@ -35,5 +35,6 @@ public class ItemCategory {
     private String name;
 
     @Column(nullable = false, length = 100)
+    @Enumerated(EnumType.STRING)
     private Level level;
 }

@@ -39,18 +39,15 @@ public class UserChatRoom {
     private ChatRoom chatRoom;
 
     @Column(name = "created_at", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime createAt;
 
     @Column(name = "left_at")
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime leftAt;
 
     @Column(name = "recreated_at")
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime recreatedAt;
 
-    @Column(length = 20, nullable = false)
+    @Column(length = 8, nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
 

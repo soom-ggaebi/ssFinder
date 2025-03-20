@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * packageName    : com.ssfinder.domain.lost.service<br>
- * fileName       : Lostervice.java<br>
+ * fileName       : LostService.java<br>
  * author         : joker901010<br>
  * date           : 2025-03-19<br>
  * description    :  <br>

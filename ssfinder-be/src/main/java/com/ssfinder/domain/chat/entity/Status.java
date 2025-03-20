@@ -14,5 +14,5 @@ package com.ssfinder.domain.chat.entity;
  * <br>
  */
 public enum Status {
-    ACTIVE, INACTIVE
+    ACTIVE,INACTIVE
 }

@@ -35,7 +35,6 @@ public class ChatRoom {
     private FoundItem foundItem;
 
     @Column(name = "latest_sent_at")
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime latestSentAt;
 
     @Column(name = "latest_message")
