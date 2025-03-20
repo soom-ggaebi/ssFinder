@@ -64,8 +64,12 @@ public class AuthService {
         User user = kakaoLoginRequest.toUserEntity();
 
         // 전화번호 암호화 진행
-        String encryptedPhoneNumber = phoneNumberEncryptConverter.convertToDatabaseColumn(kakaoLoginRequest.phoneNumber());
-        user.setPhone(encryptedPhoneNumber);
+        try {
+            String encryptedPhoneNumber = phoneNumberEncryptConverter.convertToDatabaseColumn(kakaoLoginRequest.phoneNumber());
+            user.setPhone(encryptedPhoneNumber);
+        } catch (RuntimeException e) {
+            throw new CustomException(ErrorCode.ENCRYPT_FAILED);
+        }
 
         return userRepository.save(user);
     }
