@@ -6,6 +6,8 @@ import jakarta.persistence.Converter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 /**
  * packageName    : com.ssfinder.global.converter<br>
  * fileName       : *.java<br>
@@ -27,11 +29,17 @@ public class PhoneNumberEncryptConverter implements AttributeConverter<String, S
 
     @Override
     public String convertToDatabaseColumn(String phoneNumber) {
+        if (Objects.isNull(phoneNumber))
+            return null;
+
         return encryptionUtil.encrypt(phoneNumber);
     }
 
     @Override
     public String convertToEntityAttribute(String encryptedPhoneNumber) {
+        if (Objects.isNull(encryptedPhoneNumber))
+            return null;
+
         return encryptionUtil.decrypt(encryptedPhoneNumber);
     }
 }
