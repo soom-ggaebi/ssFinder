@@ -73,4 +73,8 @@ public class AuthService {
 
         return userRepository.save(user);
     }
+
+    private void logoutUser(User user) {
+
+    }
 }

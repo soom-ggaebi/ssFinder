@@ -11,6 +11,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 /**
  * packageName    : com.ssfinder.domain.user.service<br>
  * fileName       : *.java<br>
@@ -37,4 +39,10 @@ public class UserService implements UserDetailsService {
 
         return new CustomUserDetails(user.getId());
     }
+
+//    @Transactional(readOnly = true)
+//    public Optional<User> findById(int userId) {
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() ->);
+//    }
 }
