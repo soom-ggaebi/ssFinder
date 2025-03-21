@@ -3,13 +3,20 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapWidget extends StatelessWidget {
   // 기본 위치
-  static final LatLng companyLatLng = LatLng(35.205466, 126.811576);
+  static final LatLng companyLatLng = LatLng(35.160121, 126.851317);
 
   // 전달받은 위치
   final double? latitude;
   final double? longitude;
 
-  const MapWidget({Key? key, this.latitude, this.longitude}) : super(key: key);
+  final ValueChanged<String>? onLocationSelected;
+
+  const MapWidget({
+    Key? key,
+    this.latitude,
+    this.longitude,
+    this.onLocationSelected,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
