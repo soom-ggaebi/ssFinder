@@ -45,4 +45,16 @@ public class TokenService {
     public void deleteRefreshToken(int userId) {
         redisTemplate.delete(String.valueOf(userId));
     }
+
+    public boolean validateToken(String token) {
+        return jwtUtil.validateToken(token);
+    }
+
+    public int getUserIdFromToken(String refreshToken) {
+        return Integer.parseInt(jwtUtil.getUserIdFromToken(refreshToken));
+    }
+
+    public String generateAccessToken(int userId) {
+        return jwtUtil.generateAccessToken(userId);
+    }
 }

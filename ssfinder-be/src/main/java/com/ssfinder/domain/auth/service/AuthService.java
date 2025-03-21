@@ -2,6 +2,7 @@ package com.ssfinder.domain.auth.service;
 
 import com.ssfinder.domain.auth.dto.TokenPair;
 import com.ssfinder.domain.auth.dto.request.KakaoLoginRequest;
+import com.ssfinder.domain.auth.dto.request.RefreshTokenRequest;
 import com.ssfinder.domain.auth.dto.response.KakaoLoginResponse;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.repository.UserRepository;
@@ -74,7 +75,28 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    private void logoutUser(User user) {
+    public void logout(int userId) {
+        tokenService.deleteRefreshToken(userId);
+    }
 
+    public TokenPair refreshAccessToken(RefreshTokenRequest refreshTokenRequest) {
+        String refreshToken = refreshTokenRequest.refreshToken();
+
+        // 리프레시 토큰 검증
+        if (!tokenService.validateToken(refreshToken)) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+
+        int userId = tokenService.getUserIdFromToken(refreshToken);
+
+        // Redis 저장된 값과 비교
+        String storedRefreshToken = tokenService.getRefreshToken(userId);
+        if (!refreshToken.equals(storedRefreshToken)) {
+            throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+
+        String newAccessToken = tokenService.generateAccessToken(userId);
+
+        return new TokenPair(newAccessToken, refreshToken);
     }
 }

@@ -39,10 +39,7 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-
     private final AuthService authService;
-    private final TokenService tokenService;
-    private final JwtUtil jwtUtil;
 
     @PostMapping("/login")
     public ApiResponse<KakaoLoginResponse> kakaoLogin(@Valid @RequestBody KakaoLoginRequest kakaoLoginRequest) {
@@ -53,30 +50,13 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ApiResponse<?> logout(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        tokenService.deleteRefreshToken(userDetails.getUserId());
+        authService.logout(userDetails.getUserId());
         return ApiResponse.ok(Map.of("message", "성공적으로 로그아웃 되었습니다."));
     }
 
     @PostMapping("/refresh")
     public ApiResponse<?> refreshAccessToken(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
-        String refreshToken = refreshTokenRequest.refreshToken();
-
-        // 리프레시 토큰 검증
-        if (!jwtUtil.validateToken(refreshToken)) {
-            throw new CustomException(ErrorCode.INVALID_TOKEN);
-        }
-
-        int userId = Integer.parseInt(jwtUtil.getUserIdFromToken(refreshToken));
-
-        // Redis 저장된 값과 비교
-        String storedRefreshToken = tokenService.getRefreshToken(userId);
-        if (!refreshToken.equals(storedRefreshToken)) {
-            throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
-        }
-
-        String newAccessToken = jwtUtil.generateAccessToken(userId);
-
-        log.info("새로운 액세스 토큰 발급: {}", newAccessToken);
-        return ApiResponse.ok(new TokenPair(newAccessToken, refreshToken));
+        TokenPair refreshTokenResponse = authService.refreshAccessToken(refreshTokenRequest);
+        return ApiResponse.ok(refreshTokenResponse);
     }
 }
