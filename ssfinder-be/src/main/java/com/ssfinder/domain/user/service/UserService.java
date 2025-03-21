@@ -64,7 +64,7 @@ public class UserService implements UserDetailsService {
     public UserUpdateResponse updateUser(int userId, UserUpdateRequest userUpdateRequest) {
         User user = findUserById(userId);
 
-        userMapper.updateUserFromUpdateUserRequest(userUpdateRequest, user);
+        userMapper.updateUserFromRequest(userUpdateRequest, user);
 
         return userMapper.mapToUserUpdateResponse(user);
     }

@@ -1,8 +1,10 @@
 package com.ssfinder.domain.user.dto.mapper;
 
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.ReportingPolicy;
+import com.ssfinder.domain.user.dto.request.UserUpdateRequest;
+import com.ssfinder.domain.user.dto.response.UserGetResponse;
+import com.ssfinder.domain.user.dto.response.UserUpdateResponse;
+import com.ssfinder.domain.user.entity.User;
+import org.mapstruct.*;
 
 /**
  * packageName    : com.ssfinder.domain.user.mapper<br>
@@ -19,4 +21,12 @@ import org.mapstruct.ReportingPolicy;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.WARN)
 public interface UserMapper {
 
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    void updateUserFromRequest(UserUpdateRequest request, @MappingTarget User user);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    UserUpdateResponse mapToUserUpdateResponse(User user);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    UserGetResponse mapToUserGetResponse(User user);
 }
