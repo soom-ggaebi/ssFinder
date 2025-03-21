@@ -62,4 +62,7 @@ public class User {
 
     @Column(name = "provider_id", nullable = false, unique = true)
     private String providerId;
+
+    @Column(name = "my_region")
+    private String myRegion;
 }
