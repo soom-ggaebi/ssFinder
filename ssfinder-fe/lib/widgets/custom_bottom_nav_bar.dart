@@ -22,23 +22,23 @@ class CustomBottomNavBar extends StatelessWidget {
       type: BottomNavigationBarType.fixed,
       items: [
         BottomNavigationBarItem(
-          icon: SvgPicture.asset('assets/images/main_icon.svg'),
-          activeIcon: SvgPicture.asset('assets/images/main_icon.svg'),
+          icon: SvgPicture.asset('assets/images/navBar/main_icon.svg'),
+          activeIcon: SvgPicture.asset('assets/images/navBar/main_icon.svg'),
           label: '메인',
         ),
         BottomNavigationBarItem(
-          icon: SvgPicture.asset('assets/images/find_icon.svg'),
-          activeIcon: SvgPicture.asset('assets/images/find_icon.svg'),
+          icon: SvgPicture.asset('assets/images/navBar/find_icon.svg'),
+          activeIcon: SvgPicture.asset('assets/images/navBar/find_icon.svg'),
           label: '찾아줘요',
         ),
         BottomNavigationBarItem(
-          icon: SvgPicture.asset('assets/images/found_icon.svg'),
-          activeIcon: SvgPicture.asset('assets/images/found_icon.svg'),
+          icon: SvgPicture.asset('assets/images/navBar/found_icon.svg'),
+          activeIcon: SvgPicture.asset('assets/images/navBar/found_icon.svg'),
           label: '주웠어요',
         ),
         BottomNavigationBarItem(
-          icon: SvgPicture.asset('assets/images/chat_icon.svg'),
-          activeIcon: SvgPicture.asset('assets/images/chat_icon.svg'),
+          icon: SvgPicture.asset('assets/images/navBar/chat_icon.svg'),
+          activeIcon: SvgPicture.asset('assets/images/navBar/chat_icon.svg'),
           label: '채팅',
         ),
       ],
