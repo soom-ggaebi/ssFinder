@@ -11,8 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 /**
  * packageName    : com.ssfinder.domain.user.controller<br>
  * fileName       : UserController.java<br>
@@ -47,7 +45,7 @@ public class UserController {
     @DeleteMapping
     public ApiResponse<?> deleteUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
         userService.deleteUser(userDetails.getUserId());
-        return ApiResponse.ok(Map.of("message", "회원 탈퇴가 성공적으로 처리되었습니다."));
+        return ApiResponse.noContent();
     }
 
 }
