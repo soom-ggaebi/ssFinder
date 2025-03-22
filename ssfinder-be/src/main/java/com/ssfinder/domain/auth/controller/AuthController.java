@@ -5,12 +5,8 @@ import com.ssfinder.domain.auth.dto.request.KakaoLoginRequest;
 import com.ssfinder.domain.auth.dto.request.RefreshTokenRequest;
 import com.ssfinder.domain.auth.dto.response.KakaoLoginResponse;
 import com.ssfinder.domain.auth.service.AuthService;
-import com.ssfinder.domain.auth.service.TokenService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
-import com.ssfinder.global.common.exception.CustomException;
-import com.ssfinder.global.common.exception.ErrorCode;
 import com.ssfinder.global.common.response.ApiResponse;
-import com.ssfinder.global.util.JwtUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
 
 /**
  * packageName    : com.ssfinder.domain.auth.controller<br>
@@ -51,7 +46,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ApiResponse<?> logout(@AuthenticationPrincipal CustomUserDetails userDetails) {
         authService.logout(userDetails.getUserId());
-        return ApiResponse.ok(Map.of("message", "성공적으로 로그아웃 되었습니다."));
+        return ApiResponse.noContent();
     }
 
     @PostMapping("/refresh")

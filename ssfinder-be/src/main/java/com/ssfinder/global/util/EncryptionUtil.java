@@ -20,19 +20,20 @@ import org.springframework.stereotype.Component;
 @Component
 public class EncryptionUtil {
 
-    @Value("${encryption.password}")
-    private String password;
+    private final TextEncryptor textEncryptor;
 
-    @Value("${encryption.salt}")
-    private String salt;
+    public EncryptionUtil(
+            @Value("${encryption.password}") String password,
+            @Value("${encryption.salt}") String salt
+    ) {
+        this.textEncryptor = Encryptors.text(password, salt);
+    }
 
     public String encrypt(String plainText) {
-        TextEncryptor textEncryptor = Encryptors.text(password, salt);
         return textEncryptor.encrypt(plainText);
     }
 
     public String decrypt(String encryptedText) {
-        TextEncryptor textEncryptor = Encryptors.text(password, salt);
         return textEncryptor.decrypt(encryptedText);
     }
 }

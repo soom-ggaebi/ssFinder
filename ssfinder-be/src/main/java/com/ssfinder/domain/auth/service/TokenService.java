@@ -53,8 +53,4 @@ public class TokenService {
     public int getUserIdFromToken(String refreshToken) {
         return Integer.parseInt(jwtUtil.getUserIdFromToken(refreshToken));
     }
-
-    public String generateAccessToken(int userId) {
-        return jwtUtil.generateAccessToken(userId);
-    }
 }

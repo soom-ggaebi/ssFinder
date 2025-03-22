@@ -95,8 +95,6 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
-        String newAccessToken = tokenService.generateAccessToken(userId);
-
-        return new TokenPair(newAccessToken, refreshToken);
+        return tokenService.generateTokens(userId);
     }
 }

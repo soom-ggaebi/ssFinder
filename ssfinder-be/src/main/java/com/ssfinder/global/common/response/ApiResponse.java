@@ -38,6 +38,10 @@ public record ApiResponse<T>(
         return new ApiResponse<>(HttpStatus.CREATED, true, data, null, LocalDateTime.now());
     }
 
+    public static <T> ApiResponse<T> noContent() {
+        return new ApiResponse<>(HttpStatus.NO_CONTENT, true, null, null, LocalDateTime.now());
+    }
+
     public static <T> ApiResponse<T> fail(CustomException e) {
         return new ApiResponse<>(e.getErrorCode().getHttpStatus(), false, null, ExceptionDto.of(e.getErrorCode()), LocalDateTime.now());
     }

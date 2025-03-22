@@ -38,7 +38,6 @@ public class User {
     private String nickname;
 
     @Column(nullable = false)
-    @Temporal(TemporalType.DATE)
     private LocalDate birth;
 
     @Column(nullable = false, length = 100)
@@ -53,11 +52,9 @@ public class User {
     private Gender gender;
 
     @Column(name = "created_at", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime createdAt;
 
     @Column(name = "deleted_at")
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime deletedAt;
 
     @Column(name = "provider_id", nullable = false, unique = true)
