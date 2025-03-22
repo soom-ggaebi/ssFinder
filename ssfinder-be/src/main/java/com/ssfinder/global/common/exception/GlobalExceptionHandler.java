@@ -57,7 +57,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     protected ApiResponse<?> handleException(Exception e) {
-        log.error("handle not business exception", e);
+        log.error("handle not custom exception", e);
         e.printStackTrace();
         return ApiResponse.fail(new CustomException(ErrorCode.INTERNAL_SERVER_ERROR));
     }
@@ -95,7 +95,7 @@ public class GlobalExceptionHandler {
         }
         log.error("handleValidException() in GlobalExceptionHandler : {}", errorMessages);
 
-        return ApiResponse.fail(new CustomException(ErrorCode.INVALID_INPUT_VALUE));
+        return ApiResponse.fail(new CustomException(ErrorCode.INVALID_INPUT_VALUE), errorMessages);
     }
 
 }
