@@ -19,5 +19,5 @@ import java.util.Optional;
  * <br>
  */
 public interface UserRepository extends JpaRepository<User, Integer> {
-    Optional<User> findByProviderId(@NotBlank String providerId);
+    Optional<User> findByProviderId(String providerId);
 }
