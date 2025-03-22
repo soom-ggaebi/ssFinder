@@ -51,7 +51,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ApiResponse<?> logout(@AuthenticationPrincipal CustomUserDetails userDetails) {
         authService.logout(userDetails.getUserId());
-        return ApiResponse.ok(Map.of("message", "성공적으로 로그아웃 되었습니다."));
+        return ApiResponse.noContent();
     }
 
     @PostMapping("/refresh")
