@@ -7,6 +7,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sumsum Finder',
       theme: ThemeData(
+        fontFamily: 'GmarketSans',
         splashFactory: NoSplash.splashFactory,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
