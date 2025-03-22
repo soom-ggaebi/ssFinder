@@ -54,7 +54,7 @@ public class FoundItem {
 
     @Column(nullable = false, length = 11)
     @Enumerated(EnumType.STRING)
-    private String status;
+    private Status status;
 
     @Lob
     @Column(columnDefinition = "TEXT")
