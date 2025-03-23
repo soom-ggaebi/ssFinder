@@ -2,6 +2,7 @@ package com.ssfinder.domain.auth.dto.response;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.ssfinder.domain.auth.dto.LoginResultType;
 
 /**
  * packageName    : com.ssfinder.domain.auth.dto.response<br>
@@ -20,8 +21,6 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 public record KakaoLoginResponse (
         String accessToken,
         String refreshToken,
-        Long expiresIn // TODO access token 기준인지 refresh token 기준인지?
-){
-
-
-}
+        Long expiresIn,
+        LoginResultType resultType
+){ }
