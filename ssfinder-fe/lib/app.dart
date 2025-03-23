@@ -7,6 +7,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sumsum Finder',
       theme: ThemeData(
+        fontFamily: 'GmarketSans',
         scaffoldBackgroundColor: const Color(0xFFF9FBFD),
         // 앱바의 배경색을 0xFFF9FBFD로 통일 (텍스트와 아이콘은 대비색으로 설정)
         appBarTheme: const AppBarTheme(
