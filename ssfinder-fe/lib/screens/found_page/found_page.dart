@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../widgets/map_widget.dart';
-import './found_items_list.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import './found_item_form.dart';
 import './found_item_filter.dart';
+import 'found_items_list.dart'; // 수정된 FoundItemsList 위젯 import
+import 'package:sumsumfinder/models/found_item_model.dart';
+import 'package:sumsumfinder/service/api_service.dart';
 
 class FoundPage extends StatefulWidget {
   FoundPage({Key? key}) : super(key: key);
@@ -16,11 +18,16 @@ class FoundPage extends StatefulWidget {
 class _FoundPageState extends State<FoundPage> {
   Position? _currentPosition;
   String _searchQuery = "";
+  
+  // 추가: API에서 가져온 데이터와 로딩 상태 변수
+  List<FoundItemModel> foundItems = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _getLocationData();
+    _loadFoundItems(); // 페이지가 생성될 때 API 호출
   }
 
   Future<void> _getLocationData() async {
@@ -30,7 +37,7 @@ class _FoundPageState extends State<FoundPage> {
         _currentPosition = pos;
       });
     } catch (e) {
-      // 에러 처리
+      // 위치 데이터 에러 처리
     }
   }
 
@@ -64,6 +71,25 @@ class _FoundPageState extends State<FoundPage> {
     }
   }
 
+  /// API를 호출하여 습득물 데이터를 가져오는 함수
+  Future<void> _loadFoundItems() async {
+    try {
+      List<FoundItemModel> items = await FoundItemsListApiService.getApiData();
+      setState(() {
+        foundItems = items;
+        isLoading = false;
+      });
+    } catch (e) {
+      // API 호출 실패 시 에러 처리
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('데이터 로딩에 실패했습니다.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,8 +119,11 @@ class _FoundPageState extends State<FoundPage> {
                     }
                   },
                 ),
-          // 하단 드래그 시트 영역
-          const FoundItemsList(),
+          // 하단 드래그 시트 영역: API 데이터 로딩 여부에 따라 처리
+          isLoading
+              ? Center(child: CircularProgressIndicator())
+              : FoundItemsList(foundItems: foundItems),
+          // 검색창 및 필터 버튼 영역
           Positioned(
             top: 48,
             left: 16,
@@ -141,6 +170,7 @@ class _FoundPageState extends State<FoundPage> {
               ),
             ),
           ),
+          // 추가: 등록 버튼
           Positioned(
             top: 48,
             right: 16,
