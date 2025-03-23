@@ -34,50 +34,44 @@ class _ChatListPageState extends State<ChatListPage>
 
   // 채팅 아이템 데이터 목록
   final List<Map<String, dynamic>> chatItems = [
-    // First chat item - AirPods Pro 2
     {
       'itemImage': 'assets/images/airpods.png',
       'item': '에어팟 프로2',
       'nickname': '헷갈리는 포크',
       'time': '17:00',
       'notificationCount': 0,
-      'additionalMessage': '계좌 사진의 날짜 확인할 수 있을까요?',
+      'additionalMessage': '시리얼 넘버 확인할 수 있을까요?',
       'showResponseButton': true,
       'isButtonGreen': true,
       'buttonText': '습득',
       'isGreenTag': false,
-      'tagText': null,
       'id': '1', // 채팅방 식별용 ID 추가
     },
-    // Second chat item - AirPods Pro 2
     {
       'itemImage': 'assets/images/airpods.png',
       'item': '에어팟 프로2',
       'nickname': '흩날리는 청경채',
       'time': '15:30',
       'notificationCount': 2,
-      'additionalMessage': '혹시 상태며 깨끗한 스티커가 붙어있나요?',
+      'additionalMessage': '혹시 상단에 스티커가 붙어있나요?',
       'showResponseButton': true,
       'isButtonGreen': true,
       'buttonText': '습득',
       'isGreenTag': false,
-      'tagText': null,
-      'id': '2', // 채팅방 식별용 ID 추가
+      'id': '2',
     },
-    // Third chat item - iPhone 16
     {
       'itemImage': 'assets/images/chat/iphone_image.png',
       'item': '아이폰 16 틸',
       'nickname': '기어가는 초콜릿',
       'time': '어제',
       'notificationCount': 0,
-      'additionalMessage': '물론요, 그럼 그때 뵙겠습니다 :)',
+      'additionalMessage': '좋아요, 그럼 그때 뵙겠습니다 :)',
       'showResponseButton': true,
       'isButtonGreen': false,
       'buttonText': '분실',
       'isGreenTag': true,
-      'tagText': '초특가',
-      'id': '3', // 채팅방 식별용 ID 추가
+      'id': '3',
     },
   ];
 
@@ -100,10 +94,8 @@ class _ChatListPageState extends State<ChatListPage>
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        title: const Text(
-          '채팅',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
+        shape: Border(bottom: BorderSide(color: Color(0xFF4F4F4F), width: 1)),
+        title: const Text('채팅'),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
@@ -153,14 +145,13 @@ class _ChatListPageState extends State<ChatListPage>
               isButtonGreen: item['isButtonGreen'] as bool,
               buttonText: item['buttonText'] as String,
               isGreenTag: item['isGreenTag'] as bool,
-              tagText: item['tagText'] as String?,
               id: item['id'] as String, // ID 전달
               onTap: () {
                 // 기어가는 초콜릿 채팅방으로 이동
                 if (item['nickname'] == '기어가는 초콜릿') {
                   _navigateToChatRoom(context, item);
                 } else {
-                  // 다른 채팅방으로 이동하는 로직도 구현 가능
+                  // 다른 채팅방으로 이동하는 로직
                   _navigateToChatRoom(context, item);
                 }
               },
@@ -195,7 +186,6 @@ class _ChatListPageState extends State<ChatListPage>
     required bool isButtonGreen,
     required String buttonText,
     bool isGreenTag = false,
-    String? tagText,
     required String id,
     required VoidCallback onTap,
   }) {
@@ -229,10 +219,7 @@ class _ChatListPageState extends State<ChatListPage>
                   ),
                   child: Text(
                     item,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF507BBF),
-                    ),
+                    style: const TextStyle(color: Color(0xFF507BBF)),
                   ),
                 ),
                 const Spacer(),
@@ -259,7 +246,6 @@ class _ChatListPageState extends State<ChatListPage>
                     child: Text(
                       buttonText,
                       style: TextStyle(
-                        fontSize: 12,
                         color: isButtonGreen ? Colors.green : Colors.red,
                       ),
                     ),
@@ -295,7 +281,7 @@ class _ChatListPageState extends State<ChatListPage>
                     children: [
                       Row(
                         children: [
-                          Text(nickname, style: const TextStyle(fontSize: 15)),
+                          Text(nickname),
                           if (nickname == '기어가는 초콜릿')
                             Container(margin: const EdgeInsets.only(left: 8)),
                         ],
@@ -304,10 +290,7 @@ class _ChatListPageState extends State<ChatListPage>
                       if (additionalMessage != null)
                         Text(
                           additionalMessage,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
+                          style: const TextStyle(color: Colors.grey),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -319,10 +302,7 @@ class _ChatListPageState extends State<ChatListPage>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      time,
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
+                    Text(time, style: const TextStyle(color: Colors.grey)),
                     const SizedBox(height: 4),
                     if (notificationCount > 0)
                       Container(

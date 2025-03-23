@@ -24,15 +24,7 @@ class OptionItem extends StatelessWidget {
             bottom: BorderSide(color: Color(0xFFEEEEEE), width: 1),
           ),
         ),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.normal,
-            color: textColor ?? Colors.black87,
-          ),
-          textAlign: TextAlign.center,
-        ),
+        child: Text(text, textAlign: TextAlign.center),
       ),
     );
   }
@@ -84,16 +76,7 @@ class CustomButton extends StatelessWidget {
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(borderRadius),
-          child: Center(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+          child: Center(child: Text(text, style: TextStyle(color: textColor))),
         ),
       ),
     );
