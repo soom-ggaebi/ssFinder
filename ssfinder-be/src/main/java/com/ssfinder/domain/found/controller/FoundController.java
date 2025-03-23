@@ -2,10 +2,12 @@ package com.ssfinder.domain.found.controller;
 
 import com.ssfinder.domain.found.dto.request.FoundItemRegisterRequest;
 import com.ssfinder.domain.found.dto.request.FoundItemUpdateRequest;
+import com.ssfinder.domain.found.dto.response.FoundItemBookmarkResponse;
 import com.ssfinder.domain.found.dto.response.FoundItemDetailResponse;
 import com.ssfinder.domain.found.dto.response.FoundItemRegisterResponse;
 import com.ssfinder.domain.found.dto.response.FoundItemUpdateResponse;
 import com.ssfinder.domain.found.entity.FoundItem;
+import com.ssfinder.domain.found.service.FoundItemBookmarkService;
 import com.ssfinder.domain.found.service.FoundService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.global.common.exception.CustomException;
@@ -35,6 +37,7 @@ import java.util.List;
 public class FoundController {
 
     private final FoundService foundService;
+    private final FoundItemBookmarkService foundItemBookmarkService;
 
     @GetMapping
     public ApiResponse<List<FoundItem>> getLostAll() {
@@ -88,6 +91,44 @@ public class FoundController {
         try {
             foundService.deleteFoundItem(userDetails.getUserId(), foundId);
             return ApiResponse.ok("습득물 정보가 성공적으로 삭제되었습니다.");
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/{foundId}/bookmark")
+    public ApiResponse<?> registerBookmark(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                           @PathVariable Integer foundId) {
+        try {
+            FoundItemBookmarkResponse response = foundItemBookmarkService.registerBookmark(userDetails.getUserId(), foundId);
+            return ApiResponse.created(response);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @DeleteMapping("/bookmark/{bookmarkId}")
+    public ApiResponse<?> deleteBookmark(@RequestAttribute("userDetails") CustomUserDetails userDetails,
+                                         @PathVariable Integer bookmarkId) {
+        try {
+            foundItemBookmarkService.deleteBookmark(userDetails.getUserId(), bookmarkId);
+            return ApiResponse.ok("북마크가 삭제되었습니다.");
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/bookmarks")
+    public ApiResponse<?> getBookmarks(@RequestAttribute("userDetails") CustomUserDetails userDetails) {
+        try {
+            List<FoundItemBookmarkResponse> response = foundItemBookmarkService.getBookmarksByUser(userDetails.getUserId());
+            return ApiResponse.ok(response);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {

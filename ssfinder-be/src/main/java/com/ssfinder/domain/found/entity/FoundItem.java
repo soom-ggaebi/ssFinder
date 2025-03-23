@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @Table(name = "found_item")
 @Getter
 @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PUBLIC)
 @AllArgsConstructor
 @Builder
 public class FoundItem {
