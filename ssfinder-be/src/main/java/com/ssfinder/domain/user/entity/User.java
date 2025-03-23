@@ -62,4 +62,21 @@ public class User {
 
     @Column(name = "my_region")
     private String myRegion;
+
+    // 계정 복구 가능 여부를 확인
+    public boolean isRecoverable() {
+        if (this.deletedAt == null) {
+            return false;
+        }
+
+        LocalDateTime recoverableUntil = this.deletedAt.plusDays(30);
+        return LocalDateTime.now().isBefore(recoverableUntil);
+    }
+
+    // 복구
+    public void recover() {
+        if (isRecoverable()) {
+            this.deletedAt = null;
+        }
+    }
 }
