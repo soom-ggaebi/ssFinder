@@ -11,7 +11,7 @@ import com.ssfinder.domain.lost.repository.LostRepository;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
