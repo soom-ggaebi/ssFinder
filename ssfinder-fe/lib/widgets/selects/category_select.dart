@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 
 class CategorySelect extends StatefulWidget {
   @override
@@ -7,6 +6,7 @@ class CategorySelect extends StatefulWidget {
 }
 
 class _CategorySelectState extends State<CategorySelect> {
+  // 카테고리 목록 (각 항목은 label, icon, 하위 항목 목록을 가지고 있음)
   final List<Map<String, dynamic>> categories = [
     {
       'label': '가방',
@@ -113,16 +113,18 @@ class _CategorySelectState extends State<CategorySelect> {
   /// 현재 선택된 카테고리 인덱스 (없으면 null)
   int? _selectedCategoryIndex;
 
-  /// 선택된 카테고리 내에서 고른 '하위 항목'
+  /// 선택된 카테고리 내의 하위 항목
   String? _selectedSubItem;
 
   @override
   Widget build(BuildContext context) {
-    int columns = 4;
-    int numRows = (categories.length / columns).ceil();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final itemWidth = (screenWidth - 32 - (columns - 1) * 8) / columns;
+    const int columns = 4;
+    final int numRows = (categories.length / columns).ceil();
+    final double screenWidth = MediaQuery.of(context).size.width;
+    // 전체 패딩과 위젯 사이의 간격을 고려하여 각 항목의 너비 계산
+    final double itemWidth = (screenWidth - 32 - (columns - 1) * 8) / columns;
 
+    // 카테고리 그리드 및 하위 항목 위젯을 담을 리스트
     List<Widget> rows = [];
 
     for (int row = 0; row < numRows; row++) {
@@ -130,19 +132,19 @@ class _CategorySelectState extends State<CategorySelect> {
       for (int col = 0; col < columns; col++) {
         int index = row * columns + col;
         if (index >= categories.length) break;
+
         final category = categories[index];
-        final isSelected = (index == _selectedCategoryIndex);
+        final bool isSelected = (index == _selectedCategoryIndex);
 
         rowItems.add(
           GestureDetector(
             onTap: () {
               setState(() {
+                // 이미 선택된 항목을 다시 클릭하면 선택 해제
                 if (isSelected) {
-                  // 이미 선택된 경우 닫기
                   _selectedCategoryIndex = null;
                   _selectedSubItem = null;
                 } else {
-                  // 다른 항목 선택 시 해당 항목 선택, 하위 항목 초기화
                   _selectedCategoryIndex = index;
                   _selectedSubItem = null;
                 }
@@ -151,7 +153,7 @@ class _CategorySelectState extends State<CategorySelect> {
             child: Container(
               width: itemWidth,
               height: 90,
-              margin: EdgeInsets.only(bottom: 8),
+              margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
                 color: isSelected ? Colors.blue : Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
@@ -164,14 +166,13 @@ class _CategorySelectState extends State<CategorySelect> {
                     size: 28,
                     color: isSelected ? Colors.white : Colors.grey[700],
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     category['label'],
                     style: TextStyle(
                       fontSize: 13,
                       color: isSelected ? Colors.white : Colors.black,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -181,7 +182,6 @@ class _CategorySelectState extends State<CategorySelect> {
           ),
         );
       }
-      // 한 행(Row)을 추가
       rows.add(
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -189,7 +189,7 @@ class _CategorySelectState extends State<CategorySelect> {
         ),
       );
 
-      // 만약 이 행에 선택된 항목이 있다면, 그 행 아래에 서브아이템 컨테이너 추가
+      // 만약 해당 행에 선택된 카테고리가 있다면 하위 항목 위젯 추가
       bool rowHasSelected = false;
       int? selectedIndex;
       for (int col = 0; col < columns; col++) {
@@ -206,40 +206,36 @@ class _CategorySelectState extends State<CategorySelect> {
         rows.add(
           Container(
             width: screenWidth - 32,
-            margin: EdgeInsets.only(bottom: 8),
+            margin: const EdgeInsets.only(bottom: 8),
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children:
-                  (selectedCategory['subItems'] as List<String>).map((sub) {
-                    final isSubSelected = (sub == _selectedSubItem);
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedSubItem = sub;
-                        });
-                      },
-                      child: Container(
-                        width: itemWidth,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSubSelected ? Colors.blue : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          sub,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: isSubSelected ? Colors.white : Colors.black,
-                            fontSize: 12,
-                          ),
-                        ),
+              children: (selectedCategory['subItems'] as List<String>).map((sub) {
+                final bool isSubSelected = (sub == _selectedSubItem);
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedSubItem = sub;
+                    });
+                  },
+                  child: Container(
+                    width: itemWidth,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSubSelected ? Colors.blue : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      sub,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isSubSelected ? Colors.white : Colors.black,
+                        fontSize: 12,
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         );
@@ -247,42 +243,50 @@ class _CategorySelectState extends State<CategorySelect> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text('카테고리 선택')),
+      appBar: AppBar(title: const Text('카테고리 선택')),
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Column(
             children: [
-              Text(
-                '어떤 종류의',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                '물건을 습득하셨나요?',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 16),
+              // 스크롤 가능한 영역
               Expanded(
-                child: SingleChildScrollView(child: Column(children: rows)),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const Text(
+                        '주우신 물건의',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      const Text(
+                        '종류를 알려주세요!',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      ...rows,
+                    ],
+                  ),
+                ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
+              // 선택 완료 버튼
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  minimumSize: Size.fromHeight(48),
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                onPressed:
-                    (_selectedCategoryIndex == null || _selectedSubItem == null)
-                        ? null
-                        : () {
-                          final selectedCategory =
-                              categories[_selectedCategoryIndex!]['label'];
-                          final result =
-                              '$selectedCategory > $_selectedSubItem';
-                          Navigator.pop(context, result);
-                        },
-                child: Text('현재 카테고리로 설정'),
+              ),
+                onPressed: (_selectedCategoryIndex == null || _selectedSubItem == null)
+                    ? null
+                    : () {
+                        final selectedCategory = categories[_selectedCategoryIndex!]['label'];
+                        final result = '$selectedCategory > $_selectedSubItem';
+                        Navigator.pop(context, result);
+                      },
+                child: const Text('현재 카테고리로 설정'),
               ),
             ],
           ),

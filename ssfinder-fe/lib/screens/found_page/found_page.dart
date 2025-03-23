@@ -3,6 +3,8 @@ import '../../widgets/map_widget.dart';
 import './found_items_list.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import './found_item_form.dart';
+import './found_item_filter.dart';
 
 class FoundPage extends StatefulWidget {
   FoundPage({Key? key}) : super(key: key);
@@ -39,7 +41,7 @@ class _FoundPageState extends State<FoundPage> {
       List<Location> locations = await locationFromAddress(_searchQuery);
       if (locations.isNotEmpty) {
         Location location = locations.first;
-        // 새 좌표를 기반으로 현재 위치를 업데이트
+        // 새 좌표를 기반으로 현재 위치 업데이트
         setState(() {
           _currentPosition = Position(
             latitude: location.latitude,
@@ -56,9 +58,9 @@ class _FoundPageState extends State<FoundPage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('주소 검색에 실패했습니다.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('주소 검색에 실패했습니다.')),
+      );
     }
   }
 
@@ -67,55 +69,55 @@ class _FoundPageState extends State<FoundPage> {
     return Scaffold(
       body: Stack(
         children: [
+          // 지도 영역: 현재 위치가 있으면 해당 좌표로, 없으면 FutureBuilder로 가져옴.
           _currentPosition != null
               ? MapWidget(
-                latitude: _currentPosition!.latitude,
-                longitude: _currentPosition!.longitude,
-              )
+                  latitude: _currentPosition!.latitude,
+                  longitude: _currentPosition!.longitude,
+                )
               : FutureBuilder<Position>(
-                future: getLocationData(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData &&
-                      snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasData) {
-                    Position pos = snapshot.data!;
-                    return MapWidget(
-                      latitude: pos.latitude,
-                      longitude: pos.longitude,
-                    );
-                  } else {
-                    return MapWidget();
-                  }
-                },
-              ),
-          FoundItemsList(),
-
-          // 상단 검색 창 (돋보기 아이콘이 왼쪽)
+                  future: getLocationData(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData &&
+                        snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasData) {
+                      Position pos = snapshot.data!;
+                      return MapWidget(
+                        latitude: pos.latitude,
+                        longitude: pos.longitude,
+                      );
+                    } else {
+                      return MapWidget();
+                    }
+                  },
+                ),
+          // 하단 드래그 시트 영역
+          const FoundItemsList(),
           Positioned(
             top: 48,
             left: 16,
-            right: 16,
+            right: 80,
             child: Material(
               elevation: 2,
-              borderRadius: BorderRadius.circular(32),
+              borderRadius: BorderRadius.circular(8),
               child: Container(
                 height: 50,
-                padding: EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.search),
+                      icon: const Icon(Icons.search),
                       onPressed: _searchAddress,
                     ),
                     Expanded(
                       child: TextField(
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           hintText: '위치 검색',
                           border: InputBorder.none,
                         ),
@@ -124,7 +126,43 @@ class _FoundPageState extends State<FoundPage> {
                         },
                       ),
                     ),
+                    IconButton(
+                      icon: const Icon(Icons.tune),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => FilterPage()),
+                        );
+                      },
+                    ),
                   ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 48,
+            right: 16,
+            child: Material(
+              elevation: 2,
+              borderRadius: BorderRadius.circular(8),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => FoundItemForm()),
+                  );
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  height: 50,
+                  width: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.add, color: Colors.white),
                 ),
               ),
             ),
@@ -135,7 +173,7 @@ class _FoundPageState extends State<FoundPage> {
   }
 }
 
-/// 기존 위치 데이터 가져오기 함수 (변경 없음)
+/// 위치 데이터 가져오기
 Future<Position> getLocationData() async {
   final isLocationEnabled = await Geolocator.isLocationServiceEnabled();
   if (!isLocationEnabled) {

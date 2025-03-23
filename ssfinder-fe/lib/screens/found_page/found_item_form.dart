@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'category_select.dart';
-import 'color_select.dart';
-import 'location_select.dart';
-import 'date_select.dart';
+import '../../widgets/selects/category_select.dart';
+import '../../widgets/selects/color_select.dart';
+import '../../widgets/selects/location_select.dart';
+import '../../widgets/selects/date_select.dart';
 
 class FoundItemForm extends StatefulWidget {
   @override

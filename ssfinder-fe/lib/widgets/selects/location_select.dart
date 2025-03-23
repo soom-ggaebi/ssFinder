@@ -217,7 +217,7 @@ class _LocationSelectState extends State<LocationSelect> {
                     ),
                     // 도로명
                     Text(
-                      _selectedAddress_street ?? '게시글에는 상세 위치 정보는 공개하지 않습니다.',
+                      _selectedAddress_street ?? '게시글에는 상세 위치 정보를 공개하지 않습니다.',
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     SizedBox(height: 4),

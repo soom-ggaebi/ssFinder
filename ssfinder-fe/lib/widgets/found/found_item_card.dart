@@ -1,22 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:sumsumfinder/models/found_item_model.dart';
 
 class FoundItemCard extends StatelessWidget {
-  final String photo;
-  final String category;
-  final String itemName;
-  final String source;
-  final String foundLocation;
-  final String createdTime;
+  final FoundItemModel item;
 
-  const FoundItemCard({
-    required this.photo,
-    required this.category,
-    required this.itemName,
-    required this.source,
-    required this.foundLocation,
-    required this.createdTime,
-    Key? key,
-  }) : super(key: key);
+  const FoundItemCard({Key? key, required this.item}) : super(key: key);
 
   String extractLocation(String location) {
     List<String> parts = location.split(" ");
@@ -25,14 +13,14 @@ class FoundItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String extractedLocation = extractLocation(foundLocation);
+    String extractedLocation = extractLocation(item.foundLocation);
 
     return Row(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(8.0),
           child: Image.asset(
-            'assets/images/founditem.png',
+            item.photo,
             width: 100,
             height: 100,
             fit: BoxFit.cover,
@@ -44,30 +32,30 @@ class FoundItemCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                category,
+                item.category,
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               Text(
-                itemName,
+                item.itemName,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                   color: Colors.black,
                 ),
               ),
-              Text(source),
+              Text(item.source),
               Row(
                 children: [
                   Text(
                     extractedLocation,
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
-                  Text(
+                  const Text(
                     ' ⋅ ',
                     style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                   Text(
-                    createdTime,
+                    item.createdTime,
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],
