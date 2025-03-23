@@ -3,6 +3,8 @@ package com.ssfinder.domain.lost.repository;
 import com.ssfinder.domain.lost.entity.LostItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 /**
  * packageName    : com.ssfinder.domain.lost.repository<br>
  * fileName       : LostRepository.java<br>
@@ -16,4 +18,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * <br>
  */
 public interface LostRepository extends JpaRepository<LostItem, Integer> {
+    List<LostItem> findAllByUser_Id(int userId);
 }

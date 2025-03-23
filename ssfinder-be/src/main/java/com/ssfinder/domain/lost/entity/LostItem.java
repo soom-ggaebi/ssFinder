@@ -43,7 +43,7 @@ public class LostItem {
     @Column(length = 100, nullable = false)
     private String title;
 
-    @Column(length = 10, nullable = false)
+    @Column(length = 20, nullable = false)
     private String color;
 
     @Column(name = "lost_at", nullable = false)
@@ -56,11 +56,12 @@ public class LostItem {
     @Column(columnDefinition = "TEXT")
     private String detail;
 
-    @Column(length = 100)
+    @Column(length = 255)
     private String image;
 
     @Column(length = 5, nullable = false)
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private Status status=Status.LOST;
 
     @Column(name = "created_at", nullable = false)

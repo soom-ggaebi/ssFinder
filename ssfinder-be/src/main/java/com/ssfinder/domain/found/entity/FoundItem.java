@@ -49,7 +49,7 @@ public class FoundItem {
     @Column(nullable = false, length = 100)
     private String location;
 
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 20)
     private String color;
 
     @Column(nullable = false, length = 11)
