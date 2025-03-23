@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import './main_page/main_page.dart';
 import './lost_page/lost_page.dart';
 import './found_page/found_page.dart';
-import './chat/chat_page.dart';
+import 'package:sumsumfinder/screens/chat/chat_page.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 
 class HomePage extends StatefulWidget {
