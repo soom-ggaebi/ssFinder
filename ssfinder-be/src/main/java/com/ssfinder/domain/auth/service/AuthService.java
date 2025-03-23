@@ -1,11 +1,13 @@
 package com.ssfinder.domain.auth.service;
 
+import com.ssfinder.domain.auth.dto.LoginResultType;
 import com.ssfinder.domain.auth.dto.TokenPair;
 import com.ssfinder.domain.auth.dto.request.KakaoLoginRequest;
 import com.ssfinder.domain.auth.dto.request.RefreshTokenRequest;
 import com.ssfinder.domain.auth.dto.response.KakaoLoginResponse;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.repository.UserRepository;
+import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import com.ssfinder.global.converter.PhoneNumberEncryptConverter;
@@ -14,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 /**
  * packageName    : com.ssfinder.domain.auth.service<br>
@@ -35,19 +39,46 @@ public class AuthService {
     private final UserRepository userRepository;
     private final TokenService tokenService;
     private final PhoneNumberEncryptConverter phoneNumberEncryptConverter;
+    private final UserService userService;
 
     @Value("${jwt.access-token-validity}")
     private long accessTokenValidity;
 
     public KakaoLoginResponse kakaoLoginOrRegister(KakaoLoginRequest kakaoLoginRequest) {
-        User user = userRepository.findByProviderId(kakaoLoginRequest.providerId())
-                .map(existingUser -> updateKakaoUserInfo(existingUser, kakaoLoginRequest))
-                .orElseGet(() -> registerUser(kakaoLoginRequest));
+        // providerId로 기존 사용자 검색
+        Optional<User> existingUserOpt = userRepository.findByProviderId(kakaoLoginRequest.providerId());
 
-        // redis 토큰 발급
+        User user;
+        LoginResultType resultType;
+
+        if (existingUserOpt.isPresent()) {
+            resultType = LoginResultType.ALREADY_ACTIVE;
+            User existingUser = existingUserOpt.get();
+
+            if (existingUser.getDeletedAt() != null) {
+                if (existingUser.isRecoverable()) { // 복구 가능
+                    resultType = LoginResultType.RECOVERED;
+                    existingUser.recover();
+                } else { // 복구 불가능
+                    resultType = LoginResultType.EXPIRED;
+                    userRepository.delete(existingUser);
+                    user = registerUser(kakaoLoginRequest);
+
+                    // 토큰 발급 및 반환
+                    TokenPair tokenPair = tokenService.generateTokens(user.getId());
+                    return new KakaoLoginResponse(tokenPair.accessToken(), tokenPair.refreshToken(), accessTokenValidity, resultType);
+                }
+            }
+            user = updateKakaoUserInfo(existingUser, kakaoLoginRequest);
+        } else {
+            resultType = LoginResultType.NEW_ACCOUNT;
+            user = registerUser(kakaoLoginRequest);
+        }
+
+        // 토큰 발급
         TokenPair tokenPair = tokenService.generateTokens(user.getId());
 
-        return new KakaoLoginResponse(tokenPair.accessToken(), tokenPair.refreshToken(), accessTokenValidity);
+        return new KakaoLoginResponse(tokenPair.accessToken(), tokenPair.refreshToken(), accessTokenValidity, resultType);
     }
 
 
@@ -88,6 +119,12 @@ public class AuthService {
         }
 
         int userId = tokenService.getUserIdFromToken(refreshToken);
+
+        // 탈퇴한 사용자인지 확인
+        User user = userService.findUserById(userId);
+        if (user.getDeletedAt() != null) {
+            throw new CustomException(ErrorCode.USER_DELETED);
+        }
 
         // Redis 저장된 값과 비교
         String storedRefreshToken = tokenService.getRefreshToken(userId);
