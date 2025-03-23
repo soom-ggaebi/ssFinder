@@ -49,7 +49,7 @@ class _ChatScreenState extends State<ChatPage> {
 
     _scrollToBottom();
 
-    // 테스트를 위한 자동 응답 (실제로는 서버와 통신 로직으로 대체)
+    // 테스트를 위한 자동 응답
     Future.delayed(const Duration(seconds: 1), () {
       setState(() {
         _messages.add(
@@ -112,12 +112,14 @@ class _ChatScreenState extends State<ChatPage> {
             children: [
               ChatAppBar(
                 title: '기어가는 초콜릿',
-                onBackPressed: () {},
+                onBackPressed: () {
+                  Navigator.pop(context);
+                },
                 onMorePressed: () {},
               ),
               ProductInfoWidget(),
               InfoBannerWidget(otherUserId: "기어가는 초콜릿", myId: "기다리는 토마토"),
-              DateDividerWidget(date: '3월 13일'),
+              DateDividerWidget(date: '3월 23일'),
               Expanded(
                 child: ChatMessagesList(
                   messages: _messages,
