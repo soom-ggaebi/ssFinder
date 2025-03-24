@@ -37,6 +37,7 @@ dependencies:
   google_maps_flutter: ^2.10.1
   geolocator: ^13.0.2
   geocoding: ^3.0.0
+  image_picker: ^1.0.0
 
   flutter_polyline_points: ^2.1.0
 
@@ -73,7 +74,8 @@ flutter:
     - assets/images/
     - assets/images/navBar/
     - assets/found_items_list_dummy_data.json
-
+    - assets/images/chat/
+    - assets/images/main/
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
