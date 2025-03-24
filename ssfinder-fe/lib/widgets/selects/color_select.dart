@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 
 class ColorSelect extends StatefulWidget {
+  final String headerLine1;
+  final String headerLine2;
+
+  const ColorSelect({
+    Key? key,
+    required this.headerLine1,
+    required this.headerLine2,
+  }) : super(key: key);
+
   @override
   _ColorSelectState createState() => _ColorSelectState();
 }
@@ -41,19 +50,22 @@ class _ColorSelectState extends State<ColorSelect> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      const Text(
-                        '주우신 물건의',
-                        style: TextStyle(
+                      const SizedBox(height: 16),
+                      Text(
+                        widget.headerLine1,
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
+                        textAlign: TextAlign.center,
                       ),
-                      const Text(
-                        '색상을 알려주세요!',
-                        style: TextStyle(
+                      Text(
+                        widget.headerLine2,
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
                       Container(
@@ -68,11 +80,11 @@ class _ColorSelectState extends State<ColorSelect> {
                           itemCount: colorOptions.length,
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3, // 한 줄에 3개씩 표시
-                            mainAxisSpacing: 12, // 세로 간격
-                            crossAxisSpacing: 12, // 가로 간격
-                            childAspectRatio: 1, // 아이템의 가로세로 비율
-                          ),
+                                crossAxisCount: 3, // 한 줄에 3개씩 표시
+                                mainAxisSpacing: 3, // 세로 간격
+                                crossAxisSpacing: 3, // 가로 간격
+                                childAspectRatio: 1, // 아이템의 가로세로 비율
+                              ),
                           itemBuilder: (context, index) {
                             final colorOption = colorOptions[index];
                             final label = colorOption['label'] as String;
@@ -92,34 +104,39 @@ class _ColorSelectState extends State<ColorSelect> {
                                   // 선택된 경우에는 무지개 그라데이션 테두리 적용
                                   isSelected
                                       ? Container(
-                                          width: 100,
-                                          height: 75,
-                                          decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              colors: [
-                                                Colors.red,
-                                                Colors.orange,
-                                                Colors.yellow,
-                                                Colors.green,
-                                                Colors.blue,
-                                                Colors.indigo,
-                                                Colors.purple,
-                                              ],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            ),
-                                            borderRadius:
-                                                BorderRadius.circular(50.0),
+                                        width: 100,
+                                        height: 75,
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [
+                                              Colors.red,
+                                              Colors.orange,
+                                              Colors.yellow,
+                                              Colors.green,
+                                              Colors.blue,
+                                              Colors.indigo,
+                                              Colors.purple,
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
                                           ),
-                                          padding: const EdgeInsets.all(5), // 테두리 두께
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              // '기타' 옵션인 경우 그라데이션 적용, 그 외에는 기존 색상 적용
-                                              color: label == '기타'
-                                                  ? null
-                                                  : colorValue,
-                                              gradient: label == '기타'
-                                                  ? const LinearGradient(
+                                          borderRadius: BorderRadius.circular(
+                                            50.0,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.all(
+                                          5,
+                                        ), // 테두리 두께
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            // '기타' 옵션인 경우 그라데이션 적용, 그 외에는 기존 색상 적용
+                                            color:
+                                                label == '기타'
+                                                    ? null
+                                                    : colorValue,
+                                            gradient:
+                                                label == '기타'
+                                                    ? const LinearGradient(
                                                       colors: [
                                                         Colors.red,
                                                         Colors.orange,
@@ -130,25 +147,27 @@ class _ColorSelectState extends State<ColorSelect> {
                                                         Colors.purple,
                                                       ],
                                                       begin: Alignment.topLeft,
-                                                      end: Alignment.bottomRight,
+                                                      end:
+                                                          Alignment.bottomRight,
                                                     )
-                                                  : null,
-                                              borderRadius:
-                                                  BorderRadius.circular(45.0),
+                                                    : null,
+                                            borderRadius: BorderRadius.circular(
+                                              45.0,
                                             ),
                                           ),
-                                        )
+                                        ),
+                                      )
                                       : Container(
-                                          width: 100,
-                                          height: 75,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.rectangle,
-                                            // '기타' 옵션은 그라데이션 적용
-                                            color: label == '기타'
-                                                ? null
-                                                : colorValue,
-                                            gradient: label == '기타'
-                                                ? const LinearGradient(
+                                        width: 100,
+                                        height: 75,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.rectangle,
+                                          // '기타' 옵션은 그라데이션 적용
+                                          color:
+                                              label == '기타' ? null : colorValue,
+                                          gradient:
+                                              label == '기타'
+                                                  ? const LinearGradient(
                                                     colors: [
                                                       Colors.red,
                                                       Colors.orange,
@@ -161,18 +180,17 @@ class _ColorSelectState extends State<ColorSelect> {
                                                     begin: Alignment.topLeft,
                                                     end: Alignment.bottomRight,
                                                   )
-                                                : null,
-                                            borderRadius:
-                                                BorderRadius.circular(50.0),
+                                                  : null,
+                                          borderRadius: BorderRadius.circular(
+                                            50.0,
                                           ),
                                         ),
+                                      ),
                                   const SizedBox(height: 8),
                                   Text(
                                     label,
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                    ),
+                                    style: const TextStyle(fontSize: 14),
                                   ),
                                 ],
                               ),
@@ -195,13 +213,15 @@ class _ColorSelectState extends State<ColorSelect> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: _selectedColorLabel == null
-                    ? null
-                    : () {
-                        Navigator.pop(context, _selectedColorLabel);
-                      },
+                onPressed:
+                    _selectedColorLabel == null
+                        ? null
+                        : () {
+                          Navigator.pop(context, _selectedColorLabel);
+                        },
                 child: const Text('현재 색상으로 설정'),
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),

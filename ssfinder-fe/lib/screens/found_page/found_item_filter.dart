@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// 아래 네 개는 예시로, 실제로 존재하는 Select 페이지들을 import한다고 가정합니다.
 import '../../widgets/selects/category_select.dart';
 import '../../widgets/selects/color_select.dart';
 import '../../widgets/selects/location_select.dart';
@@ -95,7 +94,13 @@ class _FilterPageState extends State<FilterPage> {
                       onTap: () async {
                         final result = await Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => DateSelect()),
+                          MaterialPageRoute(
+                            builder:
+                                (_) => DateSelect(
+                                  headerLine1: '찾으시는',
+                                  headerLine2: '날짜를 알려주세요!',
+                                ),
+                          ),
                         );
                         if (result != null) {
                           setState(() {
@@ -114,7 +119,13 @@ class _FilterPageState extends State<FilterPage> {
                       onTap: () async {
                         final result = await Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => CategorySelect()),
+                          MaterialPageRoute(
+                            builder:
+                                (_) => CategorySelect(
+                                  headerLine1: '찾으시는 물건의',
+                                  headerLine2: '종류를 알려주세요!',
+                                ),
+                          ),
                         );
                         if (result != null) {
                           setState(() {
@@ -133,7 +144,13 @@ class _FilterPageState extends State<FilterPage> {
                       onTap: () async {
                         final result = await Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => ColorSelect()),
+                          MaterialPageRoute(
+                            builder:
+                                (_) => ColorSelect(
+                                  headerLine1: '찾으시는 물건의',
+                                  headerLine2: '색상을 알려주세요!',
+                                ),
+                          ),
                         );
                         if (result != null) {
                           setState(() {
@@ -250,10 +267,7 @@ class _FilterPageState extends State<FilterPage> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-      ),
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
     );
   }
 

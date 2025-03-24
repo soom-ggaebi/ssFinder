@@ -43,7 +43,7 @@ class FoundItemDetailPolice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('상세정보')),
+      appBar: AppBar(title: Text('습득 상세 정보')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -87,7 +87,7 @@ class FoundItemDetailPolice extends StatelessWidget {
             const SizedBox(height: 16),
             // 색상 정보
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
               decoration: BoxDecoration(
                 color: getBackgroundColor(item.color),
                 borderRadius: BorderRadius.circular(50.0),
