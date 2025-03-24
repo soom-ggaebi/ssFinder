@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 
 class CategorySelect extends StatefulWidget {
+  final String headerLine1;
+  final String headerLine2;
+
+  const CategorySelect({
+    Key? key,
+    required this.headerLine1,
+    required this.headerLine2,
+  }) : super(key: key);
+
   @override
   _CategorySelectState createState() => _CategorySelectState();
 }
@@ -172,7 +181,8 @@ class _CategorySelectState extends State<CategorySelect> {
                     style: TextStyle(
                       fontSize: 13,
                       color: isSelected ? Colors.white : Colors.black,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -210,32 +220,36 @@ class _CategorySelectState extends State<CategorySelect> {
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: (selectedCategory['subItems'] as List<String>).map((sub) {
-                final bool isSubSelected = (sub == _selectedSubItem);
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedSubItem = sub;
-                    });
-                  },
-                  child: Container(
-                    width: itemWidth,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isSubSelected ? Colors.blue : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      sub,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isSubSelected ? Colors.white : Colors.black,
-                        fontSize: 12,
+              children:
+                  (selectedCategory['subItems'] as List<String>).map((sub) {
+                    final bool isSubSelected = (sub == _selectedSubItem);
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedSubItem = sub;
+                        });
+                      },
+                      child: Container(
+                        width: itemWidth,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSubSelected ? Colors.blue : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          sub,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isSubSelected ? Colors.white : Colors.black,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
           ),
         );
@@ -254,13 +268,22 @@ class _CategorySelectState extends State<CategorySelect> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      const Text(
-                        '주우신 물건의',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      const SizedBox(height: 16),
+                      Text(
+                        widget.headerLine1,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      const Text(
-                        '종류를 알려주세요!',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      Text(
+                        widget.headerLine2,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
                       ...rows,
@@ -272,22 +295,26 @@ class _CategorySelectState extends State<CategorySelect> {
               // 선택 완료 버튼
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-              ),
-                onPressed: (_selectedCategoryIndex == null || _selectedSubItem == null)
-                    ? null
-                    : () {
-                        final selectedCategory = categories[_selectedCategoryIndex!]['label'];
-                        final result = '$selectedCategory > $_selectedSubItem';
-                        Navigator.pop(context, result);
-                      },
+                onPressed:
+                    (_selectedCategoryIndex == null || _selectedSubItem == null)
+                        ? null
+                        : () {
+                          final selectedCategory =
+                              categories[_selectedCategoryIndex!]['label'];
+                          final result =
+                              '$selectedCategory > $_selectedSubItem';
+                          Navigator.pop(context, result);
+                        },
                 child: const Text('현재 카테고리로 설정'),
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),

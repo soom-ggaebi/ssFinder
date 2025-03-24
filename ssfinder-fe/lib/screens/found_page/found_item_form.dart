@@ -86,7 +86,13 @@ class _FoundItemFormState extends State<FoundItemForm> {
               onTap: () async {
                 final result = await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => CategorySelect()),
+                  MaterialPageRoute(
+                    builder:
+                        (_) => CategorySelect(
+                          headerLine1: '주우신 물건의',
+                          headerLine2: '종류를 알려주세요!',
+                        ),
+                  ),
                 );
                 if (result != null) {
                   setState(() {
@@ -105,7 +111,13 @@ class _FoundItemFormState extends State<FoundItemForm> {
               onTap: () async {
                 final result = await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => ColorSelect()),
+                  MaterialPageRoute(
+                    builder:
+                        (_) => ColorSelect(
+                          headerLine1: '주우신 물건의',
+                          headerLine2: '색상을 알려주세요!',
+                        ),
+                  ),
                 );
                 if (result != null) {
                   setState(() {
@@ -143,7 +155,13 @@ class _FoundItemFormState extends State<FoundItemForm> {
               onTap: () async {
                 final result = await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => DateSelect()),
+                  MaterialPageRoute(
+                    builder:
+                        (_) => DateSelect(
+                          headerLine1: '물건을 주우신',
+                          headerLine2: '날짜를 알려주세요!',
+                        ),
+                  ),
                 );
                 if (result != null) {
                   setState(() {
