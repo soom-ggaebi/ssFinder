@@ -43,7 +43,12 @@ class FoundItemDetailPolice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('습득 상세 정보')),
+      appBar: AppBar(
+        title: Text(
+          '습득 상세 정보',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -67,7 +72,10 @@ class FoundItemDetailPolice extends StatelessWidget {
                   left: 16,
                   bottom: 16,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(8),
@@ -114,7 +122,11 @@ class FoundItemDetailPolice extends StatelessWidget {
                     children: [
                       Text(
                         item.itemName,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -130,7 +142,9 @@ class FoundItemDetailPolice extends StatelessWidget {
                     backgroundColor: Colors.blueGrey,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(80, 40),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   onPressed: () {
                     // 전화하기 로직 구현
@@ -141,10 +155,7 @@ class FoundItemDetailPolice extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             // 설명
-            Text(
-              item.description,
-              style: const TextStyle(fontSize: 14),
-            ),
+            Text(item.description, style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 16),
             // 습득 일자와 습득 장소 행
             Row(
@@ -160,14 +171,23 @@ class FoundItemDetailPolice extends StatelessWidget {
                           borderRadius: BorderRadius.circular(50.0),
                         ),
                         child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          child: Text('습득 일자', style: TextStyle(fontSize: 14, color: Colors.blue)),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          child: Text(
+                            '습득 일자',
+                            style: TextStyle(fontSize: 14, color: Colors.blue),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Padding(
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: Text(item.foundDate, style: const TextStyle(fontSize: 14)),
+                        child: Text(
+                          item.foundDate,
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       ),
                     ],
                   ),
@@ -184,14 +204,23 @@ class FoundItemDetailPolice extends StatelessWidget {
                           borderRadius: BorderRadius.circular(50.0),
                         ),
                         child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          child: Text('습득 장소', style: TextStyle(fontSize: 14, color: Colors.blue)),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          child: Text(
+                            '습득 장소',
+                            style: TextStyle(fontSize: 14, color: Colors.blue),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Padding(
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: Text(extractLocation(item.foundLocation), style: const TextStyle(fontSize: 14)),
+                        child: Text(
+                          extractLocation(item.foundLocation),
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       ),
                     ],
                   ),
@@ -210,7 +239,10 @@ class FoundItemDetailPolice extends StatelessWidget {
                   ),
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Text('보관 장소', style: TextStyle(fontSize: 14, color: Colors.blue)),
+                    child: Text(
+                      '보관 장소',
+                      style: TextStyle(fontSize: 14, color: Colors.blue),
+                    ),
                   ),
                 ),
                 Row(
@@ -219,7 +251,11 @@ class FoundItemDetailPolice extends StatelessWidget {
                       item.storageLocation!,
                       style: const TextStyle(fontSize: 14),
                     ),
-                    const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+                    const Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
                   ],
                 ),
               ],

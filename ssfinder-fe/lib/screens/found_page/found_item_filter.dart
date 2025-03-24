@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sumsumfinder/widgets/selects/storage_location.dart';
 import '../../widgets/selects/category_select.dart';
 import '../../widgets/selects/color_select.dart';
 import '../../widgets/selects/location_select.dart';
@@ -34,159 +35,164 @@ class _FilterPageState extends State<FilterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            // 상단 헤더
-            _buildHeader(context),
-            // 본문 스크롤 가능 영역
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildStateSelector(),
-                    const SizedBox(height: 16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // 상단 헤더
+              _buildHeader(context),
+              // 본문 스크롤 가능 영역
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildLabel('상태'),
+                      const SizedBox(height: 8),
+                      _buildStateSelector(),
+                      const SizedBox(height: 16),
 
-                    _buildLabel('보관 장소'),
-                    const SizedBox(height: 8),
-                    _buildSelectionItem(
-                      value: _storageLocation ?? '',
-                      hintText: '보관 장소를 선택하세요',
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => LocationSelect()),
-                        );
-                        if (result != null) {
-                          setState(() {
-                            _storageLocation = result;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildLabel('습득 장소'),
-                    const SizedBox(height: 8),
-                    _buildSelectionItem(
-                      value: _foundLocation ?? '',
-                      hintText: '습득 장소를 선택하세요',
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => LocationSelect()),
-                        );
-                        if (result != null) {
-                          setState(() {
-                            _foundLocation = result;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildLabel('습득 일자'),
-                    const SizedBox(height: 8),
-                    _buildSelectionItem(
-                      value: _foundDate ?? '',
-                      hintText: '습득 일자를 선택하세요',
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) => DateSelect(
-                                  headerLine1: '찾으시는',
-                                  headerLine2: '날짜를 알려주세요!',
-                                ),
-                          ),
-                        );
-                        if (result != null) {
-                          setState(() {
-                            _foundDate = result;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildLabel('카테고리'),
-                    const SizedBox(height: 8),
-                    _buildSelectionItem(
-                      value: _selectedCategory ?? '',
-                      hintText: '카테고리를 선택하세요',
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) => CategorySelect(
-                                  headerLine1: '찾으시는 물건의',
-                                  headerLine2: '종류를 알려주세요!',
-                                ),
-                          ),
-                        );
-                        if (result != null) {
-                          setState(() {
-                            _selectedCategory = result;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildLabel('색상'),
-                    const SizedBox(height: 8),
-                    _buildSelectionItem(
-                      value: _selectedColor ?? '',
-                      hintText: '색상을 선택하세요',
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) => ColorSelect(
-                                  headerLine1: '찾으시는 물건의',
-                                  headerLine2: '색상을 알려주세요!',
-                                ),
-                          ),
-                        );
-                        if (result != null) {
-                          setState(() {
-                            _selectedColor = result;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                      _buildLabel('보관 장소'),
+                      const SizedBox(height: 8),
+                      _buildSelectionItem(
+                        value: _storageLocation ?? '',
+                        hintText: '보관 장소를 선택하세요',
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => StorageLocation(),
+                            ),
+                          );
+                          if (result != null) {
+                            setState(() {
+                              _storageLocation = result;
+                            });
+                          }
+                        },
                       ),
-                      onPressed: () {
-                        Navigator.pop(context, {
-                          'state': _selectedState,
-                          'storageLocation': _storageLocation,
-                          'foundLocation': _foundLocation,
-                          'foundDate': _foundDate,
-                          'category': _selectedCategory,
-                          'color': _selectedColor,
-                        });
-                      },
-                      child: const Text('필터 적용'),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+
+                      _buildLabel('습득 장소'),
+                      const SizedBox(height: 8),
+                      _buildSelectionItem(
+                        value: _foundLocation ?? '',
+                        hintText: '습득 장소를 선택하세요',
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => LocationSelect()),
+                          );
+                          if (result != null) {
+                            setState(() {
+                              _foundLocation = result;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildLabel('습득 일자'),
+                      const SizedBox(height: 8),
+                      _buildSelectionItem(
+                        value: _foundDate ?? '',
+                        hintText: '습득 일자를 선택하세요',
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => DateSelect(
+                                    headerLine1: '찾으시는',
+                                    headerLine2: '날짜를 알려주세요!',
+                                  ),
+                            ),
+                          );
+                          if (result != null) {
+                            setState(() {
+                              _foundDate = result;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildLabel('카테고리'),
+                      const SizedBox(height: 8),
+                      _buildSelectionItem(
+                        value: _selectedCategory ?? '',
+                        hintText: '카테고리를 선택하세요',
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => CategorySelect(
+                                    headerLine1: '찾으시는 물건의',
+                                    headerLine2: '종류를 알려주세요!',
+                                  ),
+                            ),
+                          );
+                          if (result != null) {
+                            setState(() {
+                              _selectedCategory = result;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildLabel('색상'),
+                      const SizedBox(height: 8),
+                      _buildSelectionItem(
+                        value: _selectedColor ?? '',
+                        hintText: '색상을 선택하세요',
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => ColorSelect(
+                                    headerLine1: '찾으시는 물건의',
+                                    headerLine2: '색상을 알려주세요!',
+                                  ),
+                            ),
+                          );
+                          if (result != null) {
+                            setState(() {
+                              _selectedColor = result;
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(context, {
+                    'state': _selectedState,
+                    'storageLocation': _storageLocation,
+                    'foundLocation': _foundLocation,
+                    'foundDate': _foundDate,
+                    'category': _selectedCategory,
+                    'color': _selectedColor,
+                  });
+                },
+                child: const Text('필터 적용'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -196,7 +202,6 @@ class _FilterPageState extends State<FilterPage> {
   Widget _buildHeader(BuildContext context) {
     return Container(
       height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           const SizedBox(width: 48),
@@ -223,13 +228,20 @@ class _FilterPageState extends State<FilterPage> {
 
   /// 상태(전체, 보관중, 전달완료)
   Widget _buildStateSelector() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildStateButton('전체'),
-        _buildStateButton('보관중'),
-        _buildStateButton('전달완료'),
-      ],
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildStateButton('전체'),
+          _buildStateButton('보관중'),
+          _buildStateButton('전달완료'),
+        ],
+      ),
     );
   }
 

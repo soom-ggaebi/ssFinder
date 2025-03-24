@@ -90,7 +90,10 @@ class _DateSelectState extends State<DateSelect> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isRangeSelection ? '분실기간 선택' : '습득일자 선택'),
+        title: Text(
+          widget.isRangeSelection ? '분실기간 선택' : '습득일자 선택',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
       ),
       body: SafeArea(
         child: Padding(

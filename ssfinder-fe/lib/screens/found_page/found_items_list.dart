@@ -13,13 +13,13 @@ class FoundItemsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
       // 초기 높이, 최소 높이, 최대 높이
-      initialChildSize: 0.05,
-      minChildSize: 0.05,
+      initialChildSize: 0.04,
+      minChildSize: 0.04,
       maxChildSize: 0.8,
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Color(0xFFF9FBFD),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(16.0),
               topRight: Radius.circular(16.0),
@@ -39,9 +39,11 @@ class FoundItemsList extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => item.source == '경찰청'
-                          ? FoundItemDetailPolice(item: item)
-                          : FoundItemDetailSumsumfinder(item: item),
+                      builder:
+                          (_) =>
+                              item.source == '경찰청'
+                                  ? FoundItemDetailPolice(item: item)
+                                  : FoundItemDetailSumsumfinder(item: item),
                     ),
                   );
                 },

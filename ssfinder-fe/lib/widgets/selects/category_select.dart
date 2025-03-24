@@ -257,7 +257,12 @@ class _CategorySelectState extends State<CategorySelect> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('카테고리 선택')),
+      appBar: AppBar(
+        title: const Text(
+          '카테고리 선택',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),

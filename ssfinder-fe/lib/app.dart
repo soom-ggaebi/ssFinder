@@ -5,11 +5,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const Color textColor = Color(0xFF3D3D3D);
+    const Color backgroundColor = Color(0xFFF9FBFD);
 
     return MaterialApp(
       title: 'Sumsum Finder',
       theme: ThemeData(
         fontFamily: 'GmarketSans',
+        scaffoldBackgroundColor: backgroundColor,
 
         // 모든 텍스트에 기본 폰트 크기 12 적용
         textTheme: TextTheme(
@@ -20,13 +22,19 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        // 앱바 텍스트에도 적용
+        // 앱바
         appBarTheme: const AppBarTheme(
+          backgroundColor: backgroundColor,
           titleTextStyle: TextStyle(
             fontFamily: 'GmarketSans',
             fontSize: 12,
             color: textColor,
           ),
+        ),
+
+        // 하단바
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: backgroundColor,
         ),
 
         // 기타 설정
