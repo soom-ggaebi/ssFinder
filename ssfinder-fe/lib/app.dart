@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'screens/home_page.dart';
+import 'screens/home_page.dart'; // 경로는 실제 프로젝트에 맞게 조정하세요
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    const Color textColor = Color(0xFF3D3D3D);
+
     return MaterialApp(
       title: 'Sumsum Finder',
       theme: ThemeData(
