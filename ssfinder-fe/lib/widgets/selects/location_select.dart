@@ -106,7 +106,12 @@ class _LocationSelectState extends State<LocationSelect> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('습득장소 선택')),
+      appBar: AppBar(
+        title: Text(
+          '습득장소 선택',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: SafeArea(
         child: Stack(
           children: [

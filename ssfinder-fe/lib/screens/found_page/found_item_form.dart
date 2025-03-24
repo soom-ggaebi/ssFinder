@@ -29,7 +29,12 @@ class _FoundItemFormState extends State<FoundItemForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('습득물 등록하기')),
+      appBar: AppBar(
+        title: Text(
+          '습득물 등록하기',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(

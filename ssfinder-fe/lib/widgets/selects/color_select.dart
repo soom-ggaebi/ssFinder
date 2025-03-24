@@ -39,7 +39,12 @@ class _ColorSelectState extends State<ColorSelect> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('색상 선택')),
+      appBar: AppBar(
+        title: const Text(
+          '색상 선택',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),

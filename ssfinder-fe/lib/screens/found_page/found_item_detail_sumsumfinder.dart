@@ -4,7 +4,8 @@ import 'package:sumsumfinder/models/found_item_model.dart';
 class FoundItemDetailSumsumfinder extends StatelessWidget {
   final FoundItemModel item;
 
-  const FoundItemDetailSumsumfinder({Key? key, required this.item}) : super(key: key);
+  const FoundItemDetailSumsumfinder({Key? key, required this.item})
+    : super(key: key);
 
   // 색상 이름에 따른 배경색 반환 함수
   Color getBackgroundColor(String colorName) {
@@ -43,7 +44,12 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('습득 상세 정보')),
+      appBar: AppBar(
+        title: Text(
+          '습득 상세 정보',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -68,14 +74,21 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                   left: 16,
                   bottom: 16,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.blue[50],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
                       '숨숨파인더',
-                      style: TextStyle(fontSize: 14, color: Colors.blue, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -110,21 +123,34 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                     children: [
                       Text(
                         item.itemName,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
                       Row(
                         children: [
                           Text(
                             extractLocation(item.foundLocation),
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
                           ),
                           Text(
                             ' · ',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
                           ),
                           Text(
                             item.createdTime,
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
                       ),
@@ -150,10 +176,7 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             // 설명
-            Text(
-              item.description,
-              style: const TextStyle(fontSize: 14),
-            ),
+            Text(item.description, style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 16),
             // 습득 일자 및 습득 장소
             Container(
@@ -162,7 +185,10 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                 color: Colors.blue[100],
                 borderRadius: BorderRadius.circular(50.0),
               ),
-              child: const Text('습득 일자', style: TextStyle(fontSize: 14, color: Colors.blue)),
+              child: const Text(
+                '습득 일자',
+                style: TextStyle(fontSize: 14, color: Colors.blue),
+              ),
             ),
             const SizedBox(height: 8),
             Padding(
@@ -176,7 +202,10 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                 color: Colors.blue[100],
                 borderRadius: BorderRadius.circular(50.0),
               ),
-              child: const Text('습득 장소', style: TextStyle(fontSize: 14, color: Colors.blue)),
+              child: const Text(
+                '습득 장소',
+                style: TextStyle(fontSize: 14, color: Colors.blue),
+              ),
             ),
             const SizedBox(height: 8),
             // 습득 장소 지도 영역
@@ -184,7 +213,9 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
               height: 200,
               width: double.infinity,
               color: Colors.grey[200],
-              child: const Center(child: Text('습득 장소 지도 영역', style: TextStyle(fontSize: 14))),
+              child: const Center(
+                child: Text('습득 장소 지도 영역', style: TextStyle(fontSize: 14)),
+              ),
             ),
           ],
         ),
