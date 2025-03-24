@@ -1,7 +1,12 @@
 package com.ssfinder.domain.notification.controller;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.ssfinder.domain.notification.dto.request.FcmTokenRequest;
+import com.ssfinder.domain.notification.service.FcmTokenService;
+import com.ssfinder.domain.user.dto.CustomUserDetails;
+import com.ssfinder.global.common.response.ApiResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * packageName    : com.ssfinder.domain.chat.controller<br>
@@ -17,6 +22,22 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/notifications")
+@RequiredArgsConstructor
 public class NotificationController {
+    private final FcmTokenService fcmTokenService;
 
+    @PostMapping("/token")
+    public ApiResponse<?> registerFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody FcmTokenRequest fcmTokenRequest) {
+        fcmTokenService.registerFcmToken(userDetails.getUserId(), fcmTokenRequest);
+        return ApiResponse.created(null);
+    }
+
+    @DeleteMapping("/token")
+    public ApiResponse<?> deleteFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody FcmTokenRequest fcmTokenRequest) {
+        fcmTokenService.deleteFcmToken(userDetails.getUserId(), fcmTokenRequest);
+        return ApiResponse.noContent();
+    }
+
+    @PostMapping("/remind")
+    public ApiResponse<?>
 }
