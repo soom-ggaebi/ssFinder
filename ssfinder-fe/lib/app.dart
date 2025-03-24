@@ -10,40 +10,27 @@ class MyApp extends StatelessWidget {
       title: 'Sumsum Finder',
       theme: ThemeData(
         fontFamily: 'GmarketSans',
-
-        // 모든 텍스트에 기본 폰트 크기 12 적용
-        textTheme: TextTheme(
-          // 모든 텍스트 스타일에 fontSize: 12 적용
-          displayLarge: TextStyle(fontSize: 12, color: textColor),
-          displayMedium: TextStyle(fontSize: 12, color: textColor),
-          displaySmall: TextStyle(fontSize: 12, color: textColor),
-          headlineLarge: TextStyle(fontSize: 12, color: textColor),
-          headlineMedium: TextStyle(fontSize: 12, color: textColor),
-          headlineSmall: TextStyle(fontSize: 12, color: textColor),
-          titleLarge: TextStyle(fontSize: 12, color: textColor),
-          titleMedium: TextStyle(fontSize: 14, color: textColor),
-          titleSmall: TextStyle(fontSize: 12, color: textColor),
-          bodyLarge: TextStyle(fontSize: 12, color: textColor),
-          bodyMedium: TextStyle(fontSize: 12, color: textColor),
-          bodySmall: TextStyle(fontSize: 12, color: textColor),
-          labelLarge: TextStyle(fontSize: 12, color: textColor),
-          labelMedium: TextStyle(fontSize: 12, color: textColor),
-          labelSmall: TextStyle(fontSize: 10, color: textColor),
-        ),
-
-        // 앱바 텍스트에도 적용
+        scaffoldBackgroundColor: const Color(0xFFF9FBFD),
+        // 앱바의 배경색을 0xFFF9FBFD로 통일 (텍스트와 아이콘은 대비색으로 설정)
         appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF9FBFD),
+          iconTheme: IconThemeData(color: Colors.black),
           titleTextStyle: TextStyle(
-            fontFamily: 'GmarketSans',
-            fontSize: 12,
-            color: textColor,
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
         ),
-
-        // 기타 설정
+        // 하단 네비게이션 바의 배경색도 0xFFF9FBFD로 통일
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Color(0xFFF9FBFD),
+          selectedItemColor: Colors.black,
+          unselectedItemColor: Colors.grey,
+        ),
         splashFactory: NoSplash.splashFactory,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
       ),
       home: const HomePage(),
     );

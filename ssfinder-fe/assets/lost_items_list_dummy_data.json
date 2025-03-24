@@ -1,0 +1,175 @@
+[
+    {
+      "photo": "assets/images/founditem.png",
+      "category": "전자기기",
+      "itemName": "스마트폰",
+      "lostDate": "2025-03-20",
+      "lostLocation": "서울역",
+      "status": true,
+      "color": "검정",
+      "isNotificationOn": false,
+      "recommended": {
+        "recommendations": []
+      }
+    },
+    {
+      "photo": "assets/images/founditem.png",
+      "category": "패션",
+      "itemName": "지갑",
+      "lostDate": "2025-03-21",
+      "lostLocation": "강남역",
+      "status": false,
+      "color": "갈색",
+      "isNotificationOn": false,
+      "recommended": {
+        "recommendations": [
+          {
+            "photo": "assets/images/founditem.png",
+            "source": "경찰청",
+            "itemName": "지갑",
+            "category": "지갑 > 지갑",
+            "color": "갈색",
+            "foundLocation": "대한민국 광주광역시 남구 대촌동 12-3번지",
+            "foundDate": "2025-03-11",
+            "storageLocation": "남구 경찰서 분실물 센터",
+            "description": "갈색 가죽 지갑으로 내부에 신분증과 카드가 들어 있습니다. 습득 신고 후 보관 중입니다.",
+            "createdTime": "2025-03-18"
+          },
+          {
+            "photo": "assets/images/founditem.png",
+            "source": "숨숨파인더",
+            "itemName": "우산",
+            "category": "기타물품 > 우산",
+            "color": "흰색",
+            "foundLocation": "대한민국 광주광역시 북구 우산동 8-22번지",
+            "foundDate": "2025-03-12",
+            "description": "빨간색 우산으로 재질은 비닐이며, 습득 당시 상가 근처에서 떨어진 것으로 보입니다.",
+            "createdTime": "2025-03-18"
+          }
+        ]
+      }
+    },
+    {
+      "photo": "assets/images/founditem.png",
+      "category": "전자기기",
+      "itemName": "노트북",
+      "lostDate": "2025-03-19",
+      "lostLocation": "홍대",
+      "status": false,
+      "color": "은색",
+      "isNotificationOn": false,
+      "recommended": {
+        "recommendations": []
+      }
+    },
+    {
+      "photo": "assets/images/founditem.png",
+      "category": "생활용품",
+      "itemName": "열쇠 분실",
+      "lostDate": "2025-03-22",
+      "lostLocation": "지하철역",
+      "status": false,
+      "color": "은색",
+      "isNotificationOn": false,
+      "recommended": {
+        "recommendations": [
+          {
+            "photo": "assets/images/founditem.png",
+            "source": "숨숨파인더",
+            "itemName": "이어폰",
+            "category": "전자기기 > 무선이어폰",
+            "color": "흰색",
+            "foundLocation": "대한민국 광주광역시 광산구 송정동 30-5번지",
+            "foundDate": "2025-03-13",
+            "storageLocation": "광산구 경찰서 분실물센터",
+            "description": "무선 이어폰과 충전 케이스가 함께 습득되었습니다. 습득 당시 사람이 많은 지역에서 확인되었습니다.",
+            "createdTime": "2025-03-18"
+          },
+          {
+            "photo": "assets/images/founditem.png",
+            "source": "숨숨파인더",
+            "itemName": "노트북",
+            "category": "전자기기 > 노트북",
+            "color": "기타",
+            "foundLocation": "대한민국 광주광역시 동구 금남로 205번지",
+            "foundDate": "2025-03-16",
+            "description": "은색 노트북으로, 습득 당시 금남로 인근 도서관에서 발견된 것으로 추정됩니다.",
+            "createdTime": "2025-03-18"
+          },
+          {
+            "photo": "assets/images/founditem.png",
+            "source": "경찰청",
+            "itemName": "태블릿",
+            "category": "전자기기 > 태블릿",
+            "color": "검정색",
+            "foundLocation": "대한민국 광주광역시 서구 무진로 77번지",
+            "foundDate": "2025-03-17",
+            "storageLocation": "서구 경찰서 분실물보관소",
+            "description": "검정 태블릿으로 스크린에 일부 긁힘이 있습니다. 무진로 인근 버스 정류장에서 습득된 것으로 보입니다.",
+            "createdTime": "2025-03-18"
+          }
+        ]
+      }
+    },
+    {
+      "photo": "assets/images/founditem.png",
+      "category": "패션",
+      "itemName": "가방",
+      "lostDate": "2025-03-18",
+      "lostLocation": "명동",
+      "status": false,
+      "color": "검정색",
+      "isNotificationOn": true,
+      "recommended": {
+        "recommendations": [
+          {
+            "photo": "assets/images/founditem.png",
+            "source": "경찰청",
+            "itemName": "모자",
+            "category": "의류 > 모자",
+            "color": "회색",
+            "foundLocation": "대한민국 광주광역시 북구 중흥동 15-1번지",
+            "foundDate": "2025-03-15",
+            "storageLocation": "북구 경찰서 분실물보관소",
+            "description": "회색 모자로, 습득 당시 야외 행사장에서 떨어진 것으로 추정됩니다.",
+            "createdTime": "2025-03-18"
+          },
+          {
+            "photo": "assets/images/founditem.png",
+            "source": "숨숨파인더",
+            "itemName": "책",
+            "category": "도서용품 > 책",
+            "color": "기타",
+            "foundLocation": "대한민국 광주광역시 광산구 장덕동 22-10번지",
+            "foundDate": "2025-03-14",
+            "description": "다채로운 표지의 책으로, 습득 당시 학원 근처에서 발견되었습니다.",
+            "createdTime": "2025-03-18"
+          },
+          {
+            "photo": "assets/images/founditem.png",
+            "source": "경찰청",
+            "itemName": "자전거",
+            "category": "기타물품 > 자전거",
+            "color": "파란색",
+            "foundLocation": "대한민국 광주광역시 동구 학동 5-7번지",
+            "foundDate": "2025-03-13",
+            "storageLocation": "광주지방경찰청 분실물보관소",
+            "description": "파란색 자전거로, 습득 당시 도로변에 주차되어 있었으나 잠금 장치가 풀린 상태였습니다.",
+            "createdTime": "2025-03-18"
+          },
+          {
+            "photo": "assets/images/founditem.png",
+            "source": "숨숨파인더",
+            "itemName": "물병",
+            "category": "기타물품 > 물병",
+            "color": "기타",
+            "foundLocation": "대한민국 광주광역시 서구 치평동 33-8번지",
+            "foundDate": "2025-03-12",
+            "description": "투명한 물병으로, 습득 당시 체육관 인근에서 확인되었습니다.",
+            "createdTime": "2025-03-18"
+          }
+        ]
+      }
+    }
+  ]
+  
