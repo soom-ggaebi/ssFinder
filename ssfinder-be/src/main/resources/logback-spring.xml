@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
     <property name="LOGS_ABSOLUTE_PATH" value="/.logs" />
     <property name="CONSOLE_LOG_PATTERN"
               value="[%d{yyyy-MM-dd HH:mm:ss}:%-3relative]  %clr(%-5level) %clr(${PID:-}){magenta} %clr(---){faint} %clr([%15.15thread]){faint} %clr(%-40.40logger{36}){cyan} %clr(:){faint} %msg%n"
@@ -26,11 +27,17 @@
         </rollingPolicy>
     </appender>
 
-    <root level="debug">
+    <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
 
-    <logger name="org.springframework.web" level="debug">
+    <logger name="org.springframework.web" level="info">
         <appender-ref ref="FILE" />
     </logger>
+
+    <!-- SQL 쿼리 로그 -->
+    <logger name="org.hibernate.SQL" level="DEBUG" />
+
+    <!-- SQL 파라미터 로그 -->
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE" />
 </configuration>
