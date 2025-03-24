@@ -1,7 +1,10 @@
 package com.ssfinder.global.common.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssfinder.domain.user.service.UserService;
+import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
+import com.ssfinder.global.common.response.ApiResponse;
 import com.ssfinder.global.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserService userService;
+    private final ObjectMapper objectMapper;
 
     private static final String[] AllowUrls = new String[]{
             "/api/auth/",
@@ -66,12 +70,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void writeErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws IOException {
         response.setStatus(errorCode.getHttpStatus().value());
         response.setContentType("application/json;charset=utf-8");
-        response.getWriter().write(
-                String.format("{\"status\": \"%s\", \"name\": \"%s\", \"code\": \"%s\", \"message\": \"%s\"}",
-                        errorCode.getHttpStatus().value(),
-                        errorCode.name(),
-                        errorCode.getCode(),
-                        errorCode.getMessage())
-        );
+
+        ApiResponse<?> apiResponse = ApiResponse.fail(new CustomException(ErrorCode.UNAUTHORIZED));
+        String jsonResponse = objectMapper.writeValueAsString(apiResponse);
+        response.getWriter().write(jsonResponse);
     }
 }

@@ -1,26 +1,25 @@
-package com.ssfinder.domain.auth.dto.response;
+package com.ssfinder.domain.user.dto.request;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.ssfinder.domain.auth.dto.LoginResultType;
+import jakarta.validation.constraints.Size;
 
 /**
- * packageName    : com.ssfinder.domain.auth.dto.response<br>
- * fileName       : *.java<br>
+ * packageName    : com.ssfinder.domain.user.dto.request<br>
+ * fileName       : UserUpdateRequest.java<br>
  * author         : okeio<br>
- * date           : 2025-03-19<br>
+ * date           : 2025-03-21<br>
  * description    :  <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
- * 2025-03-19          okeio           최초생성<br>
+ * 2025-03-21          okeio           최초생성<br>
  * <br>
  */
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public record KakaoLoginResponse (
-        String accessToken,
-        String refreshToken,
-        Long expiresIn,
-        LoginResultType resultType
-){ }
+public record UserUpdateRequest (
+        @Size(max = 30) String nickname,
+        @Size(max = 10) String myRegion
+){
+}
