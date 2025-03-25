@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 /**
  * packageName    : com.ssfinder.domain.notification.entity<br>
- * fileName       : *.java<br>
+ * fileName       : FcmToken.java<br>
  * author         : okeio<br>
  * date           : 2025-03-24<br>
  * description    :  <br>
@@ -33,8 +33,8 @@ public class FcmToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "fcm_token", nullable = false)
-    private String fcmToken;
+    @Column(name = "token", nullable = false)
+    private String token;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false)
@@ -48,8 +48,8 @@ public class FcmToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    public FcmToken(String fcmToken, User user) {
-        this.fcmToken = fcmToken;
+    public FcmToken(String token, User user) {
+        this.token = token;
         this.user = user;
     }
 }
