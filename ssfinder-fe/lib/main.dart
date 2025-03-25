@@ -20,7 +20,14 @@ Future main() async {
   // Flutter 바인딩 초기화
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 카카오 SDK 초기화 - 네이티브 앱 키로 변경 필요
-  KakaoSdk.init(nativeAppKey: '36863fcc7a9f44ed78b659db8ab7b077');
+  // 카카오 SDK 초기화 - .env에서 키를 불러옴
+  String kakaoNativeAppKey = dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '';
+  if (kakaoNativeAppKey.isEmpty) {
+    throw Exception(
+      "KAKAO_NATIVE_APP_KEY is missing in the environment variables",
+    );
+  }
+  KakaoSdk.init(nativeAppKey: kakaoNativeAppKey); // 환경변수에서 키를 사용
+
   runApp(MyApp());
 }

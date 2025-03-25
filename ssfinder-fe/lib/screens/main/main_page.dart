@@ -18,6 +18,9 @@ class _MainPageState extends State<MainPage> {
   // 카카오 로그인 서비스 인스턴스
   final KakaoLoginService _kakaoLoginService = KakaoLoginService();
 
+  // 네비게이터 키 추가
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   void initState() {
     super.initState();
@@ -48,26 +51,15 @@ class _MainPageState extends State<MainPage> {
   // 로그인 시도 함수
   Future<void> _attemptLogin() async {
     try {
-      // 기존 카카오 로그인
-      bool loginSuccess = await _kakaoLoginService.login();
+      // 통합 로그인 프로세스 사용
+      bool loginSuccess = await _kakaoLoginService.loginWithBackendAuth();
       if (loginSuccess) {
-        // 백엔드 인증 추가
-        final authResult = await _kakaoLoginService.authenticateWithBackend();
-        if (authResult != null) {
-          // 백엔드 인증 성공
-          print('로그인 및 백엔드 인증 완료: ${authResult['result_type']}');
-          // 상태 업데이트나 추가 작업 수행
-          setState(() {});
-        } else {
-          // 백엔드 인증 실패
-          print('백엔드 인증 실패');
-          // 실패 알림 표시
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('서버 연결에 실패했습니다. 다시 시도해주세요.')),
-          );
-        }
+        setState(() {}); // UI 갱신
       } else {
-        print('카카오 로그인 실패');
+        print('로그인 또는 백엔드 인증 실패');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
+        );
       }
     } catch (e) {
       print('로그인 중 오류 발생: $e');
@@ -75,6 +67,92 @@ class _MainPageState extends State<MainPage> {
         context,
       ).showSnackBar(SnackBar(content: Text('로그인 중 오류가 발생했습니다: $e')));
     }
+  }
+
+  // 회원 탈퇴 처리 함수
+  void _processAccountDeletion(BuildContext context) {
+    // ScaffoldMessenger 미리 참조
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    // 확인 다이얼로그 표시
+    showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('회원 탈퇴'),
+          content: const Text('정말로 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () {
+                // 다이얼로그 닫기
+                Navigator.of(dialogContext).pop(true);
+
+                // 로딩 다이얼로그 표시 (로딩 다이얼로그 컨텍스트를 별도로 유지)
+                BuildContext? loadingDialogContext;
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext ctx) {
+                    loadingDialogContext = ctx;
+                    return const Center(child: CircularProgressIndicator());
+                  },
+                );
+
+                // 회원 탈퇴 API 호출 (Future 처리)
+                _kakaoLoginService
+                    .deleteAccount()
+                    .then((success) {
+                      // 로딩 다이얼로그가 아직 표시 중인지 확인 후 닫기
+                      if (loadingDialogContext != null) {
+                        Navigator.of(loadingDialogContext!).pop();
+                      }
+
+                      if (success) {
+                        scaffoldMessenger.showSnackBar(
+                          const SnackBar(content: Text('회원탈퇴가 완료되었습니다.')),
+                        );
+
+                        // 로그인 화면으로 이동
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder:
+                                (context) => const HomePage(
+                                  initialIndex: 0,
+                                ), // 홈 페이지로 이동 (네브바 포함)
+                          ),
+                          (route) => false, // 모든 기존 화면을 제거
+                        );
+                      } else {
+                        scaffoldMessenger.showSnackBar(
+                          const SnackBar(
+                            content: Text('회원탈퇴에 실패했습니다. 다시 시도해 주세요.'),
+                          ),
+                        );
+                      }
+                    })
+                    .catchError((error) {
+                      // 로딩 다이얼로그가 아직 표시 중인지 확인 후 닫기
+                      if (loadingDialogContext != null) {
+                        Navigator.of(loadingDialogContext!).pop();
+                      }
+
+                      scaffoldMessenger.showSnackBar(
+                        SnackBar(
+                          content: Text('회원탈퇴 중 오류 발생: ${error.toString()}'),
+                        ),
+                      );
+                    });
+              },
+              child: const Text('탈퇴하기'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -121,7 +199,19 @@ class _MainPageState extends State<MainPage> {
                           width: 24,
                           height: 24,
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          // 로그인 상태일 때만 회원탈퇴 다이얼로그 표시
+                          if (_kakaoLoginService.isLoggedIn.value) {
+                            _processAccountDeletion(context);
+                          } else {
+                            // 로그인되지 않은 상태면 로그인 필요 메시지 표시
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('회원탈퇴를 위해 먼저 로그인해주세요.'),
+                              ),
+                            );
+                          }
+                        },
                       ),
                     ],
                   ),

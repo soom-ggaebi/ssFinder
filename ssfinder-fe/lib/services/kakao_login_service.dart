@@ -72,7 +72,6 @@ class KakaoLoginService {
   Future<void> _getUserInfo() async {
     try {
       user = await UserApi.instance.me();
-      isLoggedIn.value = true;
       print('사용자 정보 요청 성공: ${user?.kakaoAccount?.profile?.nickname}');
     } catch (e) {
       print('사용자 정보 요청 실패: $e');
@@ -171,9 +170,13 @@ class KakaoLoginService {
           responseData['data']['expires_in'],
         );
 
+        // 인증 성공 시 로그인 상태를 true로 설정
+        isLoggedIn.value = true;
+
         return responseData['data'];
       } else {
         print('백엔드 인증 실패: ${responseData['error']}');
+        isLoggedIn.value = false; // 인증 실패 시 명시적으로 false 설정
         return null;
       }
     } catch (e) {
@@ -200,6 +203,11 @@ class KakaoLoginService {
   // 액세스 토큰 가져오기
   Future<String?> getAccessToken() async {
     return await _storage.read(key: 'access_token');
+  }
+
+  // 리프레시 토큰 가져오기
+  Future<String?> getRefreshToken() async {
+    return await _storage.read(key: 'refresh_token');
   }
 
   // 토큰으로 인증된 API 호출 헬퍼 함수
@@ -251,6 +259,319 @@ class KakaoLoginService {
       return true;
     } catch (e) {
       print('로그인 프로세스 중 오류 발생: $e');
+      return false;
+    }
+  }
+
+  // ==================== 새로 추가된 기능 ====================
+
+  // 1. 백엔드 로그아웃 API 호출
+  Future<bool> logoutFromBackend() async {
+    try {
+      // 기존의 authenticatedRequest 메서드 활용
+      final response = await authenticatedRequest('POST', '/api/auth/logout');
+
+      print('백엔드 로그아웃 응답 상태 코드: ${response.statusCode}');
+
+      if (response.statusCode == 204) {
+        // 로그아웃 성공 시 저장된 토큰 삭제
+        await _clearTokens();
+        return true;
+      } else {
+        print('백엔드 로그아웃 실패: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('백엔드 로그아웃 중 오류 발생: $e');
+      return false;
+    }
+  }
+
+  // 토큰 삭제 메서드
+  Future<void> _clearTokens() async {
+    await _storage.delete(key: 'access_token');
+    await _storage.delete(key: 'refresh_token');
+    await _storage.delete(key: 'token_expiry');
+    print('저장된 토큰 삭제 완료');
+  }
+
+  // 통합 로그아웃 프로세스 (카카오 로그아웃 + 백엔드 로그아웃)
+  Future<bool> fullLogout() async {
+    try {
+      // 1. 백엔드 로그아웃 (토큰 무효화)
+      final backendLogoutSuccess = await logoutFromBackend();
+
+      // 2. 카카오 로그아웃 (백엔드 로그아웃 성공 여부와 관계없이 진행)
+      await logout();
+
+      // 백엔드 로그아웃 결과 반환
+      return backendLogoutSuccess;
+    } catch (e) {
+      print('통합 로그아웃 프로세스 중 오류 발생: $e');
+      // 에러가 발생해도 카카오 로그아웃은 시도
+      try {
+        await logout();
+      } catch (kakaoError) {
+        print('카카오 로그아웃 중 오류 발생: $kakaoError');
+      }
+      return false;
+    }
+  }
+
+  // 2. 액세스 토큰 재발급 API
+  Future<bool> refreshAccessToken() async {
+    try {
+      // 저장된 리프레시 토큰 가져오기
+      final refreshToken = await getRefreshToken();
+
+      if (refreshToken == null) {
+        print('리프레시 토큰이 없습니다.');
+        return false;
+      }
+
+      // 백엔드 API 호출
+      final response = await http.post(
+        Uri.parse('$_backendUrl/api/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': refreshToken}),
+      );
+
+      print('토큰 재발급 응답 상태 코드: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        // 응답 파싱
+        final responseData = jsonDecode(response.body);
+
+        if (responseData['success'] == true) {
+          // 새 토큰 저장
+          final accessToken = responseData['data']['access_token'];
+          final newRefreshToken = responseData['data']['refresh_token'];
+
+          // 기존 만료 시간 정보 가져오기 (없으면 1시간으로 기본 설정)
+          final expiryStr = await _storage.read(key: 'token_expiry');
+          final now = DateTime.now().millisecondsSinceEpoch;
+          final expiresIn =
+              expiryStr != null ? int.parse(expiryStr) - now : 3600000; // 1시간
+
+          // 새 토큰 저장
+          await _storage.write(key: 'access_token', value: accessToken);
+          await _storage.write(key: 'refresh_token', value: newRefreshToken);
+
+          print('액세스 토큰 재발급 성공');
+          return true;
+        } else {
+          print('토큰 재발급 실패: ${responseData['error']}');
+          return false;
+        }
+      } else if (response.statusCode == 401) {
+        // 리프레시 토큰이 유효하지 않으면 저장된 토큰 삭제
+        print('리프레시 토큰이 유효하지 않습니다. 다시 로그인이 필요합니다.');
+        await _clearTokens();
+        isLoggedIn.value = false;
+        return false;
+      } else {
+        print('토큰 재발급 요청 실패: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('토큰 재발급 중 오류 발생: $e');
+      return false;
+    }
+  }
+
+  // 3. 회원 정보 조회 API
+  Future<Map<String, dynamic>?> getUserProfile() async {
+    try {
+      final response = await authenticatedRequest('GET', '/api/users');
+
+      print('회원 정보 조회 응답 상태 코드: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+
+        if (responseData['success'] == true) {
+          print('회원 정보 조회 성공');
+          return responseData['data'];
+        } else {
+          print('회원 정보 조회 실패: ${responseData['error']}');
+          return null;
+        }
+      } else if (response.statusCode == 401) {
+        // 토큰이 만료되었을 가능성이 있으므로 토큰 재발급 시도
+        print('인증 토큰이 만료되었습니다. 토큰 재발급 시도...');
+        final refreshSuccess = await refreshAccessToken();
+
+        if (refreshSuccess) {
+          // 토큰 재발급 성공 시 다시 회원 정보 조회 시도
+          return await getUserProfile();
+        } else {
+          print('토큰 재발급 실패. 다시 로그인이 필요합니다.');
+          return null;
+        }
+      } else {
+        print('회원 정보 조회 요청 실패: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('회원 정보 조회 중 오류 발생: $e');
+      return null;
+    }
+  }
+
+  // 4. 회원 정보 수정 API
+  Future<Map<String, dynamic>?> updateUserProfile({
+    String? name,
+    String? nickname,
+    String? birth,
+    String? phone,
+  }) async {
+    try {
+      // 요청 본문 구성 (null이 아닌 필드만 포함)
+      final Map<String, dynamic> requestBody = {};
+
+      if (name != null) requestBody['name'] = name;
+      if (nickname != null) requestBody['nickname'] = nickname;
+      if (birth != null) requestBody['birth'] = birth;
+      if (phone != null) requestBody['phone'] = phone;
+
+      // 수정할 데이터가 없으면 종료
+      if (requestBody.isEmpty) {
+        print('수정할 정보가 없습니다.');
+        return null;
+      }
+
+      final response = await authenticatedRequest(
+        'PUT',
+        '/api/users',
+        body: requestBody,
+      );
+
+      print('회원 정보 수정 응답 상태 코드: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+
+        if (responseData['success'] == true) {
+          print('회원 정보 수정 성공');
+          return responseData['data'];
+        } else {
+          print('회원 정보 수정 실패: ${responseData['error']}');
+          return null;
+        }
+      } else if (response.statusCode == 401) {
+        // 토큰이 만료되었을 가능성이 있으므로 토큰 재발급 시도
+        print('인증 토큰이 만료되었습니다. 토큰 재발급 시도...');
+        final refreshSuccess = await refreshAccessToken();
+
+        if (refreshSuccess) {
+          // 토큰 재발급 성공 시 다시 회원 정보 수정 시도
+          return await updateUserProfile(
+            name: name,
+            nickname: nickname,
+            birth: birth,
+            phone: phone,
+          );
+        } else {
+          print('토큰 재발급 실패. 다시 로그인이 필요합니다.');
+          return null;
+        }
+      } else {
+        print('회원 정보 수정 요청 실패: ${response.statusCode}, ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('회원 정보 수정 중 오류 발생: $e');
+      return null;
+    }
+  }
+
+  // 회원 탈퇴 API
+  Future<bool> deleteAccount() async {
+    try {
+      final response = await authenticatedRequest('DELETE', '/api/users');
+
+      print('회원 탈퇴 응답 상태 코드: ${response.statusCode}');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        if (response.statusCode == 200) {
+          final responseData = jsonDecode(response.body);
+          print('회원 탈퇴 성공: ${responseData['data']['message']}');
+        } else {
+          print('회원 탈퇴 성공');
+        }
+
+        // 카카오 연결 끊기
+        try {
+          await UserApi.instance.unlink();
+          print('카카오 연결 끊기 성공');
+        } catch (e) {
+          print('카카오 연결 끊기 실패: $e');
+          // 카카오 연결 끊기 실패해도 회원 탈퇴는 진행
+        }
+
+        // 저장된 토큰 삭제
+        await _clearTokens();
+        isLoggedIn.value = false;
+        user = null;
+
+        return true;
+      } else if (response.statusCode == 401) {
+        print('인증 토큰이 만료되었습니다. 토큰 재발급 시도...');
+        final refreshSuccess = await refreshAccessToken();
+
+        if (refreshSuccess) {
+          return await deleteAccount();
+        } else {
+          print('토큰 재발급 실패. 다시 로그인이 필요합니다.');
+          // 로그인 페이지로 강제 이동하는 로직 추가 필요
+          await _clearTokens();
+          isLoggedIn.value = false;
+          user = null;
+          throw Exception('토큰 재발급 실패');
+        }
+      } else {
+        final errorMessage =
+            response.body.isNotEmpty
+                ? 'HTTP ${response.statusCode}: ${response.body}'
+                : '회원 탈퇴 요청 실패: ${response.statusCode}';
+        print(errorMessage);
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      print('회원 탈퇴 중 오류 발생: $e');
+      throw Exception('회원 탈퇴 중 오류 발생: $e');
+    }
+  }
+
+  // 6. 토큰 인증 확인 및 필요 시 갱신하는 유틸리티 메서드
+  Future<bool> ensureAuthenticated() async {
+    try {
+      // 액세스 토큰 유효성 확인
+      final token = await getAccessToken();
+
+      if (token == null) {
+        print('액세스 토큰이 존재하지 않습니다. 로그인이 필요합니다.');
+        return false;
+      }
+
+      // 토큰 만료 시간 확인
+      final expiryStr = await _storage.read(key: 'token_expiry');
+
+      if (expiryStr != null) {
+        final expiry = int.parse(expiryStr);
+        final now = DateTime.now().millisecondsSinceEpoch;
+
+        // 토큰이 만료되었거나 곧 만료될 예정인 경우 (5분 이내)
+        if (expiry - now < 300000) {
+          // 5분 = 300,000 밀리초
+          print('토큰이 곧 만료되거나 이미 만료되었습니다. 갱신 시도...');
+          return await refreshAccessToken();
+        }
+      }
+
+      return true;
+    } catch (e) {
+      print('인증 확인 중 오류 발생: $e');
       return false;
     }
   }
