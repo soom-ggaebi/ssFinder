@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'lost_items_list.dart';
 import 'lost_item_form.dart';
 import 'package:sumsumfinder/models/lost_item_model.dart';
-import 'package:sumsumfinder/service/api_service.dart';
+import 'package:sumsumfinder/services/api_service.dart';
 
 /// LostPage는 분실물 데이터를 API로 받아와 탭별로 필터링하여 보여주는 페이지입니다.
 class LostPage extends StatefulWidget {
@@ -12,7 +12,8 @@ class LostPage extends StatefulWidget {
   _LostPageState createState() => _LostPageState();
 }
 
-class _LostPageState extends State<LostPage> with SingleTickerProviderStateMixin {
+class _LostPageState extends State<LostPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   // 탭 목록: 전체, 숨은물건, 찾은물건
@@ -47,9 +48,9 @@ class _LostPageState extends State<LostPage> with SingleTickerProviderStateMixin
       });
     } catch (e) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('데이터 로딩에 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('데이터 로딩에 실패했습니다.')));
     }
   }
 
@@ -88,60 +89,66 @@ class _LostPageState extends State<LostPage> with SingleTickerProviderStateMixin
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
-              children: [
-                // 탭과 탭뷰로 분실물 목록을 표시
-                Column(
-                  children: [
-                    Container(
-                      color: Colors.white,
-                      child: TabBar(
-                        controller: _tabController,
-                        labelColor: Colors.blue,
-                        unselectedLabelColor: Colors.grey,
-                        indicatorColor: Colors.blue,
-                        tabs: _tabs.map((e) => Tab(text: e)).toList(),
-                      ),
-                    ),
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: _tabs.map((tab) => _buildTabContent(tab)).toList(),
-                      ),
-                    ),
-                  ],
-                ),
-                // 분실물 등록 버튼
-                Positioned(
-                  bottom: 20,
-                  right: 20,
-                  child: Material(
-                    elevation: 2,
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => LostItemForm()),
-                        );
-                      },
-                      customBorder: const CircleBorder(),
-                      child: Container(
-                        height: 50,
-                        width: 50,
-                        decoration: const BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Stack(
+                children: [
+                  // 탭과 탭뷰로 분실물 목록을 표시
+                  Column(
+                    children: [
+                      Container(
+                        color: Colors.white,
+                        child: TabBar(
+                          controller: _tabController,
+                          labelColor: Colors.blue,
+                          unselectedLabelColor: Colors.grey,
+                          indicatorColor: Colors.blue,
+                          tabs: _tabs.map((e) => Tab(text: e)).toList(),
                         ),
-                        child: const Icon(Icons.add, color: Colors.white),
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          controller: _tabController,
+                          children:
+                              _tabs
+                                  .map((tab) => _buildTabContent(tab))
+                                  .toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // 분실물 등록 버튼
+                  Positioned(
+                    bottom: 20,
+                    right: 20,
+                    child: Material(
+                      elevation: 2,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LostItemForm(),
+                            ),
+                          );
+                        },
+                        customBorder: const CircleBorder(),
+                        child: Container(
+                          height: 50,
+                          width: 50,
+                          decoration: const BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.add, color: Colors.white),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
     );
   }
 }
