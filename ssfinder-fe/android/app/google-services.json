@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "352920652088",
+    "project_id": "sumsumfinder",
+    "storage_bucket": "sumsumfinder.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:352920652088:android:9c2da50dcfeb7017b319cd",
+        "android_client_info": {
+          "package_name": "com.example.sumsumfinder"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjWtQE3br92hsUG7tgO6y6kHIrhSzWJ4A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

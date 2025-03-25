@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class KakaoLoginService {
   // 싱글톤 패턴 구현
@@ -120,6 +121,9 @@ class KakaoLoginService {
     }
 
     try {
+      // fcm 토큰 가져오기
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
+
       // 성별 정보 변환 (male/female)
       String? gender;
       if (user!.kakaoAccount?.gender == Gender.male) {
@@ -138,6 +142,7 @@ class KakaoLoginService {
         'gender': gender,
         'provider_id': user!.id.toString(),
         'phone_number': user!.kakaoAccount?.phoneNumber ?? "",
+        'fcm_token': fcmToken,
       };
 
       print('백엔드 인증 요청 데이터: $requestData');
