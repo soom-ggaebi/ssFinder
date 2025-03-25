@@ -49,7 +49,7 @@ public class UserChatRoom {
 
     @Column(length = 8, nullable = false)
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private ChatRoomStatus status;
 
     // mongodb id 값 참조 - 추후 수정 필요하면 수정
     @Column(name = "latest_read_message_id")
