@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.*;
 /**
  * packageName    : com.ssfinder.domain.chat.controller<br>
  * fileName       : NotificationController.java<br>
- * author         : joker901010<br>
- * date           : 2025-03-19<br>
- * description    :  <br>
+ * author         : okeio<br>
+ * date           : 2025-03-24<br>
+ * description    : 알림 기능 API controller 클래스입니다. <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
- * 2025-03-19          joker901010           최초생성<br>
+ * 2025-03-24          okeio            최초생성<br>
  * <br>
  */
 @RestController
@@ -38,6 +38,4 @@ public class NotificationController {
         return ApiResponse.noContent();
     }
 
-    @PostMapping("/remind")
-    public ApiResponse<?>
 }
