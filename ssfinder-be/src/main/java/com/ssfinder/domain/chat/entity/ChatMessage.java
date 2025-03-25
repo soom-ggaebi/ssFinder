@@ -2,6 +2,7 @@ package com.ssfinder.domain.chat.entity;
 
 
 import jakarta.persistence.Id;
+import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -20,6 +21,11 @@ import java.time.LocalDateTime;
  * <br>
  */
 @Document(collection = "chat_message")
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatMessage {
     @Id
     private int id;

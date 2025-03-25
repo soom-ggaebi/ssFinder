@@ -1,4 +1,4 @@
-package com.ssfinder.global.config.chat;
+package com.ssfinder.global.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
