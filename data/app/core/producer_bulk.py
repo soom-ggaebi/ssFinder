@@ -1,45 +1,70 @@
-import json
-from datetime import datetime
-from kafka import KafkaProducer
-from app.models.common.api_client import fetch_bulk_items
-from config.config import KAFKA_BROKER, KAFKA_BULK_TOPIC  # 오타 없는지 확인
+from app.models.common.api_client import fetch_lost_items, fetch_lost_item_detail
+from app.models.response.lost_item_response import parse_total_count, parse_items, parse_detail
+from app.core.kafka_producer import send_to_kafka
+#from app.spark.spark_processing import run_spark_job  # spark 작업 제거
 
-def produce_bulk_messages(start_ymd, end_ymd, page_no=1, num_of_rows=1000):
+def run_bulk_producer():
     """
-    Bulk API에서 최대 1~10000개 데이터를 가져와 Kafka로 전송.
+    1. 목록 API를 1,000건씩 호출
+    2. 각 아이템별 상세 API 호출하여 상세 정보 획득
+    3. API 데이터(목록 + 상세)를 Kafka 메시지로 전송
     """
-    producer = KafkaProducer(
-        bootstrap_servers=KAFKA_BROKER,
-        value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode('utf-8')
-    )
-    data = fetch_bulk_items(start_ymd, end_ymd, page_no, num_of_rows)
-    
-    # 응답 전체를 디버그용으로 출력 (운영 시에는 제거)
-    print("Fetched API data:")
-    print(json.dumps(data, ensure_ascii=False, indent=2))
-    
-    # header 검사: resultCode가 "00"이 아니면 에러 처리
-    header = data.get("response", {}).get("header", {})
-    if header.get("resultCode") != "00":
-        print("API 에러:", header.get("resultMsg"))
-        return
+    page_no = 1
+    num_of_rows = 1000
+    total_messages = 0
 
-    items = data.get("response", {}).get("body", {}).get("items", {}).get("item", None)
-    if items is None:
-        print("No items found.")
-        return
-    if not isinstance(items, list):
-        items = [items]  # 단일 item일 경우 리스트로 변환
+    while True:
+        xml_list = fetch_lost_items(page_no=page_no, num_of_rows=num_of_rows)
+        total_count = parse_total_count(xml_list)
+        items = parse_items(xml_list)
+        if not items:
+            break
 
-    count = 0
-    for item in items:
-        message = {
-            "type": "BULK",
-            "timestamp": datetime.now().isoformat(),
-            "data": item
-        }
-        producer.send(KAFKA_BULK_TOPIC, message)
-        print(f"Sending message for atcId: {item.get('atcId')}")
-        count += 1
-    producer.flush()
-    print(f"[BULK] Sent {count} items to Kafka topic '{KAFKA_BULK_TOPIC}'.")
+        for data in items:
+            if not data['management_id']:
+                continue
+            try:
+                detail_xml = fetch_lost_item_detail(data['management_id'])
+                detail_info = parse_detail(detail_xml)
+            except Exception as e:
+                print(f"상세 API 호출 실패: {e}")
+                detail_info = {
+                    'status': 'TRANSFERRED',
+                    'location': '',
+                    'phone': '',
+                    'detail': ''
+                }
+            if detail_info is None:
+                detail_info = {
+                    'status': 'TRANSFERRED',
+                    'location': '',
+                    'phone': '',
+                    'detail': ''
+                }
+            # 메시지 병합 (목록 + 상세)
+            message = data.copy()
+            message.update(detail_info)
+            send_to_kafka(message)
+            total_messages += 1
+
+        total_pages = (total_count + num_of_rows - 1) // num_of_rows
+        print(f"[페이지 {page_no}/{total_pages}] 전송 메시지 수: {len(items)} (누적: {total_messages})")
+        if page_no >= total_pages:
+            break
+        page_no += 1
+
+    print(f"모든 페이지 처리 완료. 총 Kafka 전송 메시지 수: {total_messages}")
+
+def run_full_pipeline():
+    """
+    전체 파이프라인 실행:
+    1. API 호출 및 Kafka 전송
+    2. Kafka 메시지 소비 및 저장 (MySQL, S3, Hadoop)
+    
+    이제 API 호출 시 이 함수가 실행되어,
+    전송된 Kafka 메시지를 소비하여 데이터베이스 및 스토리지에 저장까지 진행됩니다.
+    """
+    run_bulk_producer()
+    # Kafka Consumer를 batch 방식으로 실행 (메시지가 없으면 지정 시간 후 종료)
+    from app.core import kafka_consumer
+    kafka_consumer.run_kafka_consumer_batch(max_idle_seconds=10)

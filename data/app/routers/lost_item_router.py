@@ -1,32 +1,75 @@
-from fastapi import APIRouter, HTTPException
-from app.core.producer_bulk import produce_bulk_messages
-from app.core.producer_detail import produce_detail_messages
-from app.models.common.date_util import get_date_range
+from fastapi import APIRouter, BackgroundTasks
+from app.core.producer_bulk import run_full_pipeline
+from app.models.response.ApiResponse import ApiResponse
+import app.models.response.Status as Status
+
+# 각 단계별 테스트 함수 임포트
+from app.core.test_summary import test_summary_api_and_kafka
+from app.core.test_detail_service import test_detail_api_and_kafka
+from app.core.test_spark_streaming import test_spark_streaming
+from app.core.test_batch_job import test_batch_job
 
 router = APIRouter()
 
-@router.get("/lost-items/bulk")
-def fetch_bulk_data(initial: bool = False, page_no: int = 1, num_of_rows: int = 1000):
+@router.get("/lost-items", response_model=ApiResponse[str])
+def run_pipeline(background_tasks: BackgroundTasks):
     """
-    Bulk API 트리거:
-      - initial=True -> 6개월 전부터 전날까지
-      - initial=False -> 오늘 데이터
+    GET 요청 시 전체 파이프라인(공공데이터 API 호출 → Kafka 전송 → Spark 작업 → MySQL/S3/Hadoop 저장)을
+    백그라운드에서 실행합니다.
     """
-    try:
-        start_ymd, end_ymd = get_date_range(initial)
-        produce_bulk_messages(start_ymd, end_ymd, page_no, num_of_rows)
-        return {"message": "Bulk data sent to Kafka.", "start": start_ymd, "end": end_ymd}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    background_tasks.add_task(run_full_pipeline)
+    return ApiResponse(
+        status=Status.SUCCESS, 
+        message="Full pipeline job started in background.", 
+        data=""
+    )
 
-@router.post("/lost-items/detail")
-def fetch_detail_data(atc_ids: list[str]):
+@router.get("/summary", response_model=ApiResponse[str])
+def test_summary(background_tasks: BackgroundTasks):
     """
-    Detail API 트리거:
-      - Body로 ATC_ID 리스트를 받아, 상세 정보 API 호출 후 Kafka 전송
+    GET 요청 시 요약 데이터 수집 및 Kafka 전송 기능을 테스트합니다.
     """
-    try:
-        produce_detail_messages(atc_ids)
-        return {"message": f"Sent detail data for {len(atc_ids)} items."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    background_tasks.add_task(test_summary_api_and_kafka)
+    return ApiResponse(
+        status=Status.SUCCESS, 
+        message="Summary data producer job executed.", 
+        data=""
+    )
+
+@router.get("/detail", response_model=ApiResponse[str])
+def test_detail(background_tasks: BackgroundTasks):
+    """
+    GET 요청 시 상세 정보 API 호출 및 Kafka 전송 기능을 테스트합니다.
+    (기본 관리번호: FTEST001 사용)
+    """
+    default_management_id = "FTEST001"
+    background_tasks.add_task(test_detail_api_and_kafka, default_management_id)
+    return ApiResponse(
+        status=Status.SUCCESS, 
+        message="Detail data producer job executed.", 
+        data=""
+    )
+
+@router.get("/spark", response_model=ApiResponse[str])
+def test_spark(background_tasks: BackgroundTasks):
+    """
+    GET 요청 시 Spark Streaming 작업을 테스트합니다.
+    """
+    background_tasks.add_task(test_spark_streaming)
+    return ApiResponse(
+        status=Status.SUCCESS, 
+        message="Spark streaming job executed.", 
+        data=""
+    )
+
+@router.get("/batch", response_model=ApiResponse[str])
+def test_batch(background_tasks: BackgroundTasks):
+    """
+    GET 요청 시 Spark Batch Job (요약+상세 결합) 작업을 테스트합니다.
+    """
+    background_tasks.add_task(test_batch_job)
+    return ApiResponse(
+        status=Status.SUCCESS, 
+        message="Batch job executed.", 
+        data=""
+    )

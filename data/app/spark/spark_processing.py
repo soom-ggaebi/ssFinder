@@ -1,249 +1,149 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col, udf
-from pyspark.sql.types import StructType, StructField, StringType
+import os
 import requests
+import uuid
 from io import BytesIO
 from PIL import Image
-import base64
 import boto3
-import mysql.connector
-from elasticsearch import Elasticsearch
-import json
-import os
+import logging
+import time
 
-from config.config import (
-    KAFKA_BROKER, KAFKA_BULK_TOPIC, KAFKA_DETAIL_TOPIC,
-    DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME,
-    S3_ENDPOINT_URL, AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_S3_BUCKET,
-    ES_HOST, ES_PORT, ES_INDEX
-)
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, from_json, udf
+from pyspark.sql.types import StructType, StructField, StringType
+from config.config import SPARK_MASTER, KAFKA_BROKER, KAFKA_TOPIC, DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, AWS_S3_BUCKET, HADOOP_NAMENODE_HOST, HADOOP_NAMENODE_PORT
 
-# Spark 세션
-spark = SparkSession.builder.appName("LostFoundSparkProcessing").getOrCreate()
+from app.hadoop.hadoop_integration import write_to_hadoop  # 필요시 사용
 
-# 1) Kafka에서 BULK 토픽 구독
-df_bulk = spark.readStream.format("kafka") \
-    .option("kafka.bootstrap.servers", KAFKA_BROKER) \
-    .option("subscribe", KAFKA_BULK_TOPIC) \
-    .option("startingOffsets", "earliest") \
-    .load()
+# 로깅 설정 (한번만 설정)
+logger = logging.getLogger("SparkJob")
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+if not logger.handlers:
+    logger.addHandler(handler)
 
-# 2) Kafka에서 DETAIL 토픽 구독
-df_detail = spark.readStream.format("kafka") \
-    .option("kafka.bootstrap.servers", KAFKA_BROKER) \
-    .option("subscribe", KAFKA_DETAIL_TOPIC) \
-    .option("startingOffsets", "earliest") \
-    .load()
-
-# 메시지 스키마 (간단화)
-schema = StructType([
-    StructField("type", StringType(), True),
-    StructField("timestamp", StringType(), True),
-    StructField("data", StringType(), True)  # data 자체를 문자열로 처리
-])
-
-def parse_kafka_df(df):
-    return df.selectExpr("CAST(value AS STRING) as json_str") \
-             .select(from_json(col("json_str"), schema).alias("parsed")) \
-             .select("parsed.*")
-
-parsed_bulk = parse_kafka_df(df_bulk)
-parsed_detail = parse_kafka_df(df_detail)
-
-# ------------ 이미지 전처리 UDF 예시 -------------
-def process_image(img_url: str):
-    if not img_url:
-        return None
+# 이미지 다운로드, 리사이즈, 그리고 AWS S3 업로드 함수
+def process_and_upload_image(image_url: str) -> str:
     try:
-        resp = requests.get(img_url)
-        resp.raise_for_status()
-        img = Image.open(BytesIO(resp.content))
+        response = requests.get(image_url, stream=True, timeout=10)
+        response.raise_for_status()
+        img_data = BytesIO(response.content)
+        img = Image.open(img_data)
+        # 예시: 256x256 크기로 리사이즈
         img = img.resize((256, 256))
         buffer = BytesIO()
-        img.save(buffer, format="JPEG", quality=85)
+        img.save(buffer, format="JPEG")
         buffer.seek(0)
-        return base64.b64encode(buffer.read()).decode('utf-8')
-    except:
-        return None
+    except Exception as e:
+        print(f"Error processing image {image_url}: {e}")
+        return image_url  # 에러 발생 시 원본 URL 반환
 
-process_image_udf = udf(process_image, StringType())
-
-# Bulk/Detail 공통으로 data를 JSON으로 파싱해 필드를 추출하기 위한 UDF
-def parse_data(json_str: str):
     try:
-        return json.loads(json_str)
-    except:
-        return {}
+        # AWS S3 클라이언트 생성 (엔드포인트 미지정 시 기본 AWS S3 사용)
+        s3 = boto3.client(
+            "s3",
+            aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
+            aws_secret_access_key=os.getenv("AWS_SECRET_KEY"),
+            region_name=os.getenv("AWS_REGION")
+        )
+        bucket = os.getenv("AWS_S3_BUCKET")
+        key = f"processed_images/{uuid.uuid4().hex}.jpg"
+        s3.upload_fileobj(buffer, bucket, key, ExtraArgs={"ContentType": "image/jpeg"})
+        s3_url = f"https://{bucket}.s3.{os.getenv('AWS_REGION')}.amazonaws.com/{key}"
+        return s3_url
+    except Exception as e:
+        print(f"Error uploading image to S3: {e}")
+        return image_url
 
-parse_data_udf = udf(parse_data, 
-    StructType([
-        StructField("atcId", StringType(), True),
-        StructField("fdFilePathImg", StringType(), True),
-        StructField("clrNm", StringType(), True),
-        StructField("fdPrdtNm", StringType(), True),
-        StructField("fdYmd", StringType(), True),
-        StructField("depPlace", StringType(), True),
-        StructField("fdSn", StringType(), True),
-        # 필요하면 더 많은 필드를 정의
+# UDF 생성
+process_and_upload_image_udf = udf(process_and_upload_image, StringType())
+
+def run_spark_job():
+    spark = SparkSession.builder \
+        .appName("LostItemsSparkJob") \
+        .master(SPARK_MASTER) \
+        .getOrCreate()
+
+    # Kafka 메시지 스키마 정의
+    schema = StructType([
+        StructField("management_id", StringType()),
+        StructField("color", StringType()),
+        StructField("stored_at", StringType()),
+        StructField("image", StringType()),
+        StructField("name", StringType()),
+        StructField("found_at", StringType()),
+        StructField("prdtClNm", StringType()),
+        StructField("status", StringType()),
+        StructField("location", StringType()),
+        StructField("phone", StringType()),
+        StructField("detail", StringType())
     ])
-)
 
-bulk_enriched = parsed_bulk \
-    .withColumn("json_data", parse_data_udf(col("data"))) \
-    .withColumn("image_url", col("json_data.fdFilePathImg")) \
-    .withColumn("processed_image", process_image_udf(col("image_url")))
+    # Kafka에서 메시지 읽기
+    df = spark.readStream \
+        .format("kafka") \
+        .option("kafka.bootstrap.servers", KAFKA_BROKER) \
+        .option("subscribe", KAFKA_TOPIC) \
+        .option("startingOffsets", "earliest") \
+        .load()
 
-detail_enriched = parsed_detail \
-    .withColumn("json_data", parse_data_udf(col("data"))) \
-    .withColumn("image_url", col("json_data.fdFilePathImg")) \
-    .withColumn("processed_image", process_image_udf(col("image_url")))
+    df = df.selectExpr("CAST(value AS STRING) as json_str")
+    df = df.select(from_json(col("json_str"), schema).alias("data")).select("data.*")
 
-# ------------ foreachBatch 저장 로직 -------------
-def store_batch_bulk(batch_df, batch_id):
-    """
-    BULK 데이터(간략 정보) 저장 로직:
-      - 이미지 전처리 결과 -> S3
-      - 메타데이터 -> MySQL, Hadoop(HDFS), Elasticsearch
-    """
-    pdf = batch_df.toPandas()
-    
-    # S3 클라이언트
-    s3 = boto3.client(
-        's3',
-        endpoint_url=S3_ENDPOINT_URL,
-        aws_access_key_id=AWS_ACCESS_KEY,
-        aws_secret_access_key=AWS_SECRET_KEY,
-        region_name="us-east-1"
-    )
-    # MySQL 연결
-    mysql_conn = mysql.connector.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME
-    )
-    cursor = mysql_conn.cursor()
-    # Elasticsearch 연결
-    es = Elasticsearch([f"http://{ES_HOST}:{ES_PORT}"])
+    # 이미지 처리: 다운로드, 리사이즈 후 AWS S3 업로드
+    df = df.withColumn("s3_image", process_and_upload_image_udf(col("image")))
 
-    for _, row in pdf.iterrows():
-        row_type = row['type']           # "BULK"
-        atc_id = row['json_data']['atcId']
-        image_base64 = row['processed_image']
-        dep_place = row['json_data']['depPlace']
-        fd_prdt_nm = row['json_data']['fdPrdtNm']
-        clr_nm = row['json_data']['clrNm']
-        fd_ymd = row['json_data']['fdYmd']
-        
-        # 1) S3에 업로드
-        if image_base64:
-            image_bytes = base64.b64decode(image_base64)
-            s3_key = f"bulk/{atc_id}.jpg"
-            s3.put_object(Bucket=AWS_S3_BUCKET, Key=s3_key, Body=image_bytes, ContentType="image/jpeg")
+    # 최종 DataFrame 선택 (필요한 컬럼, s3_image 컬럼 추가)
+    final_df = df.select("management_id", "name", "color", "stored_at", "s3_image", "found_at",
+                           "prdtClNm", "status", "location", "phone", "detail")
 
-        # 2) MySQL에 저장 (예시: found_item 테이블)
-        insert_query = """
-            INSERT INTO found_item (management_id, name, color, location, stored_at, created_at)
-            VALUES (%s, %s, %s, %s, %s, NOW())
-        """
-        cursor.execute(insert_query, (atc_id, fd_prdt_nm, clr_nm, dep_place, "STORED"))
-        mysql_conn.commit()
+    # MySQL 저장 (JDBC 방식)
+    mysql_url = f"jdbc:mysql://{DB_HOST}:3306/{DB_NAME}?useSSL=false&serverTimezone=UTC"
+    mysql_properties = {
+        "user": DB_USER,
+        "password": DB_PASSWORD,
+        "driver": "com.mysql.cj.jdbc.Driver"
+    }
 
-        # 3) HDFS 저장 (Spark DF write -> Parquet) : 아래에서 일괄 저장
-        #  (개별 로우 접근 대신, 아래 batch_df.write 사용 권장)
+    def write_to_mysql(batch_df, batch_id):
+        batch_df.write.jdbc(url=mysql_url, table="found_item", mode="append", properties=mysql_properties)
+        logger.info(f"Batch {batch_id} written to MySQL.")
 
-        # 4) Elasticsearch 인덱싱
-        doc = {
-            "atcId": atc_id,
-            "depPlace": dep_place,
-            "fdPrdtNm": fd_prdt_nm,
-            "clrNm": clr_nm,
-            "fdYmd": fd_ymd,
-            "timestamp": row['timestamp'],
-            "type": row_type
-        }
-        es.index(index=ES_INDEX, body=doc)
+    # S3 저장 (Parquet 형식 – spark-hadoop-aws 설정 필요)
+    def write_to_s3(batch_df, batch_id):
+        s3_path = f"s3a://{AWS_S3_BUCKET}/lost_items/processed/batch_{batch_id}"
+        batch_df.write.mode("append").parquet(s3_path)
+        logger.info(f"Batch {batch_id} written to S3 at {s3_path}.")
 
-    # HDFS 저장: Spark DF -> Parquet (bulk path)
-    # (batch_df는 Spark DF 형태로 들어오므로, pandas 변환 전 DF를 받아서 저장하는 게 더 좋음)
-    # 간단 예: batch_df.write.mode("append").parquet("hdfs://hadoop-namenode:9000/data/found_items/bulk")
-    # 여기서는 pandas 변환 전 DF가 필요하므로 구조 조정이 필요함
+    # Hadoop(HDFS) 저장 (CSV 형식 예시)
+    def write_to_hadoop_local(batch_df, batch_id):
+        hadoop_path = f"hdfs://{HADOOP_NAMENODE_HOST}:{HADOOP_NAMENODE_PORT}/lost_items/processed/batch_{batch_id}"
+        batch_df.write.mode("append").csv(hadoop_path)
+        logger.info(f"Batch {batch_id} written to Hadoop at {hadoop_path}.")
 
-    cursor.close()
-    mysql_conn.close()
+    def process_batch(batch_df, batch_id):
+        try:
+            count = batch_df.count()
+            logger.info(f"Batch {batch_id} count: {count}")
+            if count > 0:
+                write_to_mysql(batch_df, batch_id)
+                write_to_s3(batch_df, batch_id)
+                write_to_hadoop_local(batch_df, batch_id)
+        except Exception as e:
+            logger.error(f"Error processing batch {batch_id}: {e}")
 
-def store_batch_detail(batch_df, batch_id):
-    """
-    DETAIL 데이터(상세 정보) 저장 로직
-      - 유사한 방식으로 S3/MySQL/HDFS/ES 저장
-    """
-    pdf = batch_df.toPandas()
+    query = final_df.writeStream \
+        .option("checkpointLocation", f"hdfs://{HADOOP_NAMENODE_HOST}:{HADOOP_NAMENODE_PORT}/spark-checkpoints") \
+        .foreachBatch(process_batch) \
+        .outputMode("append") \
+        .start()
 
-    s3 = boto3.client(
-        's3',
-        endpoint_url=S3_ENDPOINT_URL,
-        aws_access_key_id=AWS_ACCESS_KEY,
-        aws_secret_access_key=AWS_SECRET_KEY,
-        region_name="us-east-1"
-    )
-    mysql_conn = mysql.connector.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME
-    )
-    cursor = mysql_conn.cursor()
-    es = Elasticsearch([f"http://{ES_HOST}:{ES_PORT}"])
+    # 스트리밍 쿼리의 상태를 주기적으로 확인하는 루프 예시
+    while query.isActive:
+        logger.info("Streaming query is active...")
+        time.sleep(10)
 
-    for _, row in pdf.iterrows():
-        row_type = row['type']           # "DETAIL"
-        atc_id = row['json_data']['atcId']
-        image_base64 = row['processed_image']
-        dep_place = row['json_data']['depPlace']
-        fd_prdt_nm = row['json_data']['fdPrdtNm']
-        clr_nm = row['json_data']['clrNm']
-        fd_ymd = row['json_data']['fdYmd']
-        
-        # S3 업로드
-        if image_base64:
-            image_bytes = base64.b64decode(image_base64)
-            s3_key = f"detail/{atc_id}.jpg"
-            s3.put_object(Bucket=AWS_S3_BUCKET, Key=s3_key, Body=image_bytes, ContentType="image/jpeg")
+    logger.error("Streaming query terminated unexpectedly: " + query.status)
 
-        # MySQL 갱신/추가 (예시: found_item 테이블 업데이트)
-        update_query = """
-            UPDATE found_item
-            SET updated_at = NOW(), color = %s
-            WHERE management_id = %s
-        """
-        cursor.execute(update_query, (clr_nm, atc_id))
-        mysql_conn.commit()
-
-        # Elasticsearch 인덱싱 (상세 정보 업데이트)
-        doc = {
-            "atcId": atc_id,
-            "depPlace": dep_place,
-            "fdPrdtNm": fd_prdt_nm,
-            "clrNm": clr_nm,
-            "fdYmd": fd_ymd,
-            "timestamp": row['timestamp'],
-            "type": row_type
-        }
-        es.index(index=ES_INDEX, body=doc)
-
-    # HDFS 저장 (detail path)
-    # (마찬가지로 batch_df.write를 사용하려면 Spark DF 그대로 받아야 함)
-    # batch_df.write.mode("append").parquet("hdfs://hadoop-namenode:9000/data/found_items/detail")
-
-    cursor.close()
-    mysql_conn.close()
-
-# writeStream foreachBatch
-query_bulk = bulk_enriched.writeStream.foreachBatch(store_batch_bulk).start()
-query_detail = detail_enriched.writeStream.foreachBatch(store_batch_detail).start()
-
-# 데이터가 없더라도 스트리밍 작업이 종료되지 않도록 대기합니다.
-query_bulk.awaitTermination()
-query_detail.awaitTermination()
+    query.awaitTermination()

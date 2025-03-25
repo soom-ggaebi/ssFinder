@@ -1,32 +1,65 @@
-import json
-from datetime import datetime
-from kafka import KafkaProducer
-from app.models.common.api_client import fetch_detail_item
-from config.config import KAFKA_BROKER, KAFKA_DETAIL_TOPIC
+# app/core/producer_detail.py
 
-def produce_detail_messages(atc_ids):
+import pymysql
+from config.config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+
+def get_connection():
     """
-    atc_ids: 관리번호(ATC_ID) 리스트
-    각 ATC_ID마다 상세정보 API 호출 후 Kafka로 전송
+    MySQL DB에 연결하는 함수
     """
-    producer = KafkaProducer(
-        bootstrap_servers=KAFKA_BROKER,
-        value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode('utf-8')
+    return pymysql.connect(
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        db=DB_NAME,
+        charset='utf8',
+        cursorclass=pymysql.cursors.DictCursor
     )
+
+def update_detail_info(management_id: str, detail_data: dict):
+    """
+    관리번호(management_id)에 해당하는 found_item 테이블의 상세 정보를 업데이트합니다.
     
-    count = 0
-    for atc_id in atc_ids:
-        detail_data = fetch_detail_item(atc_id, fd_sn="1")
-        item = detail_data.get("response", {}).get("body", {}).get("item", {})
-        if not item:
-            continue
-        
-        message = {
-            "type": "DETAIL",
-            "timestamp": datetime.now().isoformat(),
-            "data": item
+    detail_data 예시:
+        {
+            "status": "RECEIVED", 
+            "location": "서울시 강남구", 
+            "phone": "010-1234-5678", 
+            "detail": "추가 상세 정보..."
         }
-        producer.send(KAFKA_DETAIL_TOPIC, message)
-        count += 1
-    producer.flush()
-    print(f"[DETAIL] Sent {count} detail items to Kafka topic '{KAFKA_DETAIL_TOPIC}'.")
+    """
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = """
+            UPDATE found_item
+            SET status = %s,
+                location = %s,
+                phone = %s,
+                detail = %s,
+                updated_at = NOW()
+            WHERE management_id = %s
+            """
+            cursor.execute(sql, (
+                detail_data.get("status"),
+                detail_data.get("location"),
+                detail_data.get("phone"),
+                detail_data.get("detail"),
+                management_id
+            ))
+            conn.commit()
+            print(f"Detail info for management_id {management_id} updated successfully.")
+    except Exception as e:
+        print(f"Error updating detail info for management_id {management_id}: {e}")
+    finally:
+        conn.close()
+
+# 테스트 실행 (필요 시)
+if __name__ == "__main__":
+    sample_detail = {
+        "status": "RECEIVED",
+        "location": "서울시 강남구",
+        "phone": "010-1234-5678",
+        "detail": "테스트 상세 정보입니다."
+    }
+    update_detail_info("F2024082800004004", sample_detail)

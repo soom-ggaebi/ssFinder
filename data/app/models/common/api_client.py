@@ -1,11 +1,9 @@
 import requests
-import xmltodict
 from config.config import API_SERVICE_KEY
+from app.models.common.date_util import get_date_range_for_api
 
-def fetch_bulk_items(start_ymd: str, end_ymd: str, page_no: int = 1, num_of_rows: int = 1000):
-    """
-    한 번에 최대 1~10000개씩 가져오는 간략 정보 API (XML 응답).
-    """
+def fetch_lost_items(page_no=1, num_of_rows=1000):
+    start_ymd, end_ymd = get_date_range_for_api()
     url = 'http://apis.data.go.kr/1320000/LosfundInfoInqireService/getLosfundInfoAccToClAreaPd'
     params = {
         'serviceKey': API_SERVICE_KEY,
@@ -15,19 +13,20 @@ def fetch_bulk_items(start_ymd: str, end_ymd: str, page_no: int = 1, num_of_rows
         'numOfRows': num_of_rows
     }
     resp = requests.get(url, params=params)
-    resp.raise_for_status()
-    return xmltodict.parse(resp.content)
+    if resp.status_code == 200:
+        return resp.text
+    else:
+        raise Exception(f"[목록] API 요청 실패 (status: {resp.status_code})")
 
-def fetch_detail_item(atc_id: str, fd_sn: str = "1"):
-    """
-    관리번호(ATC_ID)로 1개씩 상세 정보를 가져오는 API.
-    """
-    detail_url = 'http://apis.data.go.kr/1320000/LosfundInfoInqireService/getLosfundDetailInfo'
+def fetch_lost_item_detail(atc_id):
+    url = 'http://apis.data.go.kr/1320000/LosfundInfoInqireService/getLosfundDetailInfo'
     params = {
         'serviceKey': API_SERVICE_KEY,
         'ATC_ID': atc_id,
-        'FD_SN': fd_sn
+        'FD_SN': 1
     }
-    resp = requests.get(detail_url, params=params)
-    resp.raise_for_status()
-    return xmltodict.parse(resp.content)
+    resp = requests.get(url, params=params)
+    if resp.status_code == 200:
+        return resp.text
+    else:
+        raise Exception(f"[상세] API 요청 실패 (status: {resp.status_code})")
