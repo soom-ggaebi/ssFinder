@@ -17,7 +17,7 @@ import java.util.Map;
  * fileName       : NotificationService.java<br>
  * author         : okeio<br>
  * date           : 2025-03-25<br>
- * description    :  <br>
+ * description    : 종류별 알림에 대한 Service 클래스입니다. <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
@@ -115,6 +115,7 @@ public class NotificationService {
     }
 
     // 4. 소지품 알림
+    // TODO 날씨 api 연결
     public void sendItemReminderNotification(Integer userId, String itemName) {
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
         if (!tokens.isEmpty()) {
