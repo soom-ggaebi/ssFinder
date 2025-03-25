@@ -1,15 +1,81 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:sumsumfinder/screens/lost_page/lost_page.dart';
-import 'package:sumsumfinder/screens/found_page/found_page.dart';
 import 'package:sumsumfinder/screens/home_page.dart';
 import 'package:sumsumfinder/widgets/common/custom_dialog.dart';
 import 'package:sumsumfinder/screens/main/notifications_page.dart';
 import 'package:sumsumfinder/widgets/common/app_text.dart';
+import 'package:sumsumfinder/services/kakao_login_service.dart';
 
-class MainPage extends StatelessWidget {
+class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
+
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  // 카카오 로그인 서비스 인스턴스
+  final KakaoLoginService _kakaoLoginService = KakaoLoginService();
+
+  @override
+  void initState() {
+    super.initState();
+    // 앱 시작 시 로그인 상태 확인
+    _checkLoginStatus();
+
+    // 로그인 상태 변경 리스너 추가
+    _kakaoLoginService.isLoggedIn.addListener(_loginStateChanged);
+  }
+
+  @override
+  void dispose() {
+    // 리스너 제거
+    _kakaoLoginService.isLoggedIn.removeListener(_loginStateChanged);
+    super.dispose();
+  }
+
+  // 로그인 상태 확인
+  Future<void> _checkLoginStatus() async {
+    await _kakaoLoginService.checkLoginStatus();
+  }
+
+  // 로그인 상태 변경 시 화면 갱신
+  void _loginStateChanged() {
+    setState(() {}); // UI 갱신
+  }
+
+  // 로그인 시도 함수
+  Future<void> _attemptLogin() async {
+    try {
+      // 기존 카카오 로그인
+      bool loginSuccess = await _kakaoLoginService.login();
+      if (loginSuccess) {
+        // 백엔드 인증 추가
+        final authResult = await _kakaoLoginService.authenticateWithBackend();
+        if (authResult != null) {
+          // 백엔드 인증 성공
+          print('로그인 및 백엔드 인증 완료: ${authResult['result_type']}');
+          // 상태 업데이트나 추가 작업 수행
+          setState(() {});
+        } else {
+          // 백엔드 인증 실패
+          print('백엔드 인증 실패');
+          // 실패 알림 표시
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('서버 연결에 실패했습니다. 다시 시도해주세요.')),
+          );
+        }
+      } else {
+        print('카카오 로그인 실패');
+      }
+    } catch (e) {
+      print('로그인 중 오류 발생: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('로그인 중 오류가 발생했습니다: $e')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,35 +141,71 @@ class MainPage extends StatelessWidget {
                     ),
                     child: InkWell(
                       onTap: () {
-                        print('클릭 감지됨');
-                        try {
+                        if (!_kakaoLoginService.isLoggedIn.value) {
+                          print('클릭 감지됨');
+                          try {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                print('다이얼로그 빌더 시작');
+                                return CustomAlertDialog(
+                                  message: '로그인하고 다양한 기능을 사용해보세요!',
+                                  buttonText: '카카오 로그인',
+                                  buttonColor: const Color(0xFFFFE100),
+                                  buttonTextColor: const Color(0xFF3C1E1E),
+                                  buttonIcon: SvgPicture.asset(
+                                    'assets/images/main/kakao_logo.svg',
+                                    width: 20,
+                                    height: 20,
+                                  ),
+                                  onButtonPressed: () {
+                                    Navigator.of(context).pop();
+                                    _attemptLogin(); // 카카오 로그인 시도
+                                  },
+                                );
+                              },
+                            );
+                            print('showDialog 호출 완료');
+                          } catch (e) {
+                            print('오류 발생: $e');
+                          }
+                        } else {
+                          // 이미 로그인한 상태면 로그아웃 확인 다이얼로그 표시
                           showDialog(
                             context: context,
                             builder: (BuildContext context) {
-                              print('다이얼로그 빌더 시작');
-                              return CustomAlertDialog(
-                                message: '로그인하고 다양한 기능을 사용해보세요!',
-                                buttonText: '카카오 로그인',
-                                buttonColor: const Color(0xFFFFE100),
-                                buttonTextColor: const Color(0xFF3C1E1E),
-                                buttonIcon: SvgPicture.asset(
-                                  'assets/images/main/kakao_logo.svg',
-                                  width: 20,
-                                  height: 20,
-                                ),
-                                onButtonPressed: () {
-                                  Navigator.of(context).pop();
-                                },
+                              return AlertDialog(
+                                title: const Text('로그아웃'),
+                                content: const Text('로그아웃 하시겠습니까?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text('취소'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                      _kakaoLoginService.logout();
+                                    },
+                                    child: const Text('로그아웃'),
+                                  ),
+                                ],
                               );
                             },
                           );
-                          print('showDialog 호출 완료');
-                        } catch (e) {
-                          print('오류 발생: $e');
                         }
                       },
                       child: Row(
-                        children: [AppText('로그인하러 가기', color: Colors.blue)],
+                        children: [
+                          AppText(
+                            _kakaoLoginService.isLoggedIn.value
+                                ? '${_kakaoLoginService.user?.kakaoAccount?.profile?.nickname ?? "사용자"}님 안녕하세요'
+                                : '로그인하러 가기',
+                            color: Colors.blue,
+                          ),
+                        ],
                       ),
                     ),
                   ),

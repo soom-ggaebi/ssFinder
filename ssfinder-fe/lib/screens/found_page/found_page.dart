@@ -6,7 +6,7 @@ import './found_item_form.dart';
 import './found_item_filter.dart';
 import 'found_items_list.dart'; // 수정된 FoundItemsList 위젯 import
 import 'package:sumsumfinder/models/found_item_model.dart';
-import 'package:sumsumfinder/service/api_service.dart';
+import 'package:sumsumfinder/services/api_service.dart';
 
 class FoundPage extends StatefulWidget {
   FoundPage({Key? key}) : super(key: key);
@@ -18,7 +18,7 @@ class FoundPage extends StatefulWidget {
 class _FoundPageState extends State<FoundPage> {
   Position? _currentPosition;
   String _searchQuery = "";
-  
+
   // 추가: API에서 가져온 데이터와 로딩 상태 변수
   List<FoundItemModel> foundItems = [];
   bool isLoading = true;
@@ -65,9 +65,9 @@ class _FoundPageState extends State<FoundPage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('주소 검색에 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('주소 검색에 실패했습니다.')));
     }
   }
 
@@ -84,9 +84,9 @@ class _FoundPageState extends State<FoundPage> {
       setState(() {
         isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('데이터 로딩에 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('데이터 로딩에 실패했습니다.')));
     }
   }
 
@@ -98,27 +98,27 @@ class _FoundPageState extends State<FoundPage> {
           // 지도 영역: 현재 위치가 있으면 해당 좌표로, 없으면 FutureBuilder로 가져옴.
           _currentPosition != null
               ? MapWidget(
-                  latitude: _currentPosition!.latitude,
-                  longitude: _currentPosition!.longitude,
-                )
+                latitude: _currentPosition!.latitude,
+                longitude: _currentPosition!.longitude,
+              )
               : FutureBuilder<Position>(
-                  future: getLocationData(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData &&
-                        snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasData) {
-                      Position pos = snapshot.data!;
-                      return MapWidget(
-                        latitude: pos.latitude,
-                        longitude: pos.longitude,
-                      );
-                    } else {
-                      return MapWidget();
-                    }
-                  },
-                ),
+                future: getLocationData(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData &&
+                      snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasData) {
+                    Position pos = snapshot.data!;
+                    return MapWidget(
+                      latitude: pos.latitude,
+                      longitude: pos.longitude,
+                    );
+                  } else {
+                    return MapWidget();
+                  }
+                },
+              ),
           // 하단 드래그 시트 영역: API 데이터 로딩 여부에 따라 처리
           isLoading
               ? Center(child: CircularProgressIndicator())
@@ -160,8 +160,7 @@ class _FoundPageState extends State<FoundPage> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => FilterPage()),
+                          MaterialPageRoute(builder: (context) => FilterPage()),
                         );
                       },
                     ),
