@@ -12,7 +12,7 @@ def test_batch_job():
             .config("spark.executor.cores", "1") \
             .config("spark.default.parallelism", "2") \
             .config("spark.driver.host", "13.209.84.121") \
-            .config("spark.driver.port", "4040") \
+            .config("spark.driver.port", "4041") \
             .config("spark.driver.bindAddress", "0.0.0.0") \
             .getOrCreate()
 
