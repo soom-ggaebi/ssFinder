@@ -9,6 +9,7 @@ import com.ssfinder.domain.notification.service.FcmTokenService;
 import com.ssfinder.domain.notification.service.UserNotificationSettingService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.global.common.response.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -38,13 +39,13 @@ public class NotificationController {
     private final UserNotificationSettingService userNotificationSettingService;
 
     @PostMapping("/token")
-    public ApiResponse<?> registerFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody FcmTokenRequest fcmTokenRequest) {
+    public ApiResponse<?> registerFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody FcmTokenRequest fcmTokenRequest) {
         fcmTokenService.registerOrUpdateFcmToken(userDetails.getUserId(), fcmTokenRequest);
         return ApiResponse.created(null);
     }
 
     @DeleteMapping("/token")
-    public ApiResponse<?> deleteFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody FcmTokenRequest fcmTokenRequest) {
+    public ApiResponse<?> deleteFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody FcmTokenRequest fcmTokenRequest) {
         fcmTokenService.deleteFcmToken(userDetails.getUserId(), fcmTokenRequest);
         return ApiResponse.noContent();
     }
@@ -56,14 +57,14 @@ public class NotificationController {
     }
 
     @PatchMapping("/settings")
-    public ApiResponse<?> updateNotificationSettings(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody SettingUpdateRequest settingUpdateRequest) {
+    public ApiResponse<?> updateNotificationSettings(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody SettingUpdateRequest settingUpdateRequest) {
         userNotificationSettingService.updateUserNotificationSettings(userDetails.getUserId(), settingUpdateRequest);
         return ApiResponse.noContent();
     }
 
     // token 테스트 용도
     @PostMapping("/test")
-    public ApiResponse<?> testFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody TokenTestRequest tokenTestRequest) {
+    public ApiResponse<?> testFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody TokenTestRequest tokenTestRequest) {
         List<String> tokens = fcmTokenService.getFcmTokens(userDetails.getUserId());
 
         fcmMessageService.sendNotificationToUser(tokens.get(0), "테스트다", tokenTestRequest.message(), Map.of("type", "TEST"));
