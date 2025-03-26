@@ -7,11 +7,20 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app.dart'; // app.dart 파일을 가져옵니다.
+import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
+import 'dart:async';
+import 'package:sumsumfinder/services/kakao_login_service.dart';
+import 'package:sumsumfinder/screens/splash_screen.dart';
 
 Future main() async {
+  // 1. Flutter 엔진 초기화
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. Firebase 초기화
   await Firebase.initializeApp();
-  await dotenv.load();
+
+  // 3. 환경 변수 로드
+  await dotenv.load(fileName: ".env");
 
   // FCM 권한 요청
   FirebaseMessaging messaging = FirebaseMessaging.instance;
@@ -20,7 +29,7 @@ Future main() async {
   // Flutter 바인딩 초기화
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 카카오 SDK 초기화 - .env에서 키를 불러옴
+  // 4. 카카오 SDK 초기화
   String kakaoNativeAppKey = dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '';
   if (kakaoNativeAppKey.isEmpty) {
     throw Exception(

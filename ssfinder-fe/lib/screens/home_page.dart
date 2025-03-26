@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import './main/main_page.dart';
-import './lost_page/lost_page.dart';
-import './found_page/found_page.dart';
+import 'lost/lost_page.dart';
+import 'found/found_page.dart';
 import 'package:sumsumfinder/screens/chat/chat_list_page.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 

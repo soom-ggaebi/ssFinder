@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -27,6 +28,110 @@ class KakaoLoginService {
   // 백엔드 URL 가져오기
   String get _backendUrl =>
       dotenv.env['BACKEND_URL'] ?? 'https://ssfinder.site';
+
+  // KakaoLoginService 클래스에 추가할 메서드들
+
+  // 1. 앱 시작 시 호출할 자동 로그인 메서드
+  Future<bool> autoLogin() async {
+    try {
+      print('자동 로그인 시도 중...');
+
+      // 1. 저장된 토큰 확인
+      final accessToken = await getAccessToken();
+      final refreshToken = await getRefreshToken();
+
+      if (accessToken == null || refreshToken == null) {
+        print('저장된 토큰이 없습니다. 자동 로그인 불가');
+        isLoggedIn.value = false;
+        return false;
+      }
+
+      // 2. 토큰 유효성 확인 및 필요시 갱신
+      final authenticated = await ensureAuthenticated();
+      if (!authenticated) {
+        print('토큰 갱신 실패. 다시 로그인이 필요합니다.');
+        isLoggedIn.value = false;
+        return false;
+      }
+
+      // 3. 사용자 정보 가져오기
+      final userProfile = await getUserProfile();
+      if (userProfile == null) {
+        print('사용자 정보 조회 실패. 다시 로그인이 필요합니다.');
+        isLoggedIn.value = false;
+        return false;
+      }
+
+      // 4. 카카오 API 토큰 확인 (선택적)
+      try {
+        if (await AuthApi.instance.hasToken()) {
+          await UserApi.instance.accessTokenInfo();
+          await _getUserInfo();
+        }
+      } catch (e) {
+        print('카카오 토큰 확인 중 오류: $e');
+        // 카카오 토큰 오류가 있어도 백엔드 토큰이 유효하면 진행
+      }
+
+      print('자동 로그인 성공!');
+      isLoggedIn.value = true;
+      return true;
+    } catch (e) {
+      print('자동 로그인 중 오류 발생: $e');
+      isLoggedIn.value = false;
+      return false;
+    }
+  }
+
+  // 2. 토큰 자동 갱신을 위한 요청 인터셉터
+  Future<http.Response> authenticatedRequestWithAutoRefresh(
+    String method,
+    String endpoint, {
+    Map<String, dynamic>? body,
+  }) async {
+    try {
+      // 1. 먼저 기존 토큰으로 요청 시도
+      final response = await authenticatedRequest(method, endpoint, body: body);
+
+      // 2. 401 Unauthorized 응답일 경우 토큰 갱신 후 재시도
+      if (response.statusCode == 401) {
+        print('인증 만료. 토큰 갱신 시도 중...');
+        final refreshed = await refreshAccessToken();
+
+        if (refreshed) {
+          print('토큰 갱신 성공. 요청 재시도...');
+          return await authenticatedRequest(method, endpoint, body: body);
+        } else {
+          print('토큰 갱신 실패. 로그인 필요.');
+          throw Exception('인증 토큰 갱신 실패');
+        }
+      }
+
+      return response;
+    } catch (e) {
+      print('인증 요청 중 오류: $e');
+      rethrow;
+    }
+  }
+
+  // 3. 주기적 토큰 유효성 검사 및 갱신 (백그라운드에서 실행)
+  Future<void> setupPeriodicTokenRefresh() async {
+    // 30분마다 토큰 유효성 확인 및 필요시 갱신
+    Timer.periodic(const Duration(minutes: 30), (timer) async {
+      if (isLoggedIn.value) {
+        print('주기적 토큰 유효성 검사 실행...');
+
+        final authenticated = await ensureAuthenticated();
+        if (!authenticated) {
+          print('토큰 갱신 실패. 로그인 상태 해제.');
+          isLoggedIn.value = false;
+          // 여기서 로그인 화면으로 이동하는 이벤트를 발생시킬 수 있음
+        } else {
+          print('토큰 유효성 확인 완료');
+        }
+      }
+    });
+  }
 
   // 로그인 시도 함수
   Future<bool> login() async {
