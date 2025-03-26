@@ -29,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     private static final String[] AllowUrls = new String[]{
-            "/api/auth/",
+            "/api/auth/", "/ws/"
     };
 
     @Override

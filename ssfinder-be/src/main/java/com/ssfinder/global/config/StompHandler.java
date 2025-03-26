@@ -47,7 +47,7 @@ public class StompHandler implements ChannelInterceptor {
 
             if(!isValid) {
                 logger.error("Invalid JWT");
-                throw new CustomException(ErrorCode.INVALID_TOKEN);
+//                throw new CustomException(ErrorCode.INVALID_TOKEN);
             }
         }
 
