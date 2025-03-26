@@ -24,7 +24,12 @@ import java.time.LocalDateTime;
  * <br>
  */
 @Entity
-@Table(name = "found_item")
+@Table(
+        name = "found_item",
+        indexes = {
+                @Index(name = "idx_coordinates", columnList = "coordinates")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PUBLIC)

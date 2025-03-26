@@ -6,6 +6,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * packageName    : com.ssfinder.domain.found.repository<br>
+ * fileName       : FoundItemBookmarkRepository.java<br>
+ * author         : joker901010<br>
+ * date           : 2025-03-26<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-03-26          joker901010           최초생성<br>
+ * <br>
+ */
 public interface FoundItemBookmarkRepository extends JpaRepository<FoundItemBookmark, Integer> {
 
     List<FoundItemBookmark> findByUserId(Integer userId);

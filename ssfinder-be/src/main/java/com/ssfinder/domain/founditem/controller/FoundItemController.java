@@ -1,11 +1,10 @@
 package com.ssfinder.domain.founditem.controller;
 
 import com.ssfinder.domain.founditem.dto.request.FoundItemRegisterRequest;
+import com.ssfinder.domain.founditem.dto.request.FoundItemStatusUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
-import com.ssfinder.domain.founditem.dto.response.FoundItemBookmarkResponse;
-import com.ssfinder.domain.founditem.dto.response.FoundItemDetailResponse;
-import com.ssfinder.domain.founditem.dto.response.FoundItemRegisterResponse;
-import com.ssfinder.domain.founditem.dto.response.FoundItemUpdateResponse;
+import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
+import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemBookmarkService;
 import com.ssfinder.domain.founditem.service.FoundItemService;
@@ -39,13 +38,18 @@ public class FoundItemController {
     private final FoundItemService foundItemService;
     private final FoundItemBookmarkService foundItemBookmarkService;
 
-
-
     @GetMapping
-    public ApiResponse<List<FoundItem>> getLostAll() {
+    public ApiResponse<List<FoundItemDetailResponse>> getLostAll(@RequestBody FoundItemViewportRequest viewportRequest) {
         List<FoundItem> foundItemList = foundItemService.getLostAll();
 
-        return ApiResponse.ok(foundItemList);
+        try {
+            List<FoundItemDetailResponse> response = foundItemService.getFoundItemsByViewport(viewportRequest);
+            return ApiResponse.ok(response);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PostMapping
@@ -99,6 +103,33 @@ public class FoundItemController {
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @PutMapping("/{foundId}/status")
+    public ApiResponse<FoundItemStatusUpdateResponse> updateFoundItemStatus(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                                            @PathVariable Integer foundId,
+                                                                            @RequestBody FoundItemStatusUpdateRequest request) {
+        try {
+            FoundItemStatusUpdateResponse response = foundItemService.updateFoundItemStatus(userDetails.getUserId(), foundId, request);
+            return ApiResponse.ok(response);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/my-items")
+    public ApiResponse<List<FoundItemDetailResponse>> getMyFoundItems(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        try {
+            List<FoundItemDetailResponse> response = foundItemService.getMyFoundItems(userDetails.getUserId());
+            return ApiResponse.ok(response);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
     @PostMapping("/{foundId}/bookmark")
     public ApiResponse<?> registerBookmark(@AuthenticationPrincipal CustomUserDetails userDetails,

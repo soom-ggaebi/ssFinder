@@ -2,6 +2,10 @@ package com.ssfinder.domain.founditem.repository;
 
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 
 /**
  * packageName    : com.ssfinder.domain.found.repository<br>
@@ -16,4 +20,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * <br>
  */
 public interface FoundItemRepository extends JpaRepository<FoundItem, Integer> {
+    List<FoundItem> findAllByUserId(int userId);
+
+    @Query(value = "SELECT * FROM found_item " +
+            "WHERE MBRContains(ST_MakeEnvelope(:minLon, :minLat, :maxLon, :maxLat), coordinates) = 1",
+            nativeQuery = true)
+    List<FoundItem> findByCoordinatesWithin(@Param("minLat") double minLat,
+                                            @Param("minLon") double minLon,
+                                            @Param("maxLat") double maxLat,
+                                            @Param("maxLon") double maxLon);
 }

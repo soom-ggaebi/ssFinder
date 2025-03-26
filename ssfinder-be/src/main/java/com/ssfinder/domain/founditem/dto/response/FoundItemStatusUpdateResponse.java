@@ -3,13 +3,14 @@ package com.ssfinder.domain.founditem.dto.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 /**
  * packageName    : com.ssfinder.domain.found.dto.request<br>
- * fileName       : FoundItemBookmarkResponse.java<br>
+ * fileName       : FoundItemStatusUpdateResponse.java<br>
  * author         : joker901010<br>
  * date           : 2025-03-26<br>
  * description    :  <br>
@@ -19,16 +20,17 @@ import lombok.Setter;
  * 2025-03-26          joker901010           최초생성<br>
  * <br>
  */
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @Getter
 @Setter
-@Builder
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class FoundItemBookmarkResponse {
+public class FoundItemStatusUpdateResponse {
+
     private Integer id;
 
     @JsonProperty("user_id")
     private Integer userId;
 
-    @JsonProperty("found_item_id")
-    private Integer foundItemId;
+    private String status;
+
+    private LocalDateTime updatedAt;
 }

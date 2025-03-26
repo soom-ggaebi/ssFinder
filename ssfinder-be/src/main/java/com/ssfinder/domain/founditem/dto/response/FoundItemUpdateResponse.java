@@ -9,6 +9,18 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * packageName    : com.ssfinder.domain.found.dto.request<br>
+ * fileName       : FoundItemUpdateResponse.java<br>
+ * author         : joker901010<br>
+ * date           : 2025-03-26<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-03-26          joker901010           최초생성<br>
+ * <br>
+ */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @Getter
 @Setter

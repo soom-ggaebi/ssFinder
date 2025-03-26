@@ -18,6 +18,18 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * packageName    : com.ssfinder.domain.found.service<br>
+ * fileName       : FoundItemBookmarkService.java<br>
+ * author         : joker901010<br>
+ * date           : 2025-03-26<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-03-26          joker901010           최초생성<br>
+ * <br>
+ */
 @Slf4j
 @Service
 @Transactional
@@ -44,7 +56,7 @@ public class FoundItemBookmarkService {
 
         // NOTFOUND 나오면 바꾸기
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> { throw new CustomException(ErrorCode.INVALID_INPUT_VALUE); });
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
 
         bookmark.setUser(user);
         bookmark.setFoundItem(foundItem);
