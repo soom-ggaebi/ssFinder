@@ -16,6 +16,9 @@ dependencies {
   // Add the dependency for the Firebase SDK for Google Analytics
   implementation("com.google.firebase:firebase-analytics")
 
+  // Firebase Cloud Messaging 의존성 추가
+  implementation("com.google.firebase:firebase-messaging")
+
   // TODO: Add the dependencies for any other Firebase products you want to use
   // See https://firebase.google.com/docs/android/setup#available-libraries
   // For example, add the dependencies for Firebase Authentication and Cloud Firestore
@@ -30,12 +33,12 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
