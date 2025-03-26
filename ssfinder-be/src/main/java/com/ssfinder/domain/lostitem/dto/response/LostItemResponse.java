@@ -2,7 +2,6 @@ package com.ssfinder.domain.lostitem.dto.response;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.ssfinder.domain.user.entity.User;
 import lombok.*;
 
 import java.time.LocalDate;

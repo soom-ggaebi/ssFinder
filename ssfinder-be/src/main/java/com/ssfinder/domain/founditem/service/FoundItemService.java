@@ -58,16 +58,23 @@ public class FoundItemService {
 
     @Transactional
     public FoundItemRegisterResponse registerFoundItem(int userId, FoundItemRegisterRequest requestDTO) {
+        FoundItem foundItem;
+        try {
+            foundItem = foundItemMapper.toEntity(requestDTO);
+        } catch(Exception e) {
+            throw e;
+        }
 
-        FoundItem foundItem = foundItemMapper.toEntity(requestDTO);
-
-        User user = userRepository.findById(userId).get();
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
         foundItem.setUser(user);
 
-        ItemCategory itemCategory = itemCategoryRepository.findById(requestDTO.getItemCategoryId()).get();
+        ItemCategory itemCategory = itemCategoryRepository.findById(requestDTO.getItemCategoryId())
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
         foundItem.setItemCategory(itemCategory);
 
-        foundItem.setStatus(Status.valueOf(requestDTO.getStatus()));
+        if (requestDTO.getStatus() != null) {
+            foundItem.setStatus(Status.valueOf(requestDTO.getStatus()));
+        }
 
         if (requestDTO.getLatitude() != null && requestDTO.getLongitude() != null) {
             Point coordinates = geometryFactory.createPoint(new Coordinate(requestDTO.getLongitude(), requestDTO.getLatitude()));
@@ -79,11 +86,12 @@ public class FoundItemService {
         LocalDateTime now = LocalDateTime.now();
         foundItem.setCreatedAt(now);
         foundItem.setUpdatedAt(now);
-
+        System.out.println("save 직전, foundItem: " + foundItem);
         FoundItem savedItem = foundItemRepository.save(foundItem);
-
+        System.out.println("save 후, savedItem: " + savedItem);
         return foundItemMapper.toResponse(savedItem);
     }
+
 
     @Transactional(readOnly = true)
     public FoundItemDetailResponse getFoundItemDetail(int foundId) {

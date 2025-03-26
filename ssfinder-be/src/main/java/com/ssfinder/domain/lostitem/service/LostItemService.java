@@ -1,7 +1,6 @@
 package com.ssfinder.domain.lostitem.service;
 
 import com.ssfinder.domain.item.entity.ItemCategory;
-import com.ssfinder.domain.item.entity.Level;
 import com.ssfinder.domain.item.repository.ItemCategoryRepository;
 import com.ssfinder.domain.lostitem.dto.mapper.LostItemMapper;
 import com.ssfinder.domain.lostitem.dto.request.LostItemRegisterRequest;
@@ -17,20 +16,17 @@ import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.repository.UserRepository;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
-import jakarta.persistence.EntityNotFoundException;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.transaction.annotation.Transactional;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**

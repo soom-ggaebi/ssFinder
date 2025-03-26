@@ -5,7 +5,6 @@ import com.ssfinder.domain.founditem.dto.request.FoundItemStatusUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
 import com.ssfinder.domain.founditem.dto.response.*;
-import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemBookmarkService;
 import com.ssfinder.domain.founditem.service.FoundItemService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;

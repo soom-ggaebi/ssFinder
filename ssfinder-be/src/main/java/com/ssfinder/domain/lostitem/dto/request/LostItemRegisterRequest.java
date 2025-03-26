@@ -1,8 +1,8 @@
 package com.ssfinder.domain.lostitem.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.ssfinder.domain.item.entity.Level;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -27,6 +27,7 @@ import java.time.LocalDate;
 public class LostItemRegisterRequest {
 
     @NotNull
+    @JsonProperty("item_category_id")
     private Integer itemCategoryId;
 
     @NotNull
@@ -38,6 +39,7 @@ public class LostItemRegisterRequest {
     private String color;
 
     @NotNull
+    @JsonProperty("lost_at")
     private LocalDate lostAt;
 
     @NotNull

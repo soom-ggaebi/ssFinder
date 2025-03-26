@@ -35,6 +35,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PUBLIC)
 @AllArgsConstructor
 @Builder
+@ToString
 public class FoundItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -43,7 +43,7 @@ dependencies {
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 
 	// Hibernate Spatial
-	implementation 'org.hibernate:hibernate-spatial:6.0.0.Final'
+	implementation 'org.hibernate:hibernate-spatial:6.6.8.Final'
 
 	// JTS (Java Topology Suite)
 	implementation 'org.locationtech.jts:jts-core:1.18.2'
