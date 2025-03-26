@@ -33,7 +33,7 @@ public class FcmToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "token", nullable = false)
+    @Column(name = "token", nullable = false, length = 255)
     private String token;
 
     @CreatedDate
