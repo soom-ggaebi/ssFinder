@@ -6,6 +6,7 @@ services:
       dockerfile: docker/Dockerfile.app
     ports:
       - "8000:8000"
+      - "4040-4050:4040-4050"
     env_file:
       - ../.env
     network_mode: "host"
