@@ -56,10 +56,6 @@ public class FoundItemService {
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
-    public List<FoundItem> getLostAll() {
-        return null;
-    }
-
     @Transactional
     public FoundItemRegisterResponse registerFoundItem(int userId, FoundItemRegisterRequest requestDTO) {
 

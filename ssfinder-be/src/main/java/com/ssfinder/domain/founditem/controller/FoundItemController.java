@@ -39,9 +39,7 @@ public class FoundItemController {
     private final FoundItemBookmarkService foundItemBookmarkService;
 
     @GetMapping
-    public ApiResponse<List<FoundItemDetailResponse>> getLostAll(@RequestBody FoundItemViewportRequest viewportRequest) {
-        List<FoundItem> foundItemList = foundItemService.getLostAll();
-
+    public ApiResponse<List<FoundItemDetailResponse>> getFoundAll(@RequestBody FoundItemViewportRequest viewportRequest) {
         try {
             List<FoundItemDetailResponse> response = foundItemService.getFoundItemsByViewport(viewportRequest);
             return ApiResponse.ok(response);

@@ -27,9 +27,6 @@ import java.time.LocalDate;
 public class LostItemRegisterRequest {
 
     @NotNull
-    private Integer userId;
-
-    @NotNull
     private Integer itemCategoryId;
 
     @NotNull
@@ -52,12 +49,6 @@ public class LostItemRegisterRequest {
 
     @Size(max = 255)
     private String image;
-
-    @NotNull
-    private String itemCategoryName;
-
-    @NotNull
-    private Level level;
 
     private Double latitude;
 

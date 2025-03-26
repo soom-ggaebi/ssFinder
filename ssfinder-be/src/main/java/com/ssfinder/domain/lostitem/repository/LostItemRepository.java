@@ -18,5 +18,5 @@ import java.util.List;
  * <br>
  */
 public interface LostItemRepository extends JpaRepository<LostItem, Integer> {
-    List<LostItem> findAllByUser_Id(int userId);
+    List<LostItem> findAllByUserId(Integer userId);
 }
