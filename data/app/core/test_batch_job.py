@@ -14,6 +14,7 @@ def test_batch_job():
             .config("spark.driver.host", "172.26.3.102") \
             .config("spark.driver.port", "4041") \
             .config("spark.blockManager.port", "4042") \
+            .config("spark.executor.port", "4043") \
             .config("spark.driver.bindAddress", "0.0.0.0") \
             .getOrCreate()
 
