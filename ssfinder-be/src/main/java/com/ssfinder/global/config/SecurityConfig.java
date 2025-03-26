@@ -32,13 +32,12 @@ public class SecurityConfig {
             "/agarang", "/ws/**", "/app/**"
     };
 
-    private final JwtUtil jwtUtil;
     private final UserService userService;
     private final ObjectMapper objectMapper;
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtUtil, userService, objectMapper);
+        return new JwtAuthenticationFilter(userService, objectMapper);
     }
 
     @Bean

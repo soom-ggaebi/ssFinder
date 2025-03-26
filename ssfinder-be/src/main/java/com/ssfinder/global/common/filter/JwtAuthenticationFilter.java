@@ -25,7 +25,6 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtUtil jwtUtil;
     private final UserService userService;
     private final ObjectMapper objectMapper;
 
@@ -49,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
-        if (jwtUtil.validateToken(token)) {
+        if (JwtUtil.validateToken(token)) {
             processValidAccessToken(token);
         } else {
             writeErrorResponse(response, ErrorCode.INVALID_TOKEN);
@@ -60,7 +59,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void processValidAccessToken(String accessToken) {
-        UserDetails userDetails = userService.loadUserByUsername(jwtUtil.getUserIdFromToken(accessToken));
+        UserDetails userDetails = userService.loadUserByUsername(JwtUtil.getUserIdFromToken(accessToken));
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
