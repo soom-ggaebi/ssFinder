@@ -21,6 +21,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       toolbarHeight: 56, // 명시적인 높이 설정
       centerTitle: true,
       titleSpacing: 0, // 타이틀 간격 조정
+      // 하단 테두리 추가
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1.0),
+        child: Container(color: const Color(0xFF4F4F4F), height: 1.0),
+      ),
+
       // 뒤로 가기 버튼
       leading: Center(
         // Container 대신 Center 위젯 사용

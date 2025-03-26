@@ -20,14 +20,21 @@ class _MyPageState extends State<MyPage> {
   @override
   void initState() {
     super.initState();
-    // 로그인 상태 확인
+    // 로그인 상태 확인 및 비로그인 시 자동 뒤로가기
     _checkLoginStatus();
   }
 
   // 로그인 상태 확인
   Future<void> _checkLoginStatus() async {
     await _kakaoLoginService.checkLoginStatus();
-    if (mounted) {
+
+    // 로그인되지 않은 경우 자동으로 이전 페이지로 돌아가기
+    if (!_kakaoLoginService.isLoggedIn.value && mounted) {
+      // 약간의 딜레이를 두고 뒤로가기 (화면 전환 효과를 위해)
+      Future.delayed(Duration.zero, () {
+        Navigator.of(context).pop();
+      });
+    } else if (mounted) {
       setState(() {});
     }
   }
@@ -130,10 +137,7 @@ class _MyPageState extends State<MyPage> {
           Navigator.of(context).popUntil((route) => route.isFirst);
         },
       ),
-      body:
-          _kakaoLoginService.isLoggedIn.value
-              ? _buildLoggedInView()
-              : _buildLoggedOutView(),
+      body: _buildLoggedInView(),
     );
   }
 
@@ -291,33 +295,6 @@ class _MyPageState extends State<MyPage> {
   String get _getNickname {
     return _kakaoLoginService.user?.kakaoAccount?.profile?.nickname ??
         "닉네임 정보 없음";
-  }
-
-  Widget _buildLoggedOutView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('로그인이 필요한 기능입니다', style: TextStyle(fontSize: 18)),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              // 메인 페이지로 돌아가기
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3F51B5),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('돌아가기'),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildStatItem(String label, String value) {

@@ -89,10 +89,18 @@ class _MainPageState extends State<MainPage> {
             height: 24,
           ),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const NotificationPage()),
-            );
+            if (_kakaoLoginService.isLoggedIn.value) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationPage(),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('로그인이 필요한 기능입니다.')));
+            }
           },
         ),
         IconButton(

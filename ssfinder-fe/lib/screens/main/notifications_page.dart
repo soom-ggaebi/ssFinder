@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
+import 'package:sumsumfinder/services/kakao_login_service.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({Key? key}) : super(key: key);
@@ -8,6 +11,9 @@ class NotificationPage extends StatefulWidget {
 }
 
 class _NotificationPageState extends State<NotificationPage> {
+  // 카카오 로그인 서비스 인스턴스
+  final _kakaoLoginService = KakaoLoginService();
+
   // 샘플 알림 데이터
   final List<NotificationItem> notifications = [
     NotificationItem(
@@ -29,22 +35,31 @@ class _NotificationPageState extends State<NotificationPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // 로그인 상태 확인 및 비로그인 시 자동 뒤로가기
+    _checkLoginStatus();
+  }
+
+  // 로그인 상태 확인 및 비로그인 시 뒤로가기
+  void _checkLoginStatus() {
+    // 로그인 되어 있지 않으면 바로 뒤로가기
+    if (!_kakaoLoginService.isLoggedIn.value) {
+      // 약간의 딜레이를 두고 뒤로가기 (화면 전환 효과를 위해)
+      Future.delayed(Duration.zero, () {
+        Navigator.of(context).pop();
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        title: const Text('알림 메시지'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: Color(0xFF4F4F4F), height: 1.0),
-        ),
+      appBar: CustomAppBar(
+        title: '알림 메시지',
+        onBackPressed: () => Navigator.of(context).pop(),
+        onClosePressed: () => Navigator.of(context).pop(),
       ),
       body:
           notifications.isEmpty
