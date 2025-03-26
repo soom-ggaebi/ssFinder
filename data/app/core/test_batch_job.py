@@ -9,7 +9,7 @@ def test_batch_job():
             .appName("TestBatchJob") \
             .master(SPARK_MASTER) \
             .config("spark.executor.memory", "512m") \
-            .config("spark.executor.cores", "1") \
+            .config("spark.executor.cores", "2") \
             .config("spark.default.parallelism", "2") \
             .config("spark.driver.host", "172.23.0.2") \
             .config("spark.driver.port", "4041") \
