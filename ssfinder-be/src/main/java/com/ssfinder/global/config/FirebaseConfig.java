@@ -32,11 +32,13 @@ public class FirebaseConfig {
     @PostConstruct
     public void init() {
         try {
-            GoogleCredentials googleCredentials = GoogleCredentials
-                    .fromStream(new ClassPathResource(firebaseConfigPath).getInputStream());
+            ClassPathResource serviceAccount = new ClassPathResource("/firebase/serviceAccountKey.json");
+
             FirebaseOptions options = new FirebaseOptions.Builder()
-                    .setCredentials(googleCredentials)
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount.getInputStream()))
                     .build();
+            FirebaseApp.initializeApp(options);
+
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
             }
