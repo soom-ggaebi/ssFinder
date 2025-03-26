@@ -5,6 +5,8 @@ import com.ssfinder.domain.auth.dto.TokenPair;
 import com.ssfinder.domain.auth.dto.request.KakaoLoginRequest;
 import com.ssfinder.domain.auth.dto.request.RefreshTokenRequest;
 import com.ssfinder.domain.auth.dto.response.KakaoLoginResponse;
+import com.ssfinder.domain.notification.dto.request.FcmTokenRequest;
+import com.ssfinder.domain.notification.service.FcmTokenService;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.repository.UserRepository;
 import com.ssfinder.domain.user.service.UserService;
@@ -40,6 +42,7 @@ public class AuthService {
     private final TokenService tokenService;
     private final PhoneNumberEncryptConverter phoneNumberEncryptConverter;
     private final UserService userService;
+    private final FcmTokenService fcmTokenService;
 
     @Value("${jwt.access-token-validity}")
     private long accessTokenValidity;
@@ -77,6 +80,9 @@ public class AuthService {
 
         // 토큰 발급
         TokenPair tokenPair = tokenService.generateTokens(user.getId());
+
+        // fcm 토큰 저장
+        fcmTokenService.registerOrUpdateFcmToken(user.getId(), new FcmTokenRequest(kakaoLoginRequest.fcmToken()));
 
         return new KakaoLoginResponse(tokenPair.accessToken(), tokenPair.refreshToken(), accessTokenValidity, resultType);
     }

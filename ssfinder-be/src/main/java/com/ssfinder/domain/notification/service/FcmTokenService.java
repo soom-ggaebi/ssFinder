@@ -36,7 +36,7 @@ public class FcmTokenService {
     private final FcmTokenRepository fcmTokenRepository;
     private final UserService userService;
 
-    public void registerFcmToken(int userId, FcmTokenRequest fcmTokenRequest) {
+    public void registerOrUpdateFcmToken(int userId, FcmTokenRequest fcmTokenRequest) {
         User user = userService.findUserById(userId);
         String token = fcmTokenRequest.token();
 
@@ -44,6 +44,7 @@ public class FcmTokenService {
 
         if (fcmTokenOpt.isPresent()) {
             fcmTokenOpt.get().setUpdatedAt(LocalDateTime.now());
+            log.info("Fcm token already exists with token: {}", token);
         } else {
             fcmTokenRepository.save(new FcmToken(token, user));
         }
