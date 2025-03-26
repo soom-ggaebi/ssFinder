@@ -33,7 +33,8 @@ public record KakaoLoginRequest (
         @Pattern(regexp = "\\d{4}") String birthday,
         @NotBlank String gender,
         @NotBlank String phoneNumber,
-        @NotBlank String providerId
+        @NotBlank String providerId,
+        @NotBlank String fcmToken
 ){
     public User toUserEntity() {
         return User.builder()
