@@ -5,9 +5,9 @@ import com.ssfinder.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Point;
 
-import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -81,8 +81,8 @@ public class FoundItem {
     @Column(name = "stored_at", nullable = false, length = 100)
     private String storedAt;
 
-    @JdbcTypeCode(Types.OTHER)
-    @Column(name = "coordinates", columnDefinition = "POINT", nullable = false)
+    @JdbcTypeCode(SqlTypes.GEOMETRY)
+    @Column(name = "coordinates", columnDefinition = "geometry(Point,4326)", nullable = false)
     private Point coordinates;
 
     @Column(name = "created_at", nullable = false)
