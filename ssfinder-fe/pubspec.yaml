@@ -81,7 +81,8 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/images/
-    - assets/images/navBar/
+    - assets/images/common/appBar/
+    - assets/images/common/navBar/
     - assets/lost_items_list_dummy_data.json
     - assets/found_items_list_dummy_data.json
     - assets/images/chat/

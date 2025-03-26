@@ -37,24 +37,10 @@ class KakaoLoginService {
       // 로그인 시도 전 로그 추가
       print('카카오 로그인 시도 시작');
 
-      if (isInstalled) {
-        try {
-          print('카카오톡 앱으로 로그인 시도');
-          token = await UserApi.instance.loginWithKakaoTalk();
-          print('카카오톡으로 로그인 토큰 발급: ${token.accessToken}');
-        } catch (e) {
-          print('카카오톡 로그인 실패 상세: $e');
-
-          // 앱 로그인 실패 시 계정으로 로그인 시도
-          print('카카오 계정으로 로그인으로 전환');
-          token = await UserApi.instance.loginWithKakaoAccount();
-          print('카카오 계정으로 로그인 토큰 발급: ${token.accessToken}');
-        }
-      } else {
-        print('카카오톡 앱 미설치, 카카오 계정으로 로그인');
-        token = await UserApi.instance.loginWithKakaoAccount();
-        print('카카오 계정으로 로그인 토큰 발급: ${token.accessToken}');
-      }
+      // 카카오톡 앱 설치 여부에 관계없이 항상 카카오 계정으로 로그인
+      print('카카오 계정으로 로그인 시도');
+      token = await UserApi.instance.loginWithKakaoAccount();
+      print('카카오 계정으로 로그인 토큰 발급: ${token.accessToken}');
 
       // 사용자 정보 가져오기
       await _getUserInfo();
@@ -152,9 +138,7 @@ class KakaoLoginService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestData),
       );
-      print(
-        '사용 중인 백엔드 URL: ${dotenv.env['BACKEND_URL'] ?? 'http://localhost:8080'}',
-      );
+      print('사용 중인 백엔드 URL: ${dotenv.env['BACKEND_URL'] ?? ''}');
       print('백엔드 응답 상태 코드: ${response.statusCode}');
 
       // 응답 파싱

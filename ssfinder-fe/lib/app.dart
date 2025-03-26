@@ -13,7 +13,6 @@ class MyApp extends StatelessWidget {
         fontFamily: 'GmarketSans',
         scaffoldBackgroundColor: backgroundColor,
 
-        // 모든 텍스트에 기본 폰트 크기 12 적용
         textTheme: TextTheme(
           labelMedium: TextStyle(
             fontSize: 14,
