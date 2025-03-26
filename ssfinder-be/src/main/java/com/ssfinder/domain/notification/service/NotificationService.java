@@ -2,6 +2,7 @@ package com.ssfinder.domain.notification.service;
 
 import com.ssfinder.domain.found.entity.FoundItem;
 import com.ssfinder.domain.found.service.FoundService;
+import com.ssfinder.domain.notification.entity.NotificationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -44,7 +45,7 @@ public class NotificationService {
             List<String> tokens = fcmTokenService.getFcmTokens(item.getUser().getId());
             if (!tokens.isEmpty()) {
                 Map<String, String> data = new HashMap<>();
-                data.put("type", "FOUND_ITEM_REMINDER");
+                data.put("type", NotificationType.TRANSFER.name());
                 data.put("itemId", item.getId().toString());
 
                 fcmMessageService.sendNotificationToUsers(
@@ -62,7 +63,7 @@ public class NotificationService {
             List<String> tokens = fcmTokenService.getFcmTokens(item.getUser().getId());
             if (!tokens.isEmpty()) {
                 Map<String, String> data = new HashMap<>();
-                data.put("type", "FOUND_ITEM_REMINDER");
+                data.put("type", NotificationType.TRANSFER.name());
                 data.put("itemId", item.getId().toString());
 
                 fcmMessageService.sendNotificationToUsers(
@@ -76,11 +77,12 @@ public class NotificationService {
     }
 
     // 2. 채팅 알림
+    // TODO 채팅 로직에서 채팅 DB 저장 시 트리거
     public void sendChatNotification(Integer userId, String senderName, String message) {
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
         if (!tokens.isEmpty()) {
             Map<String, String> data = new HashMap<>();
-            data.put("type", "CHAT");
+            data.put("type", NotificationType.CHAT.name());
             data.put("senderId", senderName);
 
             fcmMessageService.sendNotificationToUsers(
@@ -102,7 +104,7 @@ public class NotificationService {
 //            List<String> tokens = fcmTokenService.getFcmTokens(user.getId());
 //            if (!tokens.isEmpty()) {
 //                Map<String, String> data = new HashMap<>();
-//                data.put("type", "ITEM_MATCHING");
+//                data.put("type", NotificationType.AI_MATCH.toString());
 //
 //                fcmService.sendNotificationToUsers(
 //                        tokens,
@@ -115,18 +117,17 @@ public class NotificationService {
     }
 
     // 4. 소지품 알림
-    // TODO 날씨 api 연결
-    public void sendItemReminderNotification(Integer userId, String itemName) {
+    // TODO 날씨 api 연결 - 비:우산 , 황사:마스크
+    public void sendItemReminderNotification(Integer userId) {
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
         if (!tokens.isEmpty()) {
             Map<String, String> data = new HashMap<>();
-            data.put("type", "ITEM_REMINDER");
-            data.put("itemName", itemName);
+            data.put("type", NotificationType.ITEM_REMINDER.name());
 
             fcmMessageService.sendNotificationToUsers(
                     tokens,
-                    "소지품 알림",
-                    itemName + "을(를) 챙기세요!",
+                    "숨숨 파인더",
+                    "혹시 잊으신 물건이 있으신가요?",
                     data
             );
         }
