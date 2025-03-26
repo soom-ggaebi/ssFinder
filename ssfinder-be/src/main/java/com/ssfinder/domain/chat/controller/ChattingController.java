@@ -1,10 +1,14 @@
 package com.ssfinder.domain.chat.controller;
 
-import com.ssfinder.domain.chat.entity.ChatMessage;
+import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
+import com.ssfinder.domain.chat.service.ChatService;
+import com.ssfinder.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 /**
@@ -22,5 +26,12 @@ import org.springframework.stereotype.Controller;
 @Controller
 @RequiredArgsConstructor
 public class ChattingController {
+    private final ChatService chatService;
 
+    @MessageMapping("/chat-room/send/{chatRoomId}")
+    public void send(@Payload MessageSendRequest request,
+                     @DestinationVariable Integer chatRoomId/*,
+                     SimpMessageHeaderAccessor accessor*/) {
+        chatService.send(1, chatRoomId, request);
+    }
 }

@@ -3,6 +3,9 @@ package com.ssfinder.domain.chat.entity;
 
 import jakarta.persistence.Id;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.mongodb.config.EnableMongoAuditing;
+import org.springframework.data.mongodb.config.EnableReactiveMongoAuditing;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -28,13 +31,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatMessage {
     @Id
-    private int id;
+    private String id;
 
     @Field("sender_id")
     private int senderId;
-
-    @Field("receiver_id")
-    private int receiverId;
 
     @Field("chat_room_id")
     private int chatRoomId;
@@ -42,6 +42,7 @@ public class ChatMessage {
     private String content;
 
     @Field("created_at")
+    @CreatedDate
     private LocalDateTime createdAt;
 
     private MessageType type;
