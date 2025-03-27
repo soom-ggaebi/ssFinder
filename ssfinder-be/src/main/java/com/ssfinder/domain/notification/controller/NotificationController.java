@@ -1,21 +1,21 @@
 package com.ssfinder.domain.notification.controller;
 
 import com.ssfinder.domain.notification.dto.request.FcmTokenRequest;
+import com.ssfinder.domain.notification.dto.request.NotificationRequest;
 import com.ssfinder.domain.notification.dto.request.SettingUpdateRequest;
-import com.ssfinder.domain.notification.dto.request.TokenTestRequest;
 import com.ssfinder.domain.notification.dto.response.SettingsGetResponse;
+import com.ssfinder.domain.notification.entity.NotificationType;
 import com.ssfinder.domain.notification.service.FcmMessageService;
 import com.ssfinder.domain.notification.service.FcmTokenService;
+import com.ssfinder.domain.notification.service.NotificationService;
 import com.ssfinder.domain.notification.service.UserNotificationSettingService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.global.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -30,6 +30,7 @@ import java.util.Map;
  * 2025-03-24          okeio            최초생성<br>
  * <br>
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
@@ -37,6 +38,7 @@ public class NotificationController {
     private final FcmTokenService fcmTokenService;
     private final FcmMessageService fcmMessageService;
     private final UserNotificationSettingService userNotificationSettingService;
+    private final NotificationService notificationService;
 
     @PostMapping("/token")
     public ApiResponse<?> registerFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody FcmTokenRequest fcmTokenRequest) {
@@ -57,17 +59,19 @@ public class NotificationController {
     }
 
     @PatchMapping("/settings")
-    public ApiResponse<?> updateNotificationSettings(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody SettingUpdateRequest settingUpdateRequest) {
+    public ApiResponse<?> updateNotificationSettings(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                     @Valid @RequestBody SettingUpdateRequest settingUpdateRequest) {
         userNotificationSettingService.updateUserNotificationSettings(userDetails.getUserId(), settingUpdateRequest);
         return ApiResponse.noContent();
     }
 
-    // token 테스트 용도
-    @PostMapping("/test")
-    public ApiResponse<?> testFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody TokenTestRequest tokenTestRequest) {
-        List<String> tokens = fcmTokenService.getFcmTokens(userDetails.getUserId());
-
-        fcmMessageService.sendNotificationToUser(tokens.get(0), "테스트다", tokenTestRequest.message(), Map.of("type", "TEST"));
+    @PostMapping
+    public ApiResponse<?> sendItemReminderNotification(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                       @Valid @RequestBody NotificationRequest notificationRequest) {
+        if (NotificationType.ITEM_REMINDER.equals(notificationRequest.type())) {
+            log.info("소지품 알림 발송 to {}", userDetails.getUserId());
+            notificationService.sendItemReminderNotification(userDetails.getUserId());
+        }
 
         return ApiResponse.noContent();
     }
