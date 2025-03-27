@@ -10,10 +10,10 @@ import com.ssfinder.domain.lostitem.dto.response.LostItemResponse;
 import com.ssfinder.domain.lostitem.dto.response.LostItemStatusUpdateResponse;
 import com.ssfinder.domain.lostitem.dto.response.LostItemUpdateResponse;
 import com.ssfinder.domain.lostitem.entity.LostItem;
-import com.ssfinder.domain.lostitem.entity.Status;
+import com.ssfinder.domain.lostitem.entity.LostItemStatus;
 import com.ssfinder.domain.lostitem.repository.LostItemRepository;
 import com.ssfinder.domain.user.entity.User;
-import com.ssfinder.domain.user.repository.UserRepository;
+import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import org.locationtech.jts.geom.Coordinate;
@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -49,7 +50,7 @@ public class LostItemService {
 
     private final LostItemRepository lostItemRepository;
     private final ItemCategoryRepository itemCategoryRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final LostItemMapper lostItemMapper;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
@@ -66,21 +67,18 @@ public class LostItemService {
     public LostItem registerLostItem(int userId, LostItemRegisterRequest request) {
         LostItem lostItem = lostItemMapper.toEntity(request);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
+        User user = userService.findUserById(userId);
         lostItem.setUser(user);
 
         ItemCategory category = itemCategoryRepository.findById(request.getItemCategoryId())
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
+                .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
         lostItem.setItemCategory(category);
 
-        lostItem.setStatus(Status.LOST);
+        lostItem.setStatus(LostItemStatus.LOST);
         // 좌표 설정 (경도, 위도 순)
-        if(request.getLatitude() != null && request.getLongitude() != null) {
+        if(Objects.nonNull(request.getLatitude()) && Objects.nonNull(request.getLongitude())) {
             Point coordinates = geometryFactory.createPoint(new Coordinate(request.getLongitude(), request.getLatitude()));
             lostItem.setCoordinates(coordinates);
-        } else {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -93,48 +91,47 @@ public class LostItemService {
     @Transactional(readOnly = true)
     public LostItemResponse getLostItem(int lostId) {
         LostItem lostItem = lostItemRepository.findById(lostId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
+                .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
         return lostItemMapper.toResponse(lostItem);
     }
 
     @Transactional
     public LostItemUpdateResponse updateLostItem(Integer userId, Integer lostId, LostItemUpdateRequest request) {
         LostItem lostItem = lostItemRepository.findById(lostId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
+                .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
 
         if(!lostItem.getUser().getId().equals(userId)) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED);
+            throw new CustomException(ErrorCode.LOST_ITEM_ACCESS_DENIED);
         }
 
         lostItemMapper.updateLostItemFromRequest(request, lostItem);
 
-        if(request.getLatitude() != null && request.getLongitude() != null) {
+        if(Objects.nonNull(request.getLatitude()) && Objects.nonNull(request.getLongitude())) {
             Point coordinates = geometryFactory.createPoint(new Coordinate(request.getLongitude(), request.getLatitude()));
             lostItem.setCoordinates(coordinates);
         }
         lostItem.setUpdatedAt(LocalDateTime.now());
 
-        LostItem updatedLostItem = lostItemRepository.save(lostItem);
-        return lostItemMapper.toUpdateResponse(updatedLostItem);
+        return lostItemMapper.toUpdateResponse(lostItem);
     }
 
     @Transactional
     public void deleteLostItem(int lostId) {
         LostItem lostItem = lostItemRepository.findById(lostId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
+                .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
         lostItemRepository.delete(lostItem);
     }
 
     @Transactional
     public LostItemStatusUpdateResponse updateLostItemStatus(Integer userId, Integer lostId, LostItemStatusUpdateRequest request) {
         LostItem lostItem = lostItemRepository.findById(lostId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
+                .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
         if(!lostItem.getUser().getId().equals(userId)) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED);
+            throw new CustomException(ErrorCode.LOST_ITEM_ACCESS_DENIED);
         }
-        lostItem.setStatus(Status.valueOf(request.getStatus()));
+        lostItem.setStatus(LostItemStatus.valueOf(request.getStatus()));
         lostItem.setUpdatedAt(LocalDateTime.now());
-        LostItem updatedLostItem = lostItemRepository.save(lostItem);
-        return lostItemMapper.toStatusUpdateResponse(updatedLostItem);
+
+        return lostItemMapper.toStatusUpdateResponse(lostItem);
     }
 }

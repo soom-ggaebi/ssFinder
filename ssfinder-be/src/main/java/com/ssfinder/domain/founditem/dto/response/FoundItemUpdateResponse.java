@@ -27,12 +27,10 @@ import java.time.LocalDateTime;
 public class FoundItemUpdateResponse {
     private Integer id;
 
-    @JsonProperty("item_category_id")
     private Integer itemCategoryId;
 
     private String name;
 
-    @JsonProperty("found_at")
     private LocalDate foundAt;
 
     private String location;
@@ -43,13 +41,10 @@ public class FoundItemUpdateResponse {
 
     private String image;
 
-    @JsonProperty("stored_at")
     private String storedAt;
 
-    @JsonProperty("created_at")
     private LocalDateTime createdAt;
 
-    @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
     private Double latitude;

@@ -3,6 +3,10 @@ package com.ssfinder.domain.founditem.dto.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,26 +28,41 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class FoundItemUpdateRequest {
-    @JsonProperty("item_category_id")
+
+    @NotBlank
     private Integer itemCategoryId;
 
+    @Size(max = 100)
+    @NotBlank
     private String name;
 
-    @JsonProperty("found_at")
+    @NotBlank
     private LocalDate foundAt;
 
+    @Size(max = 100)
+    @NotBlank
     private String location;
 
+    @Size(max = 20)
+    @NotBlank
     private String color;
 
-    private String detail;
-
+    @Size(max = 255)
     private String image;
 
-    @JsonProperty("stored_at")
+    @Size(max = 5000)
+    @NotBlank
+    private String detail;
+
+    @Size(max = 100)
+    @NotBlank
     private String storedAt;
 
+    @DecimalMin(value = "-90.0", inclusive = true)
+    @DecimalMax(value = "90.0", inclusive = true)
     private Double latitude;
 
+    @DecimalMin(value = "-180.0", inclusive = true)
+    @DecimalMax(value = "180.0", inclusive = true)
     private Double longitude;
 }

@@ -65,7 +65,7 @@ public class LostItem {
     @Column(length = 5, nullable = false)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Status status = Status.LOST;
+    private LostItemStatus status = LostItemStatus.LOST;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

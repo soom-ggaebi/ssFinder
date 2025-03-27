@@ -7,7 +7,7 @@ import com.ssfinder.domain.founditem.entity.FoundItemBookmark;
 import com.ssfinder.domain.founditem.repository.FoundItemBookmarkRepository;
 import com.ssfinder.domain.founditem.repository.FoundItemRepository;
 import com.ssfinder.domain.user.entity.User;
-import com.ssfinder.domain.user.repository.UserRepository;
+import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -39,30 +39,25 @@ public class FoundItemBookmarkService {
     private final FoundItemBookmarkRepository bookmarkRepository;
     private final FoundItemRepository foundItemRepository;
     private final FoundItemBookmarkMapper bookmarkMapper;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     @Transactional
     public FoundItemBookmarkResponse registerBookmark(Integer userId, Integer foundItemId) {
 
-        // 중복등록 ErrorCode 만들기
         bookmarkRepository.findByUserIdAndFoundItemId(userId, foundItemId)
-                .ifPresent(b -> { throw new CustomException(ErrorCode.INVALID_INPUT_VALUE); });
+                .ifPresent(b -> { throw new CustomException(ErrorCode.BOOKMARK_DUPLICATED); });
 
-        // NOTFOUND 나오면 바꾸기
         FoundItem foundItem = foundItemRepository.findById(foundItemId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
+                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
 
         FoundItemBookmark bookmark = bookmarkMapper.toEntity(foundItemId);
 
-        // NOTFOUND 나오면 바꾸기
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
+        User user = userService.findUserById(userId);
 
         bookmark.setUser(user);
         bookmark.setFoundItem(foundItem);
 
-        FoundItemBookmark saved = bookmarkRepository.save(bookmark);
-        return bookmarkMapper.toResponse(saved);
+        return bookmarkMapper.toResponse(bookmark);
     }
 
     @Transactional(readOnly = true)
@@ -75,12 +70,12 @@ public class FoundItemBookmarkService {
 
     @Transactional
     public void deleteBookmark(Integer userId, Integer bookmarkId) {
-        // NOT FOUND 나오면 바꿀거
+
         FoundItemBookmark bookmark = bookmarkRepository.findById(bookmarkId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT_VALUE));
+                .orElseThrow(() -> new CustomException(ErrorCode.BOOKMARK_NOT_FOUND));
 
         if (!bookmark.getUser().getId().equals(userId)) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED);
+            throw new CustomException(ErrorCode.BOOKMARK_ACCESS_DENIED);
         }
         bookmarkRepository.delete(bookmark);
     }

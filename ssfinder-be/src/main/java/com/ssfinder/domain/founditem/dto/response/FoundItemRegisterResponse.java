@@ -28,15 +28,12 @@ public class FoundItemRegisterResponse {
 
     private Integer id;
 
-    @JsonProperty("user_id")
     private Integer userId;
 
-    @JsonProperty("item_category_id")
     private Integer itemCategoryId;
 
     private String name;
 
-    @JsonProperty("found_at")
     private LocalDate foundAt;
 
     private String color;
@@ -47,13 +44,10 @@ public class FoundItemRegisterResponse {
 
     private String image;
 
-    @JsonProperty("stored_at")
     private String storedAt;
 
-    @JsonProperty("created_at")
     private LocalDateTime createdAt;
 
-    @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
     private Double latitude;

@@ -27,7 +27,6 @@ public class FoundItemStatusUpdateResponse {
 
     private Integer id;
 
-    @JsonProperty("user_id")
     private Integer userId;
 
     private String status;

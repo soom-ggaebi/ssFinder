@@ -1,7 +1,7 @@
 package com.ssfinder.domain.founditem.repository;
 
 import com.ssfinder.domain.founditem.entity.FoundItem;
-import com.ssfinder.domain.founditem.entity.Status;
+import com.ssfinder.domain.founditem.entity.FoundItemStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -32,5 +32,5 @@ public interface FoundItemRepository extends JpaRepository<FoundItem, Integer> {
                                             @Param("maxLat") double maxLat,
                                             @Param("maxLon") double maxLon);
 
-    List<FoundItem> findByFoundAtAndStatus(LocalDate date, Status status);
+    List<FoundItem> findByFoundAtAndStatus(LocalDate date, FoundItemStatus foundItemStatus);
 }

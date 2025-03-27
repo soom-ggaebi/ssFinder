@@ -26,9 +26,7 @@ import lombok.Setter;
 public class FoundItemBookmarkResponse {
     private Integer id;
 
-    @JsonProperty("user_id")
     private Integer userId;
 
-    @JsonProperty("found_item_id")
     private Integer foundItemId;
 }

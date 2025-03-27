@@ -12,6 +12,6 @@ package com.ssfinder.domain.founditem.entity;
  * 2025-03-19          joker901010           최초생성<br>
  * <br>
  */
-public enum Status {
+public enum FoundItemStatus {
     STORED, RECEIVED, TRANSFERRED
 }

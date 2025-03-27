@@ -27,19 +27,17 @@ import java.time.LocalDate;
 public class LostItemRegisterRequest {
 
     @NotNull
-    @JsonProperty("item_category_id")
     private Integer itemCategoryId;
 
     @NotNull
-    @Size(max = 100, message = "Title should be less than 100 characters.")
+    @Size(max = 100)
     private String title;
 
     @NotNull
-    @Size(max = 20, message = "Color should be less than 20 characters.")
+    @Size(max = 20)
     private String color;
 
     @NotNull
-    @JsonProperty("lost_at")
     private LocalDate lostAt;
 
     @NotNull

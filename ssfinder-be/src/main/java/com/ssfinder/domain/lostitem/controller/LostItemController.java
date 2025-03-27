@@ -13,6 +13,7 @@ import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import com.ssfinder.global.common.response.ApiResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +33,7 @@ import java.util.List;
  * <br>
  */
 @RestController
-@RequestMapping("/api/lost")
+@RequestMapping("/api/lost-items")
 @RequiredArgsConstructor
 public class LostItemController {
 
@@ -40,79 +41,43 @@ public class LostItemController {
 
     @GetMapping
     public ApiResponse<List<LostItemResponse>> getLostAll(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        try {
-            List<LostItemResponse> lostItemList = lostItemService.getLostAll(userDetails.getUserId());
-            return ApiResponse.ok(lostItemList);
-        } catch (CustomException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
+        List<LostItemResponse> lostItemList = lostItemService.getLostAll(userDetails.getUserId());
+        return ApiResponse.ok(lostItemList);
     }
 
     @PostMapping
     public ApiResponse<LostItem> registerLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                   @Valid @RequestBody LostItemRegisterRequest request) {
-        try {
-            LostItem lostItem = lostItemService.registerLostItem(userDetails.getUserId(), request);
-            return ApiResponse.created(lostItem);
-        } catch (CustomException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
+        LostItem lostItem = lostItemService.registerLostItem(userDetails.getUserId(), request);
+        return ApiResponse.created(lostItem);
     }
 
     @GetMapping("/{lostId}")
-    public ApiResponse<LostItemResponse> getLostItem(@PathVariable int lostId) {
-        try {
-            LostItemResponse response = lostItemService.getLostItem(lostId);
-            return ApiResponse.ok(response);
-        } catch (CustomException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
+    public ApiResponse<LostItemResponse> getLostItem(@PathVariable @Min(1) int lostId) {
+        LostItemResponse response = lostItemService.getLostItem(lostId);
+        return ApiResponse.ok(response);
     }
 
     @PutMapping("/{lostId}")
     public ApiResponse<LostItemUpdateResponse> updateLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                                              @PathVariable Integer lostId,
+                                                              @PathVariable @Min(1) int lostId,
                                                               @Valid @RequestBody LostItemUpdateRequest request) {
-        try {
-            LostItemUpdateResponse response = lostItemService.updateLostItem(userDetails.getUserId(), lostId, request);
-            return ApiResponse.ok(response);
-        } catch (CustomException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
+        LostItemUpdateResponse response = lostItemService.updateLostItem(userDetails.getUserId(), lostId, request);
+        return ApiResponse.ok(response);
     }
 
     @DeleteMapping("/{lostId}")
-    public ApiResponse<?> deleteLostItem(@PathVariable int lostId) {
-        try {
-            lostItemService.deleteLostItem(lostId);
-            return ApiResponse.ok("분실물 정보가 성공적으로 삭제되었습니다.");
-        } catch (CustomException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
+    public ApiResponse<?> deleteLostItem(@PathVariable @Min(1) int lostId) {
+        lostItemService.deleteLostItem(lostId);
+        return ApiResponse.noContent();
     }
 
     @PutMapping("/{lostId}/status")
     public ApiResponse<LostItemStatusUpdateResponse> updateLostItemStatus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Integer lostId,
+            @PathVariable @Min(1) int lostId,
             @Valid @RequestBody LostItemStatusUpdateRequest request) {
-        try {
-            LostItemStatusUpdateResponse response = lostItemService.updateLostItemStatus(userDetails.getUserId(), lostId, request);
-            return ApiResponse.ok(response);
-        } catch (CustomException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
+        LostItemStatusUpdateResponse response = lostItemService.updateLostItemStatus(userDetails.getUserId(), lostId, request);
+        return ApiResponse.ok(response);
     }
 }
