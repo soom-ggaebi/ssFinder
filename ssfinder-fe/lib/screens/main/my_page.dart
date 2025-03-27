@@ -5,6 +5,10 @@ import 'package:sumsumfinder/services/kakao_login_service.dart';
 import 'package:sumsumfinder/widgets/common/app_text.dart';
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 import 'package:sumsumfinder/widgets/common/random_profile.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({Key? key}) : super(key: key);
@@ -17,11 +21,31 @@ class _MyPageState extends State<MyPage> {
   // 카카오 로그인 서비스 인스턴스
   final KakaoLoginService _kakaoLoginService = KakaoLoginService();
 
+  // 알림 설정 상태를 저장하는 변수
+  bool _notificationEnabled = true;
+
   @override
   void initState() {
     super.initState();
     // 로그인 상태 확인 및 비로그인 시 자동 뒤로가기
     _checkLoginStatus();
+    // dotenv 초기화 확인
+    _ensureDotEnvLoaded().then((_) {
+      // 알림 설정 상태 로드
+      _loadNotificationSettings();
+    });
+  }
+
+  // dotenv가 로드되었는지 확인하고, 로드되지 않았다면 로드
+  Future<void> _ensureDotEnvLoaded() async {
+    try {
+      // dotenv가 이미 로드되었는지 확인 (BACKEND_URL 환경변수 존재 여부로 판단)
+      if (dotenv.env['BACKEND_URL'] == null) {
+        await dotenv.load();
+      }
+    } catch (e) {
+      print('환경변수 로드 중 오류 발생: $e');
+    }
   }
 
   // 로그인 상태 확인
@@ -36,6 +60,81 @@ class _MyPageState extends State<MyPage> {
       });
     } else if (mounted) {
       setState(() {});
+    }
+  }
+
+  // 알림 설정 상태 로드
+  Future<void> _loadNotificationSettings() async {
+    try {
+      // 로컬 설정 먼저 로드 (빠른 UI 업데이트를 위해)
+      final prefs = await SharedPreferences.getInstance();
+      bool localSetting = prefs.getBool('notification_enabled') ?? true;
+
+      setState(() {
+        _notificationEnabled = localSetting;
+      });
+
+      // 서버에서 현재 설정 가져오기
+      final response = await http.get(
+        Uri.parse('${dotenv.env['BACKEND_URL']}/api/notifications/settings'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        final data = json.decode(response.body);
+        if (data.containsKey('enabled')) {
+          setState(() {
+            _notificationEnabled = data['enabled'];
+          });
+          // 서버 값으로 로컬 설정 업데이트
+          await prefs.setBool('notification_enabled', _notificationEnabled);
+        }
+      }
+    } catch (e) {
+      print('알림 설정 로드 중 오류 발생: $e');
+    }
+  }
+
+  // 알림 설정 상태 저장
+  Future<void> _saveNotificationSettings(bool value) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    // 먼저 UI 업데이트 (사용자 경험을 위해)
+    setState(() {
+      _notificationEnabled = value;
+    });
+
+    try {
+      // 서버에 설정 저장
+      final response = await http.post(
+        Uri.parse('${dotenv.env['BACKEND_URL']}/api/notifications/settings'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'notification_type': 'CHAT', // 전체 알림 설정
+          'enabled': value,
+        }),
+      );
+
+      if (response.statusCode == 204) {
+        // 서버 저장 성공 시 로컬에도 저장
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('notification_enabled', value);
+      } else {
+        // 서버 저장 실패 시 UI 롤백 및 오류 메시지
+        setState(() {
+          _notificationEnabled = !value;
+        });
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('알림 설정 변경에 실패했습니다. 다시 시도해 주세요.')),
+        );
+      }
+    } catch (e) {
+      // 예외 발생 시 UI 롤백 및 오류 메시지
+      setState(() {
+        _notificationEnabled = !value;
+      });
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('알림 설정 중 오류 발생: $e')),
+      );
     }
   }
 
@@ -244,6 +343,11 @@ class _MyPageState extends State<MyPage> {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 12),
+
+            // 알림 설정 추가
+            _buildNotificationSetting(),
+            const SizedBox(height: 12),
+
             _buildSettingsItem('로그아웃', Icons.logout, () {
               // 로그아웃 다이얼로그 표시
               showDialog(
@@ -287,6 +391,50 @@ class _MyPageState extends State<MyPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // 알림 설정 위젯
+  Widget _buildNotificationSetting() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.notifications, color: Colors.grey[700], size: 20),
+          const SizedBox(width: 12),
+          Text('알림 설정', style: TextStyle(color: Colors.grey[800])),
+          const Spacer(),
+          // 로딩 상태를 관리하는 StatefulBuilder 사용
+          StatefulBuilder(
+            builder: (context, setInnerState) {
+              return Switch(
+                value: _notificationEnabled,
+                onChanged: (value) async {
+                  // 스위치 상태 변경 시 로딩 표시
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('알림 설정 변경 중...'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+
+                  await _saveNotificationSettings(value);
+                },
+                activeColor: Colors.white,
+                activeTrackColor: const Color(0xFF6750A4),
+                inactiveThumbColor: Colors.white,
+                inactiveTrackColor: Colors.grey[300],
+              );
+            },
+          ),
+        ],
       ),
     );
   }

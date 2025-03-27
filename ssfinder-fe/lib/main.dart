@@ -26,9 +26,6 @@ Future main() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   await messaging.requestPermission(alert: true, badge: true, sound: true);
 
-  // Flutter 바인딩 초기화
-  WidgetsFlutterBinding.ensureInitialized();
-
   // 4. 카카오 SDK 초기화
   String kakaoNativeAppKey = dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '';
   if (kakaoNativeAppKey.isEmpty) {
@@ -36,7 +33,16 @@ Future main() async {
       "KAKAO_NATIVE_APP_KEY is missing in the environment variables",
     );
   }
-  KakaoSdk.init(nativeAppKey: kakaoNativeAppKey); // 환경변수에서 키를 사용
+  KakaoSdk.init(nativeAppKey: kakaoNativeAppKey);
+
+  // 5. 카카오 로그인 서비스 초기화 및 자동 로그인 시도
+  final kakaoLoginService = KakaoLoginService();
+  // 주기적 토큰 갱신 설정
+  kakaoLoginService.setupPeriodicTokenRefresh();
+
+  // 자동 로그인 시도 (결과 출력을 위한 디버그 로그 추가)
+  bool autoLoginResult = await kakaoLoginService.autoLogin();
+  print('자동 로그인 결과: $autoLoginResult');
 
   runApp(MyApp());
 }
