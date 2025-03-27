@@ -14,6 +14,7 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 /**
@@ -34,21 +35,25 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class StompHandler implements ChannelInterceptor {
     private static final Logger logger = LoggerFactory.getLogger(StompHandler.class);
+    private final JwtUtil jwtUtil;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        final StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+        final StompHeaderAccessor accessor = StompHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if(StompCommand.CONNECT.equals(accessor.getCommand())) {
             final String authorization = extractJwt(accessor);
 
             String token = authorization.substring(7);
-            boolean isValid = JwtUtil.validateToken(token);
+            boolean isValid = jwtUtil.validateToken(token);
 
             if(!isValid) {
                 logger.error("Invalid JWT");
-//                throw new CustomException(ErrorCode.INVALID_TOKEN);
+                throw new CustomException(ErrorCode.INVALID_TOKEN);
             }
+
+            Authentication auth = jwtUtil.getAuthentication(token);
+            accessor.setUser(auth);
         }
 
         return message;

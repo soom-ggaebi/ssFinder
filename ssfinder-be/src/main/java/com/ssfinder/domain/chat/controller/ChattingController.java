@@ -1,15 +1,21 @@
 package com.ssfinder.domain.chat.controller;
 
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
+import com.ssfinder.domain.chat.dto.response.MessageSendResponse;
 import com.ssfinder.domain.chat.service.ChatService;
+import com.ssfinder.global.common.response.ApiResponse;
 import com.ssfinder.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
+
+import java.security.Principal;
+import java.time.LocalDateTime;
 
 /**
  * packageName    : com.ssfinder.domain.chat.controller<br>
@@ -28,10 +34,13 @@ import org.springframework.stereotype.Controller;
 public class ChattingController {
     private final ChatService chatService;
 
-    @MessageMapping("/chat-room/send/{chatRoomId}")
-    public void send(@Payload MessageSendRequest request,
-                     @DestinationVariable Integer chatRoomId/*,
-                     SimpMessageHeaderAccessor accessor*/) {
-        chatService.send(1, chatRoomId, request);
+    @MessageMapping("chat-room/{chatRoomId}")
+    public ApiResponse<Void> send(@Payload MessageSendRequest request,
+                                  @DestinationVariable Integer chatRoomId,
+                                  Principal principal) {
+        Integer userId = Integer.parseInt(principal.getName());
+        chatService.send(userId, chatRoomId, request);
+
+        return ApiResponse.noContent();
     }
 }
