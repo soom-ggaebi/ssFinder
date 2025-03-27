@@ -1,7 +1,7 @@
 package com.ssfinder.domain.notification.service;
 
-import com.ssfinder.domain.found.entity.FoundItem;
-import com.ssfinder.domain.found.service.FoundService;
+import com.ssfinder.domain.founditem.entity.FoundItem;
+import com.ssfinder.domain.founditem.service.FoundItemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,14 +31,14 @@ import java.util.Map;
 public class NotificationService {
     private final FcmTokenService fcmTokenService;
     private final FcmMessageService fcmMessageService;
-    private final FoundService foundService;
+    private final FoundItemService foundItemService;
 
     // 1. 습득물 게시글 최초 등록일로부터 6일차, 7일차 알림
     @Scheduled(cron = "0 0 10 * * *")
     @Transactional(readOnly = true)
     public void sendLostItemReminders() {
         // 6일차 알림 대상 조회
-        List<FoundItem> sixDayItems = foundService.getStoredItemsFoundDaysAgo(6);
+        List<FoundItem> sixDayItems = foundItemService.getStoredItemsFoundDaysAgo(6);
 
         for (FoundItem item : sixDayItems) {
             List<String> tokens = fcmTokenService.getFcmTokens(item.getUser().getId());
@@ -57,7 +57,7 @@ public class NotificationService {
         }
 
         // 7일차 알림 대상 조회
-        List<FoundItem> sevenDayItems = foundService.getStoredItemsFoundDaysAgo(7);
+        List<FoundItem> sevenDayItems = foundItemService.getStoredItemsFoundDaysAgo(7);
         for (FoundItem item : sevenDayItems) {
             List<String> tokens = fcmTokenService.getFcmTokens(item.getUser().getId());
             if (!tokens.isEmpty()) {
