@@ -25,7 +25,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "user_notification_setting")
-public class UserNotificationSettings {
+public class UserNotificationSetting {
     @Id
     private Integer userId;
 
