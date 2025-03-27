@@ -40,7 +40,7 @@ public class UserChatRoom {
     private ChatRoom chatRoom;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "left_at")
     private LocalDateTime leftAt;
