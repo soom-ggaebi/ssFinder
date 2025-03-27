@@ -18,6 +18,7 @@ import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
+import com.ssfinder.global.common.service.S3Service;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -27,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,6 +45,7 @@ import java.util.stream.Collectors;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
+ * 2025-03-27          joker901010           코드리뷰 수정<br>
  * <br>
  */
 @Slf4j
@@ -55,6 +58,7 @@ public class FoundItemService {
     private final FoundItemMapper foundItemMapper;
     private final UserService userService;
     private final ItemCategoryRepository itemCategoryRepository;
+    private final S3Service s3Service;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -69,7 +73,7 @@ public class FoundItemService {
                 .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
         foundItem.setItemCategory(itemCategory);
 
-        if (requestDTO.getStatus() != null) {
+        if (Objects.nonNull(requestDTO.getStatus())) {
             foundItem.setStatus(FoundItemStatus.valueOf(requestDTO.getStatus()));
         }
 
@@ -78,11 +82,20 @@ public class FoundItemService {
             foundItem.setCoordinates(coordinates);
         }
 
+        String imageUrl = null;
+        if(Objects.nonNull(requestDTO.getImage()) && !requestDTO.getImage().isEmpty()){
+            imageUrl = s3Service.uploadFile(requestDTO.getImage());
+        }
+
+        foundItem.setImage(imageUrl);
+
         LocalDateTime now = LocalDateTime.now();
         foundItem.setCreatedAt(now);
         foundItem.setUpdatedAt(now);
 
-        return foundItemMapper.toResponse(foundItem);
+        FoundItem savedItem = foundItemRepository.save(foundItem);
+
+        return foundItemMapper.toResponse(savedItem);
     }
 
 
@@ -94,7 +107,7 @@ public class FoundItemService {
     }
 
     @Transactional
-    public FoundItemUpdateResponse updateFoundItem(Integer userId, Integer foundId, FoundItemUpdateRequest updateRequest) {
+    public FoundItemUpdateResponse updateFoundItem(Integer userId, Integer foundId, FoundItemUpdateRequest updateRequest) throws IOException {
 
         FoundItem foundItem = foundItemRepository.findById(foundId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
@@ -112,6 +125,17 @@ public class FoundItemService {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
+        String imageUrl = foundItem.getImage();
+        if(Objects.nonNull(updateRequest.getImage()) && !updateRequest.getImage().isEmpty()){
+            if (Objects.nonNull(imageUrl)){
+                imageUrl = s3Service.updateFile(imageUrl, updateRequest.getImage());
+            } else {
+                imageUrl = s3Service.uploadFile(updateRequest.getImage());
+            }
+        }
+
+        foundItem.setImage(imageUrl);
+
         foundItem.setUpdatedAt(LocalDateTime.now());
 
         return foundItemMapper.toUpdateResponse(foundItem);
@@ -122,6 +146,11 @@ public class FoundItemService {
 
         FoundItem foundItem = foundItemRepository.findById(foundId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
+
+        if (Objects.nonNull(foundItem.getImage())) {
+            s3Service.deleteFile(foundItem.getImage());
+        }
+
         foundItemRepository.delete(foundItem);
     }
 

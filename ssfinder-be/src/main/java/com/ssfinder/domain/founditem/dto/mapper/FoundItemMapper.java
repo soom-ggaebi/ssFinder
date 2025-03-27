@@ -7,14 +7,28 @@ import com.ssfinder.domain.founditem.dto.response.FoundItemRegisterResponse;
 import com.ssfinder.domain.founditem.dto.response.FoundItemStatusUpdateResponse;
 import com.ssfinder.domain.founditem.dto.response.FoundItemUpdateResponse;
 import com.ssfinder.domain.founditem.entity.FoundItem;
+import com.ssfinder.domain.item.entity.ItemCategory;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
+/**
+ * packageName    : com.ssfinder.domain.foundItem.mapper<br>
+ * fileName       : FoundItemMapper.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-03-27<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-03-27          leeyj           최초생성<br>
+ * <br>
+ */
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.WARN)
 public interface FoundItemMapper {
 
+    @Mapping(target = "image", ignore = true)
     FoundItem toEntity(FoundItemRegisterRequest request);
 
     @Mapping(source = "user.id", target = "userId")
@@ -34,9 +48,11 @@ public interface FoundItemMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "managementId", ignore = true)
+    @Mapping(target = "image", ignore = true)
     void updateFoundItemFromRequest(FoundItemUpdateRequest request, @MappingTarget FoundItem foundItem);
 
     @Mapping(source = "itemCategory.id", target = "itemCategoryId")
+    @Mapping(target = "image", ignore = true)
     @Mapping(target = "latitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getY() : null)")
     @Mapping(target = "longitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getX() : null)")
     FoundItemUpdateResponse toUpdateResponse(FoundItem foundItem);
@@ -46,8 +62,8 @@ public interface FoundItemMapper {
     @Mapping(source = "updatedAt", target = "updatedAt")
     FoundItemStatusUpdateResponse toStatusUpdateResponse(FoundItem foundItem);
 
-    default com.ssfinder.domain.item.entity.ItemCategory createItemCategory(Integer id) {
-        com.ssfinder.domain.item.entity.ItemCategory itemCategory = new com.ssfinder.domain.item.entity.ItemCategory();
+    default ItemCategory createItemCategory(Integer id) {
+        ItemCategory itemCategory = new ItemCategory();
         itemCategory.setId(id);
         return itemCategory;
     }

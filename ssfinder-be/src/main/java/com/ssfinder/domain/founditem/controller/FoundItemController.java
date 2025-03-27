@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -24,11 +25,12 @@ import java.util.List;
  * fileName       : FoundController.java<br>
  * author         : joker901010<br>
  * date           : 2025-03-19<br>
- * description    :  <br>
+ * description    :  습득물 관련 API<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
+ * 2025-03-27          joker901010           코드리뷰 수정<br>
  * <br>
  */
 @RestController
@@ -47,7 +49,7 @@ public class FoundItemController {
 
     @PostMapping
     public ApiResponse<?> RegisterFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                            @Valid @RequestBody FoundItemRegisterRequest requestDTO){
+                                            @ModelAttribute @Valid FoundItemRegisterRequest requestDTO){
         FoundItemRegisterResponse responseDTO = foundItemService.registerFoundItem(userDetails.getUserId(), requestDTO);
         return ApiResponse.created(responseDTO);
     }
@@ -61,7 +63,7 @@ public class FoundItemController {
     @PutMapping("/{foundId}")
     public ApiResponse<?> updateFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
                                           @PathVariable @Min(1) int foundId,
-                                          @Valid @RequestBody FoundItemUpdateRequest updateRequest) {
+                                          @ModelAttribute @Valid FoundItemUpdateRequest updateRequest) throws IOException {
         FoundItemUpdateResponse response = foundItemService.updateFoundItem(userDetails.getUserId(), foundId, updateRequest);
         return ApiResponse.ok(response);
     }

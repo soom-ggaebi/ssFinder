@@ -7,6 +7,18 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+/**
+ * packageName    : com.ssfinder.domain.foundItem.mapper<br>
+ * fileName       : FoundItemBookmarkMapper.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-03-27<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-03-27          leeyj           최초생성<br>
+ * <br>
+ */
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.WARN)
 public interface FoundItemBookmarkMapper {
 

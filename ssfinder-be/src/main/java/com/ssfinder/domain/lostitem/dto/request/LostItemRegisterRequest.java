@@ -3,9 +3,9 @@ package com.ssfinder.domain.lostitem.dto.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
@@ -19,9 +19,9 @@ import java.time.LocalDate;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-21          joker901010           최초생성<br>
+ * 2025-03-27          joker901010           코드리뷰 수정<br>
  * <br>
  */
-
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @Getter
 public class LostItemRegisterRequest {
@@ -44,13 +44,17 @@ public class LostItemRegisterRequest {
     @Size(max = 100)
     private String location;
 
-    @Size(max = 1000)
+    @Size(max = 5000)
+    @NotBlank
     private String detail;
 
-    @Size(max = 255)
-    private String image;
+    private MultipartFile image;
 
+    @DecimalMin(value = "-90.0", inclusive = true)
+    @DecimalMax(value = "90.0", inclusive = true)
     private Double latitude;
 
+    @DecimalMin(value = "-180.0", inclusive = true)
+    @DecimalMax(value = "180.0", inclusive = true)
     private Double longitude;
 }

@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -30,6 +31,7 @@ import java.util.List;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
+ * 2025-03-27          joker901010           코드리뷰 수정<br>
  * <br>
  */
 @RestController
@@ -47,7 +49,7 @@ public class LostItemController {
 
     @PostMapping
     public ApiResponse<LostItem> registerLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                                  @Valid @RequestBody LostItemRegisterRequest request) {
+                                                  @ModelAttribute @Valid LostItemRegisterRequest request) {
         LostItem lostItem = lostItemService.registerLostItem(userDetails.getUserId(), request);
         return ApiResponse.created(lostItem);
     }
@@ -61,7 +63,7 @@ public class LostItemController {
     @PutMapping("/{lostId}")
     public ApiResponse<LostItemUpdateResponse> updateLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                               @PathVariable @Min(1) int lostId,
-                                                              @Valid @RequestBody LostItemUpdateRequest request) {
+                                                              @ModelAttribute @Valid LostItemUpdateRequest request) throws IOException {
         LostItemUpdateResponse response = lostItemService.updateLostItem(userDetails.getUserId(), lostId, request);
         return ApiResponse.ok(response);
     }

@@ -10,6 +10,7 @@ package com.ssfinder.domain.founditem.entity;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
+ * 2025-03-27          joker901010           코드리뷰 수정<br>
  * <br>
  */
 public enum FoundItemStatus {

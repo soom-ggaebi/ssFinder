@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
@@ -22,6 +23,7 @@ import java.time.LocalDate;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-21          joker901010           최초생성<br>
+ * 2025-03-27          joker901010           코드리뷰 수정<br>
  * <br>
  */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -50,8 +52,7 @@ public class FoundItemRegisterRequest {
     @Size(max = 11)
     private String status;
 
-    @Size(max = 255)
-    private String image;
+    private MultipartFile image;
 
     @Size(max = 5000)
     @NotBlank

@@ -16,6 +16,7 @@ import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
+import com.ssfinder.global.common.service.S3Service;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -25,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -40,6 +42,7 @@ import java.util.stream.Collectors;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
+ * 2025-03-27          joker901010           코드리뷰 수정<br>
  * <br>
  */
 @Slf4j
@@ -52,6 +55,7 @@ public class LostItemService {
     private final ItemCategoryRepository itemCategoryRepository;
     private final UserService userService;
     private final LostItemMapper lostItemMapper;
+    private final S3Service s3Service;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -75,11 +79,18 @@ public class LostItemService {
         lostItem.setItemCategory(category);
 
         lostItem.setStatus(LostItemStatus.LOST);
-        // 좌표 설정 (경도, 위도 순)
+
         if(Objects.nonNull(request.getLatitude()) && Objects.nonNull(request.getLongitude())) {
             Point coordinates = geometryFactory.createPoint(new Coordinate(request.getLongitude(), request.getLatitude()));
             lostItem.setCoordinates(coordinates);
         }
+
+        String imageUrl = null;
+        if(Objects.nonNull(request.getImage()) && !request.getImage().isEmpty()){
+            imageUrl = s3Service.uploadFile(request.getImage());
+        }
+
+        lostItem.setImage(imageUrl);
 
         LocalDateTime now = LocalDateTime.now();
         lostItem.setCreatedAt(now);
@@ -96,7 +107,7 @@ public class LostItemService {
     }
 
     @Transactional
-    public LostItemUpdateResponse updateLostItem(Integer userId, Integer lostId, LostItemUpdateRequest request) {
+    public LostItemUpdateResponse updateLostItem(Integer userId, Integer lostId, LostItemUpdateRequest request) throws IOException {
         LostItem lostItem = lostItemRepository.findById(lostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
 
@@ -110,6 +121,18 @@ public class LostItemService {
             Point coordinates = geometryFactory.createPoint(new Coordinate(request.getLongitude(), request.getLatitude()));
             lostItem.setCoordinates(coordinates);
         }
+
+        String imageUrl = lostItem.getImage();
+        if(Objects.nonNull(request.getImage()) && !request.getImage().isEmpty()){
+            if (Objects.nonNull(imageUrl)){
+                imageUrl = s3Service.updateFile(imageUrl, request.getImage());
+            } else {
+                imageUrl = s3Service.uploadFile(request.getImage());
+            }
+        }
+
+        lostItem.setImage(imageUrl);
+
         lostItem.setUpdatedAt(LocalDateTime.now());
 
         return lostItemMapper.toUpdateResponse(lostItem);
@@ -119,6 +142,10 @@ public class LostItemService {
     public void deleteLostItem(int lostId) {
         LostItem lostItem = lostItemRepository.findById(lostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
+
+        if (Objects.nonNull(lostItem.getImage())) {
+            s3Service.deleteFile(lostItem.getImage());
+        }
         lostItemRepository.delete(lostItem);
     }
 
