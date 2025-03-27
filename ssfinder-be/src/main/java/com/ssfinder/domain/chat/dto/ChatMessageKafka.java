@@ -2,14 +2,13 @@ package com.ssfinder.domain.chat.dto;
 
 import com.ssfinder.domain.chat.entity.ChatMessageStatus;
 import com.ssfinder.domain.chat.entity.MessageType;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.io.Serializable;
 
 /**
  * packageName    : com.ssfinder.domain.chat.dto<br>
- * fileName       : null.java<br>
+ * fileName       : ChatMessageKafka.java<br>
  * author         : nature1216 <br>
  * date           : 2025-03-25<br>
  * description    :  <br>
@@ -24,12 +23,11 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatMessage implements Serializable {
-    private Integer id;
+public class ChatMessageKafka implements Serializable {
+    private String id;
     private Integer senderId;
-    private Integer receiverId;
     private Integer chatRoomId;
-    private Integer content;
+    private String content;
     private MessageType type;
     private ChatMessageStatus status;
 }

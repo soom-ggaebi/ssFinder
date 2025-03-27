@@ -36,10 +36,10 @@ public class ChatMessage {
     private String id;
 
     @Field("sender_id")
-    private int senderId;
+    private Integer senderId;
 
     @Field("chat_room_id")
-    private int chatRoomId;
+    private Integer chatRoomId;
 
     private String content;
 
