@@ -1,5 +1,6 @@
 package com.ssfinder.global.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.filter.JwtAuthenticationFilter;
 import com.ssfinder.global.util.JwtUtil;
@@ -33,10 +34,11 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final UserService userService;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtUtil, userService);
+        return new JwtAuthenticationFilter(jwtUtil, userService, objectMapper);
     }
 
     @Bean
