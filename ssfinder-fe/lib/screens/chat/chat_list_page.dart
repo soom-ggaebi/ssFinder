@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sumsumfinder/screens/chat/chat_room_page.dart';
+import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 
 void main() {
   runApp(const MyApp());
@@ -91,19 +92,21 @@ class _ChatListPageState extends State<ChatListPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        shape: Border(bottom: BorderSide(color: Color(0xFF4F4F4F), width: 1)),
-        title: const Text('채팅'),
-        centerTitle: true,
+      appBar: CustomAppBar(
+        title: '채팅',
+        onBackPressed: () {
+          Navigator.pop(context);
+        },
+        onClosePressed: () {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        },
         bottom: TabBar(
           controller: _tabController,
           unselectedLabelColor: Colors.grey,
           labelColor: Colors.black,
           indicatorColor: Color(0xFF6094E6),
           indicatorWeight: 3.0,
-          indicatorSize: TabBarIndicatorSize.tab, // 탭 너비에 맞춤
+          indicatorSize: TabBarIndicatorSize.tab,
           indicator: const BoxDecoration(
             color: Color(0xFFE9F1FF),
             border: Border(

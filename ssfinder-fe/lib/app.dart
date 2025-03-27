@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/home_page.dart'; // 경로는 실제 프로젝트에 맞게 조정하세요
+import 'screens/home_page.dart';
 
 class MyApp extends StatelessWidget {
   @override
@@ -13,7 +13,6 @@ class MyApp extends StatelessWidget {
         fontFamily: 'GmarketSans',
         scaffoldBackgroundColor: backgroundColor,
 
-        // 모든 텍스트에 기본 폰트 크기 12 적용
         textTheme: TextTheme(
           labelMedium: TextStyle(
             fontSize: 14,

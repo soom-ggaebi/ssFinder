@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sumsumfinder/models/found_item_model.dart';
 import '../../widgets/found/found_item_card.dart';
-import './found_item_detail_police.dart';
+import 'found_item_detail_police.dart';
 import 'found_item_detail_sumsumfinder.dart'; // 상세정보 페이지 import
 
 class FoundItemsList extends StatelessWidget {

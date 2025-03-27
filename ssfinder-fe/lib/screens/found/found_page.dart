@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../widgets/map_widget.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import './found_item_form.dart';
-import './found_item_filter.dart';
+import 'found_item_form.dart';
+import 'found_item_filter.dart';
 import 'found_items_list.dart'; // 수정된 FoundItemsList 위젯 import
 import 'package:sumsumfinder/models/found_item_model.dart';
 import 'package:sumsumfinder/services/api_service.dart';
