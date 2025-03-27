@@ -10,7 +10,6 @@ import 'app.dart'; // app.dart 파일을 가져옵니다.
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 import 'dart:async';
 import 'package:sumsumfinder/services/kakao_login_service.dart';
-import 'package:sumsumfinder/screens/splash_screen.dart';
 
 Future main() async {
   // 1. Flutter 엔진 초기화

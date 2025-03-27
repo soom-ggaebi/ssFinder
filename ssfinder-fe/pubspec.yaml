@@ -65,7 +65,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
   flutter_native_splash: ^2.4.5
-
+  flutter_launcher_icons: ^0.14.3
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -119,9 +119,16 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
 flutter_native_splash:
-  color: "#ffffff"
-  image: assets/image/splash_icon.png  # 상단 원형 로고
-  branding: assets/image/splash_text.png  # 텍스트만 따로 저장한 이미지
+  color: "#F9FBFD"
+  image: assets/images/splash_icon.png  # 상단 원형 로고
   android_12:
-    image: assets/image/splash_icon.png
-    icon_background_color: "#ffffff"
+    image: assets/images/splash_icon.png
+    icon_background_color: "#F9FBFD"
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/app_icon.png"
+  adaptive_icon_background: "#F9FBFD"
+  adaptive_icon_foreground: "assets/images/app_icon.png"
+  remove_alpha_ios: true
