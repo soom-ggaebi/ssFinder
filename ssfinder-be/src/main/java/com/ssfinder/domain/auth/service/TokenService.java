@@ -18,9 +18,11 @@ public class TokenService {
 
     private final RedisTemplate<String, String> redisTemplate;
 
+    private final JwtUtil jwtUtil;
+
     public TokenPair generateTokens(int userId) {
-        String accessToken = JwtUtil.generateAccessToken(userId);
-        String refreshToken = JwtUtil.generateRefreshToken(userId);
+        String accessToken = jwtUtil.generateAccessToken(userId);
+        String refreshToken = jwtUtil.generateRefreshToken(userId);
 
         saveRefreshToken(userId, refreshToken);
         return new TokenPair(accessToken, refreshToken);
@@ -45,10 +47,10 @@ public class TokenService {
     }
 
     public boolean validateToken(String token) {
-        return JwtUtil.validateToken(token);
+        return jwtUtil.validateToken(token);
     }
 
     public int getUserIdFromToken(String refreshToken) {
-        return Integer.parseInt(JwtUtil.getUserIdFromToken(refreshToken));
+        return Integer.parseInt(jwtUtil.getUserIdFromToken(refreshToken));
     }
 }
