@@ -1,9 +1,11 @@
 package com.ssfinder.domain.chat.entity;
 
 
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Id;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.config.EnableReactiveMongoAuditing;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -24,11 +26,11 @@ import java.time.LocalDateTime;
  * <br>
  */
 @Document(collection = "chat_message")
-@Getter
-@Setter
+@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 public class ChatMessage {
     @Id
     private String id;
