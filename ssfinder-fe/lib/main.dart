@@ -1,31 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'app.dart'; // app.dart 파일을 가져옵니다.
-import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 import 'dart:async';
-import 'package:sumsumfinder/services/kakao_login_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-Future main() async {
-  // 1. Flutter 엔진 초기화
+import 'services/notification_service.dart';
+import 'services/firebase_service.dart';
+import 'services/location_service.dart';
+import 'services/kakao_login_service.dart';
+import 'app.dart';
+
+Future<void> main() async {
+  // Flutter 엔진 초기화
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Firebase 초기화
-  await Firebase.initializeApp();
-
-  // 3. 환경 변수 로드
+  // 환경 변수 로드
   await dotenv.load(fileName: ".env");
+
+  // 서비스 초기화
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+
+  // Firebase 초기화
+  await Firebase.initializeApp();
+  final firebaseService = FirebaseService();
+  await firebaseService.initialize();
 
   // FCM 권한 요청
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   await messaging.requestPermission(alert: true, badge: true, sound: true);
 
-  // 4. 카카오 SDK 초기화
+  // 위치 서비스 초기화
+  final locationService = LocationService();
+  await locationService.initialize();
+
+  // Android 13 이상: 알림 권한 요청
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
+  }
+
+  // 카카오 SDK 초기화 - .env에서 키를 불러옴
   String kakaoNativeAppKey = dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '';
   if (kakaoNativeAppKey.isEmpty) {
     throw Exception(
@@ -34,7 +54,7 @@ Future main() async {
   }
   KakaoSdk.init(nativeAppKey: kakaoNativeAppKey);
 
-  // 5. 카카오 로그인 서비스 초기화 및 자동 로그인 시도
+  // 카카오 로그인 서비스 초기화 및 자동 로그인 시도
   final kakaoLoginService = KakaoLoginService();
   // 주기적 토큰 갱신 설정
   kakaoLoginService.setupPeriodicTokenRefresh();
