@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sumsumfinder/services/kakao_login_service.dart';
 import 'package:sumsumfinder/screens/main/main_page.dart';
+import 'package:sumsumfinder/screens/home_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -17,7 +18,14 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    print('스플래시 스크린 초기화됨'); // 디버깅용 로그
+
+    // 2초 후 홈 페이지로 이동
+    Future.delayed(Duration(seconds: 2), () {
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (context) => HomePage()));
+    });
   }
 
   Future<void> _initializeApp() async {
@@ -47,7 +55,11 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // 로고 이미지
-            SvgPicture.asset('assets/images/logo.svg', width: 150, height: 150),
+            SvgPicture.asset(
+              'assets/images/splash_logo.svg',
+              width: MediaQuery.of(context).size.width,
+              fit: BoxFit.fitWidth,
+            ),
             const SizedBox(height: 24),
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),

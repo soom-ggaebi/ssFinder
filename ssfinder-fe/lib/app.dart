@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'screens/home_page.dart'; // 경로는 실제 프로젝트에 맞게 조정하세요
+import 'screens/home_page.dart';
+import 'package:sumsumfinder/screens/splash_screen.dart'; // 스플래시 스크린 import 추가
 
 class MyApp extends StatelessWidget {
   @override
@@ -41,7 +42,7 @@ class MyApp extends StatelessWidget {
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
       ),
-      home: const HomePage(),
+      home: const SplashScreen(), // HomePage 대신 SplashScreen을 초기 화면으로 설정
     );
   }
 }
