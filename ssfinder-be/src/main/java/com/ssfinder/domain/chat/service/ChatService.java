@@ -5,17 +5,13 @@ import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
 import com.ssfinder.domain.chat.entity.ChatMessage;
 import com.ssfinder.domain.chat.entity.ChatMessageStatus;
 import com.ssfinder.domain.chat.repository.ChatMessageRepository;
-import com.ssfinder.global.common.exception.CustomException;
-import com.ssfinder.global.common.exception.ErrorCode;
-import com.ssfinder.global.util.JwtUtil;
+import com.ssfinder.domain.user.entity.User;
+import com.ssfinder.domain.user.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.Objects;
 
 /**
  * packageName    : com.ssfinder.domain.user.service<br>
@@ -34,49 +30,33 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Transactional
 public class ChatService {
+    private final UserService userService;
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-    public MessageSendResponse send(/*SimpMessageHeaderAccessor accessor,*/Integer userId, Integer chatRoomId, MessageSendRequest request) {
-//        Integer userId = getUserIdFromHeader(accessor);
+    public void send(Integer userId, Integer chatRoomId, MessageSendRequest request) {
+        User user = userService.findUserById(userId);
 
         ChatMessage chatMessage = ChatMessage.builder()
                 .chatRoomId(chatRoomId)
-                .senderId(userId)
+                .senderId(user.getId())
                 .content(request.content())
                 .status(ChatMessageStatus.SENT)
                 .type(request.type())
                 .build();
 
-        messagingTemplate.convertAndSend("/sub/chat-room/send/" + chatRoomId, chatMessage);
+        ChatMessage message = chatMessageRepository.save(chatMessage);
 
-//        ChatMessage message = chatMessageRepository.save(chatMessage);
-//
-//        MessageSendResponse response = MessageSendResponse.builder()
-//                .id(message.getId())
-//                .chatRoomId(chatRoomId)
-//                .userId(message.getSenderId())
-//                .content(request.content())
-//                .type(request.type())
-//                .build();
+        MessageSendResponse response = MessageSendResponse.builder()
+                .id(message.getId())
+                .chatRoomId(chatRoomId)
+                .userId(user.getId())
+                .nickname(user.getNickname())
+                .content(message.getContent())
+                .type(request.type())
+                .createdAt(message.getCreatedAt())
+                .build();
 
-        return null;
+        messagingTemplate.convertAndSend("/sub/chat-room/" + chatRoomId, response);
     }
-
-    private Integer getUserIdFromHeader(SimpMessageHeaderAccessor accessor) {
-        String authorizationHeader = accessor.getFirstNativeHeader("Authorization");
-
-        if(Objects.nonNull(authorizationHeader) && authorizationHeader.startsWith("Bearer ")) {
-            String token = authorizationHeader.substring(7);
-
-            try {
-                return Integer.parseInt(JwtUtil.getUserIdFromToken(token));
-            } catch (Exception e) {
-                throw new CustomException(ErrorCode.INVALID_TOKEN);
-            }
-        }
-
-        throw new CustomException(ErrorCode.UNAUTHORIZED);
-    }
-
 }
