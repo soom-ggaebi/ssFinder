@@ -40,7 +40,7 @@ public class FcmMessageService {
             String response = FirebaseMessaging.getInstance().sendAsync(message).get();
             log.info("알림 전송 성공: {}", response);
         } catch (InterruptedException | ExecutionException e) {
-            log.error("알림 전송 성공: {}", e.getMessage());
+            log.error("알림 전송 실패: {}", e.getMessage());
         }
     }
 
