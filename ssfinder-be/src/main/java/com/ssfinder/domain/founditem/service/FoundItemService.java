@@ -147,6 +147,10 @@ public class FoundItemService {
         FoundItem foundItem = foundItemRepository.findById(foundId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
 
+        if(!foundItem.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.FOUND_ITEM_ACCESS_DENIED);
+        }
+
         if (Objects.nonNull(foundItem.getImage())) {
             s3Service.deleteFile(foundItem.getImage());
         }

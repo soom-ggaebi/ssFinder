@@ -8,8 +8,6 @@ import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.service.FoundItemBookmarkService;
 import com.ssfinder.domain.founditem.service.FoundItemService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
-import com.ssfinder.global.common.exception.CustomException;
-import com.ssfinder.global.common.exception.ErrorCode;
 import com.ssfinder.global.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;

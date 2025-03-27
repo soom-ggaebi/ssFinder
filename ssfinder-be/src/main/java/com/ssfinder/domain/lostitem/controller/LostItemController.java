@@ -9,8 +9,6 @@ import com.ssfinder.domain.lostitem.dto.response.LostItemUpdateResponse;
 import com.ssfinder.domain.lostitem.entity.LostItem;
 import com.ssfinder.domain.lostitem.service.LostItemService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
-import com.ssfinder.global.common.exception.CustomException;
-import com.ssfinder.global.common.exception.ErrorCode;
 import com.ssfinder.global.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
