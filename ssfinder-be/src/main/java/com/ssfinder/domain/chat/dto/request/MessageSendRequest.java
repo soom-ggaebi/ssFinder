@@ -2,10 +2,6 @@ package com.ssfinder.domain.chat.dto.request;
 
 import com.ssfinder.domain.chat.entity.MessageType;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /**
  * packageName    : com.ssfinder.domain.chat.dto<br>
