@@ -1,9 +1,9 @@
 package com.ssfinder.domain.chat.dto.response;
 
 import com.ssfinder.domain.chat.entity.MessageType;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+
+import java.time.LocalDateTime;
 
 /**
  * packageName    : com.ssfinder.domain.chat.dto<br>
@@ -24,6 +24,6 @@ public record MessageSendResponse (
     Integer chatRoomId,
     String nickname,
     String content,
-    String createdAt,
+    LocalDateTime createdAt,
     MessageType type
 ) {}
