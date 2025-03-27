@@ -41,7 +41,7 @@ public class NotificationService {
     public void sendLostItemReminders() {
         // 6일차 알림 대상 조회
         List<FoundItem> sixDayItems = foundService.getStoredItemsFoundDaysAgo(6);
-
+        log.info("6일차 Found items: {}", sixDayItems);
         for (FoundItem item : sixDayItems) {
             Integer userId = item.getUser().getId();
 
@@ -66,6 +66,8 @@ public class NotificationService {
 
         // 7일차 알림 대상 조회
         List<FoundItem> sevenDayItems = foundService.getStoredItemsFoundDaysAgo(7);
+        log.info("7일차 Found items: {}", sevenDayItems);
+
         for (FoundItem item : sevenDayItems) {
             Integer userId = item.getUser().getId();
 
