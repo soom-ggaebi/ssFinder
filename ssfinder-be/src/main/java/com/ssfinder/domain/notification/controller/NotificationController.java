@@ -5,7 +5,6 @@ import com.ssfinder.domain.notification.dto.request.NotificationRequest;
 import com.ssfinder.domain.notification.dto.request.SettingUpdateRequest;
 import com.ssfinder.domain.notification.dto.response.SettingsGetResponse;
 import com.ssfinder.domain.notification.entity.NotificationType;
-import com.ssfinder.domain.notification.service.FcmMessageService;
 import com.ssfinder.domain.notification.service.FcmTokenService;
 import com.ssfinder.domain.notification.service.NotificationService;
 import com.ssfinder.domain.notification.service.UserNotificationSettingService;
@@ -36,7 +35,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class NotificationController {
     private final FcmTokenService fcmTokenService;
-    private final FcmMessageService fcmMessageService;
     private final UserNotificationSettingService userNotificationSettingService;
     private final NotificationService notificationService;
 
