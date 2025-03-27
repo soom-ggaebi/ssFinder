@@ -31,9 +31,10 @@ public record KakaoLoginRequest (
         @NotBlank @Email String email,
         @Pattern(regexp = "\\d{4}") String birthyear,
         @Pattern(regexp = "\\d{4}") String birthday,
-        @NotBlank String gender,
+        String gender,
         @NotBlank String phoneNumber,
-        @NotBlank String providerId
+        @NotBlank String providerId,
+        @NotBlank String fcmToken
 ){
     public User toUserEntity() {
         return User.builder()
@@ -45,7 +46,7 @@ public record KakaoLoginRequest (
                         Integer.parseInt(birthday.substring(0, 2)),
                         Integer.parseInt(birthday.substring(2))
                 ))
-                .gender(Gender.valueOf(gender.toUpperCase()))
+                .gender(Gender.from(gender))
                 .providerId(providerId)
                 .phone(phoneNumber)
                 .createdAt(LocalDateTime.now())
