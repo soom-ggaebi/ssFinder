@@ -13,18 +13,13 @@ dependencies {
 
   // When using the BoM, you don't specify versions in Firebase library dependencies
 
-  // Add the dependency for the Firebase SDK for Google Analytics
-  implementation("com.google.firebase:firebase-analytics")
-
   // Firebase Cloud Messaging 의존성 추가
   implementation("com.google.firebase:firebase-messaging")
 
-  // TODO: Add the dependencies for any other Firebase products you want to use
-  // See https://firebase.google.com/docs/android/setup#available-libraries
-  // For example, add the dependencies for Firebase Authentication and Cloud Firestore
-  implementation("com.google.firebase:firebase-auth")
-  implementation("com.google.firebase:firebase-firestore")
-
+  // Desugaring 라이브러리 추가
+  coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+  implementation("androidx.window:window:1.3.0")
+  implementation("androidx.window:window-java:1.3.0")
 }
 
 android {
@@ -33,6 +28,7 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
