@@ -25,11 +25,11 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessage implements Serializable {
-    private int id;
-    private int senderId;
-    private int receiverId;
-    private int chatRoomId;
-    private int content;
+    private Integer id;
+    private Integer senderId;
+    private Integer receiverId;
+    private Integer chatRoomId;
+    private Integer content;
     private MessageType type;
     private ChatMessageStatus status;
 }
