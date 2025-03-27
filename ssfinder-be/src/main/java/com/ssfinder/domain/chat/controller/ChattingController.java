@@ -35,12 +35,10 @@ public class ChattingController {
     private final ChatService chatService;
 
     @MessageMapping("chat-room/{chatRoomId}")
-    public ApiResponse<Void> send(@Payload MessageSendRequest request,
+    public void send(@Payload MessageSendRequest request,
                                   @DestinationVariable Integer chatRoomId,
                                   Principal principal) {
         Integer userId = Integer.parseInt(principal.getName());
         chatService.send(userId, chatRoomId, request);
-
-        return ApiResponse.noContent();
     }
 }
