@@ -33,6 +33,7 @@ public class NotificationService {
     private final FcmTokenService fcmTokenService;
     private final FcmMessageService fcmMessageService;
     private final FoundService foundService;
+    private final UserNotificationSettingService userNotificationSettingService;
 
     // 1. 습득물 게시글 최초 등록일로부터 6일차, 7일차 알림
     @Scheduled(cron = "0 0 10 * * *")
@@ -42,7 +43,13 @@ public class NotificationService {
         List<FoundItem> sixDayItems = foundService.getStoredItemsFoundDaysAgo(6);
 
         for (FoundItem item : sixDayItems) {
-            List<String> tokens = fcmTokenService.getFcmTokens(item.getUser().getId());
+            Integer userId = item.getUser().getId();
+
+            // 알림 설정 확인
+            if (userNotificationSettingService.isNotificationDisabledFor(userId, NotificationType.TRANSFER))
+                continue;
+
+            List<String> tokens = fcmTokenService.getFcmTokens(userId);
             if (!tokens.isEmpty()) {
                 Map<String, String> data = new HashMap<>();
                 data.put("type", NotificationType.TRANSFER.name());
@@ -60,7 +67,13 @@ public class NotificationService {
         // 7일차 알림 대상 조회
         List<FoundItem> sevenDayItems = foundService.getStoredItemsFoundDaysAgo(7);
         for (FoundItem item : sevenDayItems) {
-            List<String> tokens = fcmTokenService.getFcmTokens(item.getUser().getId());
+            Integer userId = item.getUser().getId();
+
+            // 알림 설정 확인
+            if (userNotificationSettingService.isNotificationDisabledFor(userId, NotificationType.TRANSFER))
+                continue;
+
+            List<String> tokens = fcmTokenService.getFcmTokens(userId);
             if (!tokens.isEmpty()) {
                 Map<String, String> data = new HashMap<>();
                 data.put("type", NotificationType.TRANSFER.name());
@@ -79,11 +92,15 @@ public class NotificationService {
     // 2. 채팅 알림
     // TODO 채팅 로직에서 채팅 DB 저장 시 트리거
     public void sendChatNotification(Integer userId, String senderName, String message) {
+        // 알림 설정 확인
+        if (userNotificationSettingService.isNotificationDisabledFor(userId, NotificationType.CHAT))
+            return;
+
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
         if (!tokens.isEmpty()) {
             Map<String, String> data = new HashMap<>();
             data.put("type", NotificationType.CHAT.name());
-            data.put("senderId", senderName);
+            data.put("senderName", senderName);
 
             fcmMessageService.sendNotificationToUsers(
                     tokens,
@@ -119,6 +136,9 @@ public class NotificationService {
     // 4. 소지품 알림
     // TODO 날씨 api 연결 - 비:우산 , 황사:마스크
     public void sendItemReminderNotification(Integer userId) {
+        if (userNotificationSettingService.isNotificationDisabledFor(userId, NotificationType.ITEM_REMINDER))
+            return;
+
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
         if (!tokens.isEmpty()) {
             Map<String, String> data = new HashMap<>();
