@@ -32,7 +32,9 @@ public enum ErrorCode {
     DECRYPT_FAILED("ENCRYPT-002", HttpStatus.INTERNAL_SERVER_ERROR, "복호화에 실패했습니다."),
 
     USER_NOT_FOUND("USER-001", HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."),
-    USER_DELETED("USER-002", HttpStatus.BAD_REQUEST, "탈퇴한 회원입니다.");
+    USER_DELETED("USER-002", HttpStatus.BAD_REQUEST, "탈퇴한 회원입니다."),
+
+    USER_NOTIFICATION_SETTINGS_NOT_FOUND("NOTIFICATION-001", HttpStatus.NOT_FOUND, "알림 설정이 없습니다.");
 
     private final String code;
     private final HttpStatus httpStatus;
