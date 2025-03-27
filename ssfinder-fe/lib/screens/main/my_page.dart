@@ -268,7 +268,10 @@ class _MyPageState extends State<MyPage> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // 프로필 아이콘 추가
-                  RandomAvatarProfileIcon(size: 64.0),
+                  RandomAvatarProfileIcon(
+                    userId: _kakaoLoginService.user!.id.toString(),
+                    size: 64.0,
+                  ),
                   const SizedBox(width: 16),
 
                   // 사용자 정보
