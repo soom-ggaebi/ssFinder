@@ -74,6 +74,6 @@ public class LostItem {
     private LocalDateTime updatedAt;
 
     @JdbcTypeCode(SqlTypes.GEOMETRY)
-    @Column(name = "coordinates", columnDefinition = "geometry(Point,4326)", nullable = false)
+    @Column(name = "coordinates", columnDefinition = "POINT SRID 4326", nullable = false)
     private Point coordinates;
 }
