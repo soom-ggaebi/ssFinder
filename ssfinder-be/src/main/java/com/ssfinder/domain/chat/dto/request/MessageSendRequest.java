@@ -2,6 +2,8 @@ package com.ssfinder.domain.chat.dto.request;
 
 import com.ssfinder.domain.chat.entity.MessageType;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import org.hibernate.validator.constraints.Length;
 
 /**
  * packageName    : com.ssfinder.domain.chat.dto<br>
@@ -16,8 +18,9 @@ import jakarta.validation.constraints.NotBlank;
  * <br>
  */
 public record MessageSendRequest (
-    MessageType type,
+        @NotNull
+        MessageType type,
 
-    @NotBlank
-    String content
+        @NotBlank @Length(max = 255)
+        String content
 ) {}
