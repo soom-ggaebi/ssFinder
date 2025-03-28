@@ -1,5 +1,6 @@
 package com.ssfinder.domain.chat.service;
 
+import com.ssfinder.domain.chat.dto.mapper.ChatMessageMapper;
 import com.ssfinder.domain.chat.dto.response.MessageSendResponse;
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
 import com.ssfinder.domain.chat.entity.ChatMessage;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Service;
 @Transactional
 public class ChatService {
     private final UserService userService;
+    private final ChatMessageMapper chatMessageMapper;
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -47,15 +49,7 @@ public class ChatService {
 
         ChatMessage message = chatMessageRepository.save(chatMessage);
 
-        MessageSendResponse response = MessageSendResponse.builder()
-                .messageId(message.getId())
-                .chatRoomId(chatRoomId)
-                .userId(user.getId())
-                .nickname(user.getNickname())
-                .content(message.getContent())
-                .type(request.type())
-                .createdAt(message.getCreatedAt())
-                .build();
+        MessageSendResponse response = chatMessageMapper.mapToMessageSendResponse(message, user.getNickname());
 
         messagingTemplate.convertAndSend("/sub/chat-room/" + chatRoomId, response);
     }
