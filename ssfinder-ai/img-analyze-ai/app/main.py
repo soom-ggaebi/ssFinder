@@ -2,7 +2,7 @@ import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from models import LostItemAnalyzer
+from models.models import LostItemAnalyzer
 from routers import img_analyze_router
 
 # FastAPI 앱 생성
