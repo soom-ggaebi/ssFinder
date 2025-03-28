@@ -8,6 +8,7 @@ from config import config
 class Translator:
 
     def __init__(self):
+        
         self.client_id = config.NAVER_CLIENT_ID
         self.client_secret = config.NAVER_CLIENT_SECRET
         self.use_papago = bool(self.client_id and self.client_secret)

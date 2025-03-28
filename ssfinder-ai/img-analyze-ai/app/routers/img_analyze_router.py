@@ -11,6 +11,10 @@ def get_analyzer():
     from app.main import analyzer
     if not analyzer:
         raise HTTPException(status_code=500, detail="분석기가 초기화되지 않았습니다.")
+    
+    # 인스턴스 확인을 위한 로그 추가
+    print(f"get_analyzer 호출됨: translator.use_papago={analyzer.translator.use_papago}")
+
     return analyzer
 
 # API 루트 경로 핸들러
@@ -24,6 +28,17 @@ async def analyze_image(
     file: UploadFile = File(...),
     analyzer = Depends(get_analyzer)
 ):
+    
+    # 파일 확장자 검증
+    valid_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif']
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    
+    if file_ext not in valid_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"지원되지 않는 파일 형식입니다. 지원되는 형식: {', '.join(valid_extensions)}"
+        )
+    
     try:
         # 임시 파일로 저장
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp:
@@ -68,6 +83,7 @@ async def analyze_image(
 # API 상태, 환경변수 확인
 @router.get("/status")
 async def status(analyzer = Depends(get_analyzer)):
+    print(f"상태 확인: analyzer.translator.use_papago={analyzer.translator.use_papago}")
     return {
         "status": "ok",
         "papago_api": "active" if analyzer.translator.use_papago else "inactive",

@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
     global analyzer
     analyzer = LostItemAnalyzer()
     print("분실물 분석 ai가 초기화되었습니다.")
-    
+
     yield  # 애플리케이션 실행 지점
     
     print("분실물 분석 ai가 종료되었습니다.")
