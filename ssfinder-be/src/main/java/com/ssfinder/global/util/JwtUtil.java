@@ -7,15 +7,18 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.function.Function;
 
-@Service
+@Component
 @RequiredArgsConstructor
 public class JwtUtil {
 
@@ -66,6 +69,13 @@ public class JwtUtil {
     // 토큰에서 사용자 ID 추출
     public String getUserIdFromToken(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    // Authentication 객체 생성
+    public Authentication getAuthentication(String token) {
+        String userId = getUserIdFromToken(token);
+
+        return new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
     }
 
     // 토큰에서 클레임 추출
