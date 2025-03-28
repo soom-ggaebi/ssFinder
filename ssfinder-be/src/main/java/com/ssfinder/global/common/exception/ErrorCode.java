@@ -32,7 +32,19 @@ public enum ErrorCode {
     DECRYPT_FAILED("ENCRYPT-002", HttpStatus.INTERNAL_SERVER_ERROR, "복호화에 실패했습니다."),
 
     USER_NOT_FOUND("USER-001", HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."),
-    USER_DELETED("USER-002", HttpStatus.BAD_REQUEST, "탈퇴한 회원입니다.");
+    USER_DELETED("USER-002", HttpStatus.BAD_REQUEST, "탈퇴한 회원입니다."),
+
+    CATEGORY_NOT_FOUND("CATEGORY-001", HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."),
+
+    FOUND_ITEM_NOT_FOUND("FOUND-001", HttpStatus.NOT_FOUND, "존재하지 않는 습득물입니다."),
+    FOUND_ITEM_ACCESS_DENIED("FOUND-002", HttpStatus.FORBIDDEN, "본인만 접근 가능한 항목입니다."),
+
+    BOOKMARK_DUPLICATED ("BOOKMARK-001", HttpStatus.CONFLICT, "이미 등록된 북마크입니다."),
+    BOOKMARK_NOT_FOUND("BOOKMARK-002", HttpStatus.NOT_FOUND, "존재하지 않는 북마크입니다."),
+    BOOKMARK_ACCESS_DENIED("BOOKMARK-003", HttpStatus.FORBIDDEN, "본인만 접근 가능한 항목입니다."),
+
+    LOST_ITEM_NOT_FOUND("LOST-001", HttpStatus.NOT_FOUND, "존재하지 않는 분실물입니다."),
+    LOST_ITEM_ACCESS_DENIED("LOST-002", HttpStatus.FORBIDDEN, "본인만 접근 가능한 항목입니다.");
 
     private final String code;
     private final HttpStatus httpStatus;
