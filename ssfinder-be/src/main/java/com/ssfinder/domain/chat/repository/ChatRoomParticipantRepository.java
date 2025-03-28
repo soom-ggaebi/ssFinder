@@ -21,4 +21,6 @@ import java.util.List;
  */
 public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomParticipant, Integer> {
     List<ChatRoomParticipant> findChatRoomParticipantByChatRoomAndUser(ChatRoom chatRoom, User user);
+
+    List<ChatRoomParticipant> findChatRoomParticipantsByFoundItemAnd
 }

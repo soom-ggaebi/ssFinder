@@ -46,4 +46,9 @@ public class ChatRoomService {
 
         return !participants.isEmpty();
     }
+
+    public Integer getOrCreateChatRoom(Integer userId, Integer foundItemId) {
+        User user = userService.findUserById(userId);
+        ChatRoomParticipant participant = chatRoomParticipantRepository.findChatRoomParticipantByUserAndFound
+    }
 }
