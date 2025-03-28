@@ -83,6 +83,7 @@ async def analyze_image(
 # API 상태, 환경변수 확인
 @router.get("/status")
 async def status(analyzer = Depends(get_analyzer)):
+    print(f"상태 확인: analyzer.translator.use_papago={analyzer.translator.use_papago}")
     return {
         "status": "ok",
         "papago_api": "active" if analyzer.translator.use_papago else "inactive",
