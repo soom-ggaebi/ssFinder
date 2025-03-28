@@ -16,11 +16,21 @@ class KakaoLoginService {
     return _instance;
   }
 
-  KakaoLoginService._internal();
+  KakaoLoginService._internal() {
+    // isLoggedIn 값이 변경될 때마다 onLoginStatusChanged 콜백 호출
+    isLoggedIn.addListener(() {
+      if (onLoginStatusChanged != null) {
+        onLoginStatusChanged!(isLoggedIn.value);
+      }
+    });
+  }
 
   // 로그인 상태를 관리하는 변수
   final ValueNotifier<bool> isLoggedIn = ValueNotifier<bool>(false);
   User? user;
+
+  // 로그인 상태 변화 콜백 (true: 로그인, false: 로그아웃)
+  void Function(bool)? onLoginStatusChanged;
 
   // 토큰 저장을 위한 secure storage
   final _storage = const FlutterSecureStorage();

@@ -1,15 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.sumsumfinder">
-    <uses-permission
-        android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /> 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <application
         android:label="sumsumfinder"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <service 
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService" 
+            android:stopWithTask="false"            
+            android:foregroundServiceType="location"
+            android:exported="false" /> 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBSBDoM9uGF8KGo0UAaxfrSzPFTIuyolTk" />
