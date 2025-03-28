@@ -48,7 +48,7 @@ public class ChatService {
         ChatMessage message = chatMessageRepository.save(chatMessage);
 
         MessageSendResponse response = MessageSendResponse.builder()
-                .id(message.getId())
+                .messageId(message.getId())
                 .chatRoomId(chatRoomId)
                 .userId(user.getId())
                 .nickname(user.getNickname())
