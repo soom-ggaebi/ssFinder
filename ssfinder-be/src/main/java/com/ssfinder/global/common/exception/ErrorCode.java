@@ -32,7 +32,11 @@ public enum ErrorCode {
     DECRYPT_FAILED("ENCRYPT-002", HttpStatus.INTERNAL_SERVER_ERROR, "복호화에 실패했습니다."),
 
     USER_NOT_FOUND("USER-001", HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."),
-    USER_DELETED("USER-002", HttpStatus.BAD_REQUEST, "탈퇴한 회원입니다.");
+    USER_DELETED("USER-002", HttpStatus.BAD_REQUEST, "탈퇴한 회원입니다."),
+
+    CHAT_ROOM_PARTICIPANT_NOT_FOUND("CHAT-001", HttpStatus.NOT_FOUND, "채팅방 참여 정보를 찾을 수 없습니다."),
+    CHAT_ROOM_NOT_FOUND("CHAT-002", HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."),
+    CHAT_ROOM_ACCESS_DENIED("CHAT-003", HttpStatus.FORBIDDEN, "채팅방 참여자가 아닙니다.");
 
     private final String code;
     private final HttpStatus httpStatus;
