@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from models import LostItemAnalyzer
-from routers import api
+from routers import img_analyze_router
 
 # FastAPI 앱 생성
 app = FastAPI(title="분실물 이미지 분석 API")
@@ -17,10 +17,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 전역 변수로 분석기 선언 (앱 시작시 한 번만 로드)
+# 전역 변수로 분석 선언 (앱 시작시 한 번만 로드)
 analyzer = None
 
-# 앱 시작시 실행되는 이벤트 핸들러러
+# 앱 시작시 실행되는 이벤트 핸들러
 @app.on_event("startup")
 async def startup_event():
     global analyzer
@@ -28,7 +28,7 @@ async def startup_event():
     print("분실물 분석 ai가 초기화되었습니다.")
 
 # API 라우터 등록
-app.include_router(api.router)
+app.include_router(img_analyze_router.router)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
