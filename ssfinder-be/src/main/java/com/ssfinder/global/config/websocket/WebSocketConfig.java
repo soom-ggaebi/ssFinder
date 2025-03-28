@@ -1,4 +1,4 @@
-package com.ssfinder.global.config;
+package com.ssfinder.global.config.websocket;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
@@ -13,10 +13,11 @@ import org.springframework.web.socket.config.annotation.*;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompHandler stompHandler;
+    private final StompErrorHandler stompErrorHandler;
 
     @Override
     public void configureMessageBroker(final MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/sub");
+        registry.enableSimpleBroker("/sub", "/queue");
         registry.setApplicationDestinationPrefixes("/pub");
     }
 
@@ -24,8 +25,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(final StompEndpointRegistry registry) {
         registry
                 .addEndpoint("/app")
-                .setAllowedOrigins("http://127.0.0.1:5500")
-                .withSockJS();
+                .setAllowedOrigins("*");
+        registry.setErrorHandler(stompErrorHandler);
     }
 
     @Override

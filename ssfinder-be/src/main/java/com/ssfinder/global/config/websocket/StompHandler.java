@@ -1,4 +1,4 @@
-package com.ssfinder.global.config;
+package com.ssfinder.global.config.websocket;
 
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
