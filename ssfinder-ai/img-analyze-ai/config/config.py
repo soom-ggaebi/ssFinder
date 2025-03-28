@@ -1,5 +1,3 @@
-# 설정 및 상수 정의 모듈
-
 import os
 from dotenv import load_dotenv
 

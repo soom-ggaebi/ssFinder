@@ -2,8 +2,8 @@
 
 import requests
 import urllib.parse
-from typing import Optional
-import config
+from typing import Optional, Dict, Any
+from config import config
 
 class Translator:
 
@@ -42,7 +42,7 @@ class Translator:
         except Exception as e:
             return text  # 오류 발생 시 원본 텍스트 반환
         
-    # 분석결과 번역역            
+    # 분석결과 번역
     def translate_results(self, result_data):
 
         caption = result_data.get("caption", "")

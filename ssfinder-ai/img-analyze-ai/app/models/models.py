@@ -1,11 +1,9 @@
-# 이미지 분석 모델 및 핵심 기능 모듈
-
 import torch
 from PIL import Image
 from transformers import BlipProcessor, BlipForConditionalGeneration, BlipForQuestionAnswering
 from typing import Dict, List, Any
-from translate import Translator
-import config
+from app.models.translator import Translator
+from config import config
 
 # 이미지 분석 및 캡셔닝
 class ImageAnalyzer:
@@ -18,7 +16,7 @@ class ImageAnalyzer:
         self.vqa_processor = BlipProcessor.from_pretrained(config.VQA_MODEL)
         self.vqa_model = BlipForQuestionAnswering.from_pretrained(config.VQA_MODEL)
     
-    # 이미지 전처리리
+    # 이미지 전처리
     def preprocess_image(self, image_path: str) -> Image.Image:
 
         # 이미지 로드
@@ -33,7 +31,7 @@ class ImageAnalyzer:
             
         return image
     
-    # 이미지 캡션 생성성
+    # 이미지 캡션 생성
     def generate_caption(self, image: Image.Image) -> str:
 
         # 이미지를 모델 입력으로 처리

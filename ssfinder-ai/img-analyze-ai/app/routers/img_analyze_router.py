@@ -1,48 +1,29 @@
-# FastAPI와 메인 실행 모듈
-
 import os
 import tempfile
-import uvicorn
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from models import LostItemAnalyzer
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
+from typing import Dict, Any
 
-# FastAPI 앱 생성
-app = FastAPI(title="분실물 이미지 분석 API")
+# API 라우터 생성
+router = APIRouter()
 
-# CORS 설정
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # 실제 배포 시 도메인 제한 필요
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# 분석기 가져오기
+def get_analyzer():
+    from app.main import analyzer
+    if not analyzer:
+        raise HTTPException(status_code=500, detail="분석기가 초기화되지 않았습니다.")
+    return analyzer
 
-# 전역 변수로 분석기 선언 (앱 시작시 한 번만 로드)
-analyzer = None
-
-# 앱 시작시 실행되는 이벤트 핸들러러
-@app.on_event("startup")
-async def startup_event():
-    global analyzer
-    analyzer = LostItemAnalyzer()
-    print("분실물 분석기가 초기화되었습니다.")
-
-# API 루트 경로 핸들러러
-@app.get("/")
+# API 루트 경로 핸들러
+@router.get("/")
 async def root():
     return {"message": "분실물 이미지 분석 API가 실행 중입니다."}
 
 # 이미지 분석 후 정보 JSON으로 반환
-@app.post("/analyze")
-async def analyze_image(file: UploadFile = File(...)):
-
-    global analyzer
-    
-    if not analyzer:
-        raise HTTPException(status_code=500, detail="분석기가 초기화되지 않았습니다.")
-    
+@router.post("/analyze")
+async def analyze_image(
+    file: UploadFile = File(...),
+    analyzer = Depends(get_analyzer)
+):
     try:
         # 임시 파일로 저장
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp:
@@ -85,23 +66,10 @@ async def analyze_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"이미지 분석 중 오류 발생: {str(e)}")
 
 # API 상태, 환경변수 확인
-@app.get("/status")
-async def status():
-
-    global analyzer
-    
-    if not analyzer:
-        return {"status": "error", "message": "분석기가 초기화되지 않았습니다."}
-    
+@router.get("/status")
+async def status(analyzer = Depends(get_analyzer)):
     return {
         "status": "ok",
         "papago_api": "active" if analyzer.translator.use_papago else "inactive",
         "models_loaded": True
     }
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-
-    # 서버 실행
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
