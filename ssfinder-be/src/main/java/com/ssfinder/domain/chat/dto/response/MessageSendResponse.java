@@ -1,5 +1,8 @@
 package com.ssfinder.domain.chat.dto.response;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.ssfinder.domain.chat.entity.MessageType;
 import lombok.Builder;
 
@@ -18,8 +21,9 @@ import java.time.LocalDateTime;
  * <br>
  */
 @Builder
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record MessageSendResponse (
-    String id,
+    String messageId,
     Integer userId,
     Integer chatRoomId,
     String nickname,
