@@ -3,7 +3,6 @@ package com.ssfinder.domain.chat.entity;
 import com.ssfinder.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
-import org.apache.kafka.common.protocol.types.Field;
 
 import java.time.LocalDateTime;
 
@@ -26,7 +25,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class UserChatRoom {
+public class ChatRoomParticipant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
