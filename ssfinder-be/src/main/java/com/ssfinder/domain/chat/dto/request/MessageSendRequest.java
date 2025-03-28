@@ -21,6 +21,6 @@ public record MessageSendRequest (
         @NotNull
         MessageType type,
 
-        @NotBlank @Length(max = 255)
+        @NotBlank @Length(max = 65536)
         String content
 ) {}
