@@ -5,6 +5,7 @@ import com.ssfinder.domain.chat.dto.response.MessageSendResponse;
 import com.ssfinder.domain.chat.service.ChatService;
 import com.ssfinder.global.common.response.ApiResponse;
 import com.ssfinder.global.util.JwtUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -35,9 +36,9 @@ public class ChattingController {
     private final ChatService chatService;
 
     @MessageMapping("chat-room/{chatRoomId}")
-    public void send(@Payload MessageSendRequest request,
-                                  @DestinationVariable Integer chatRoomId,
-                                  Principal principal) {
+    public void send(@Valid @Payload MessageSendRequest request,
+                     @DestinationVariable Integer chatRoomId,
+                     Principal principal) {
         Integer userId = Integer.parseInt(principal.getName());
         chatService.send(userId, chatRoomId, request);
     }
