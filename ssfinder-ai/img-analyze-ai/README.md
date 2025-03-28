@@ -10,10 +10,11 @@ BLIP 모델을 활용해 분실물 이미지를 분석하고, 해당 물품의 �
 - REST API: FastAPI 기반 인터페이스 제공
 
 ## 시스템 구성
-- `main.py`: FastAPI 애플리케이션과 API 엔드포인트 정의
-- `config.py`: 설정 및 상수 정의 모듈
-- `model.py`: 이미지 분석과 특징 추출을 위한 BLIP 모델 관련 기능
-- `translate.py`: 파파고 API를 활용한 번역 서비스
+- `app/main.py`: FastAPI 애플리케이션과 서버 설정
+- `app/routers/img_analyze_router.py`: API 엔드포인트 정의
+- `app/models/models.py`: 이미지 분석과 특징 추출을 위한 BLIP 모델 관련 기능
+- `app/models/translator.py`: 파파고 API를 활용한 번역 서비스
+- `config/config.py`: 설정 및 상수 정의 모듈
 
 ## 설치 및 실행 방법
 
@@ -40,13 +41,15 @@ pip install -r requirements.txt
 
 2. 서버 실행:
 ```bash
-python main.py
+# 프로젝트 루트 디렉토리에서 실행
+python -m app.main
 ```
 
 또는
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# 프로젝트 루트 디렉토리에서 실행
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 3. 브라우저에서 `http://localhost:8000/docs`에 접속하여 API 문서 확인
@@ -55,7 +58,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 1. Docker 이미지 빌드:
 ```bash
-docker build -t lost-item-analyzer .
+docker build -t lost-item-analyzer -f docker/Dockerfile .
 ```
 
 2. Docker 컨테이너 실행:
