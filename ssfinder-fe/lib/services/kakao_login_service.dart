@@ -62,7 +62,7 @@ class KakaoLoginService {
         return false;
       }
 
-      // 4. 카카오 API 토큰 확인 (선택적)
+      // 4. 카카오 API 토큰 확인
       try {
         if (await AuthApi.instance.hasToken()) {
           await UserApi.instance.accessTokenInfo();
@@ -203,7 +203,75 @@ class KakaoLoginService {
     }
   }
 
-  // 백엔드 서버에 카카오 로그인 정보 전송
+  // FCM 토큰을 캐싱하기 위한 변수 추가
+  String? _cachedFcmToken;
+  DateTime? _fcmTokenTimestamp;
+
+  Future<String?> getFcmToken({bool forceRefresh = false}) async {
+    try {
+      // 캐시된 토큰이 있고, 1시간 이내에 가져온 것이며, 강제 갱신이 아니라면 캐시된 토큰 반환
+      final now = DateTime.now();
+      if (!forceRefresh &&
+          _cachedFcmToken != null &&
+          _fcmTokenTimestamp != null &&
+          now.difference(_fcmTokenTimestamp!).inHours < 1) {
+        print('캐시된 FCM 토큰 반환');
+        return _cachedFcmToken;
+      }
+
+      // 토큰 새로 요청
+      print('FCM 토큰 요청 시작');
+      _cachedFcmToken = await FirebaseMessaging.instance.getToken();
+      _fcmTokenTimestamp = now;
+
+      if (_cachedFcmToken != null) {
+        print('FCM 토큰 획득 성공: ${_cachedFcmToken!.substring(0, 10)}...');
+      } else {
+        print('FCM 토큰이 null입니다');
+      }
+
+      return _cachedFcmToken;
+    } catch (e) {
+      print('FCM 토큰 획득 중 오류 발생: $e');
+      return null;
+    }
+  }
+
+  // FCM 토큰 저장 메서드
+  Future<void> saveFcmToken() async {
+    try {
+      // 토큰이 없으면 가져오기
+      final fcmToken = await getFcmToken();
+
+      if (fcmToken == null) {
+        print('저장할 FCM 토큰이 없습니다.');
+        return;
+      }
+
+      // 로그인 상태가 아니면 저장하지 않음
+      if (!isLoggedIn.value) {
+        print('로그인 상태가 아니어서 FCM 토큰을 저장하지 않습니다.');
+        return;
+      }
+
+      // 백엔드 API 호출
+      final response = await authenticatedRequest(
+        'PATCH',
+        '/api/users/fcm-token',
+        body: {'fcm_token': fcmToken},
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        print('FCM 토큰 저장 성공');
+      } else {
+        print('FCM 토큰 저장 실패: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('FCM 토큰 저장 중 오류 발생: $e');
+    }
+  }
+
+  // 기존의 authenticateWithBackend 메서드에서 FCM 토큰을 가져오는 부분 수정
   Future<Map<String, dynamic>?> authenticateWithBackend() async {
     if (user == null) {
       print('사용자 정보가 없습니다. 먼저 로그인해주세요.');
@@ -212,7 +280,7 @@ class KakaoLoginService {
 
     try {
       // fcm 토큰 가져오기
-      String? fcmToken = await FirebaseMessaging.instance.getToken();
+      String? fcmToken = await getFcmToken(forceRefresh: true);
 
       // 성별 정보 변환 (male/female)
       String? gender;

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sumsumfinder/screens/chat/chat_room_page.dart';
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:sumsumfinder/screens/main/noti_list_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,6 +34,9 @@ class ChatListPage extends StatefulWidget {
 class _ChatListPageState extends State<ChatListPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  // 탭 목록: 전체, 분실, 습득
+  final List<String> _tabs = ['전체', '분실', '습득'];
 
   // 채팅 아이템 데이터 목록
   final List<Map<String, dynamic>> chatItems = [
@@ -79,7 +84,8 @@ class _ChatListPageState extends State<ChatListPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    // 탭 컨트롤러 초기화
+    _tabController = TabController(length: _tabs.length, vsync: this);
   }
 
   @override
@@ -88,52 +94,23 @@ class _ChatListPageState extends State<ChatListPage>
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: CustomAppBar(
-        title: '채팅',
-        onBackPressed: () {
-          Navigator.pop(context);
-        },
-        onClosePressed: () {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        },
-        bottom: TabBar(
-          controller: _tabController,
-          unselectedLabelColor: Colors.grey,
-          labelColor: Colors.black,
-          indicatorColor: Color(0xFF6094E6),
-          indicatorWeight: 3.0,
-          indicatorSize: TabBarIndicatorSize.tab,
-          indicator: const BoxDecoration(
-            color: Color(0xFFE9F1FF),
-            border: Border(
-              bottom: BorderSide(color: Color(0xFF6094E6), width: 3.0),
-            ),
-          ),
-          tabs: const [Tab(text: '전체'), Tab(text: '분실'), Tab(text: '습득')],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildChatList(filter: null), // 전체 목록
-          _buildChatList(filter: '분실'), // 분실 목록만
-          _buildChatList(filter: '습득'), // 습득 목록만
-        ],
-      ),
-    );
+  /// 탭별 데이터 필터링 함수
+  List<Map<String, dynamic>> _getFilteredItems(String tab) {
+    if (tab == '전체') {
+      return chatItems;
+    } else if (tab == '분실') {
+      // 분실: buttonText가 '분실'인 경우
+      return chatItems.where((item) => item['buttonText'] == '분실').toList();
+    } else if (tab == '습득') {
+      // 습득: buttonText가 '습득'인 경우
+      return chatItems.where((item) => item['buttonText'] == '습득').toList();
+    }
+    return [];
   }
 
-  Widget _buildChatList({String? filter}) {
-    // 필터가 있으면 buttonText로 필터링
-    final filteredItems =
-        filter == null
-            ? chatItems
-            : chatItems.where((item) => item['buttonText'] == filter).toList();
-
+  /// 각 탭에 해당하는 목록을 보여주는 위젯
+  Widget _buildTabContent(String tab) {
+    List<Map<String, dynamic>> filteredItems = _getFilteredItems(tab);
     return ListView(
       children:
           filteredItems.map((item) {
@@ -160,6 +137,71 @@ class _ChatListPageState extends State<ChatListPage>
               },
             );
           }).toList(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: CustomAppBar(
+        title: '채팅',
+        isFromBottomNav: true,
+        customActions: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: SizedBox(
+                width: 35,
+                height: 35,
+                child: IconButton(
+                  icon: SvgPicture.asset(
+                    'assets/images/main/noti_icon.svg',
+                    width: 20,
+                    height: 20,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationPage(),
+                      ),
+                    );
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+
+      body: Stack(
+        children: [
+          // 탭과 탭뷰로 채팅 목록을 표시
+          Column(
+            children: [
+              Container(
+                color: Colors.white,
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.blue,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: Colors.blue,
+                  tabs: _tabs.map((e) => Tab(text: e)).toList(),
+                ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: _tabs.map((tab) => _buildTabContent(tab)).toList(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
