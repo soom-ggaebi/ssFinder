@@ -2,10 +2,7 @@ package com.ssfinder.domain.founditem.dto.request;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,14 +27,14 @@ import java.time.LocalDate;
 @Setter
 public class FoundItemRegisterRequest {
 
-    @NotBlank
+    @NotNull
     private Integer itemCategoryId;
 
     @Size(max = 100)
     @NotBlank
     private String name;
 
-    @NotBlank
+    @NotNull
     private LocalDate foundAt;
 
     @Size(max = 100)

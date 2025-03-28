@@ -28,18 +28,18 @@ public class LostItemRegisterRequest {
     @NotNull
     private Integer itemCategoryId;
 
-    @NotNull
+    @NotBlank
     @Size(max = 100)
     private String title;
 
-    @NotNull
+    @NotBlank
     @Size(max = 20)
     private String color;
 
     @NotNull
     private LocalDate lostAt;
 
-    @NotNull
+    @NotBlank
     @Size(max = 100)
     private String location;
 

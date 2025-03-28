@@ -84,7 +84,7 @@ public class FoundItemService {
 
         String imageUrl = null;
         if(Objects.nonNull(requestDTO.getImage()) && !requestDTO.getImage().isEmpty()){
-            imageUrl = s3Service.uploadFile(requestDTO.getImage());
+            imageUrl = s3Service.uploadFile(requestDTO.getImage(),"found");
         }
 
         foundItem.setImage(imageUrl);
@@ -130,7 +130,7 @@ public class FoundItemService {
             if (Objects.nonNull(imageUrl)){
                 imageUrl = s3Service.updateFile(imageUrl, updateRequest.getImage());
             } else {
-                imageUrl = s3Service.uploadFile(updateRequest.getImage());
+                imageUrl = s3Service.uploadFile(updateRequest.getImage(), "found");
             }
         }
 

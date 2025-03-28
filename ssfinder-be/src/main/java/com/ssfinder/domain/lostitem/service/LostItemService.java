@@ -87,7 +87,7 @@ public class LostItemService {
 
         String imageUrl = null;
         if(Objects.nonNull(request.getImage()) && !request.getImage().isEmpty()){
-            imageUrl = s3Service.uploadFile(request.getImage());
+            imageUrl = s3Service.uploadFile(request.getImage(), "lost");
         }
 
         lostItem.setImage(imageUrl);
@@ -127,7 +127,7 @@ public class LostItemService {
             if (Objects.nonNull(imageUrl)){
                 imageUrl = s3Service.updateFile(imageUrl, request.getImage());
             } else {
-                imageUrl = s3Service.uploadFile(request.getImage());
+                imageUrl = s3Service.uploadFile(request.getImage(), "lost");
             }
         }
 

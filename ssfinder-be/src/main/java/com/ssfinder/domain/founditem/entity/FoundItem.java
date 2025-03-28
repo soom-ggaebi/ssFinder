@@ -75,7 +75,7 @@ public class FoundItem {
     @Column(length = 255)
     private String image;
 
-    @Column(name = "management_id", length = 20)
+    @Column(name = "management_id", length = 30)
     private String managementId;
 
     @Column(name = "stored_at", nullable = false, length = 100)

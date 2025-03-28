@@ -12,175 +12,213 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
-
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.URLConnection;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class S3Service {
+
     private final S3Client s3Client;
+
     @Value("${AWS_S3_BUCKET}")
     private String bucketName;
 
-    private String filePrefix;
+    @Value("${AWS_S3_PREFIX_FOUND}")
+    private String prefixFound;
+
+    @Value("${AWS_S3_PREFIX_LOST}")
+    private String prefixLost;
+
+    private String filePrefixFound;
+    private String filePrefixLost;
 
     @PostConstruct
     public void init() {
-        filePrefix = "https://" + bucketName + ".s3.ap-northeast-2.amazonaws.com/images/";
+        // S3의 public URL 형식 (리전과 버킷 이름에 따라 조정)
+        filePrefixFound = "https://" + bucketName + ".s3.ap-northeast-2.amazonaws.com/" + prefixFound;
+        filePrefixLost  = "https://" + bucketName + ".s3.ap-northeast-2.amazonaws.com/" + prefixLost;
     }
 
-    /*
-     * 파일 업로드 전략
-     * UUID + 시간값 + .확장자
-     * */
-    // S3 파일 업로드
-
-    public String uploadFile(MultipartFile file) {
+    // UUID + 타임스탬프를 이용한 파일명 생성
+    private String generateFileName(MultipartFile file) {
         String filenameExtension = StringUtils.getFilenameExtension(file.getOriginalFilename());
         String uuid = UUID.randomUUID().toString();
+        return uuid + System.currentTimeMillis() + (filenameExtension != null ? "." + filenameExtension : "");
+    }
 
-        // UUID + 시간값 + .확장자
-        String fileName = uuid + System.currentTimeMillis() + "." +filenameExtension;
+    // Found 이미지 업로드
+    public String uploadFoundFile(MultipartFile file) {
+        String fileName = generateFileName(file);
+        String key = prefixFound + fileName; // S3 키: 폴더 경로 포함
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
-                .key(fileName)
+                .key(key)
                 .contentType(file.getContentType())
-                .acl(ObjectCannedACL.PUBLIC_READ)
+                // ACL 옵션 제거하여 버킷 정책에 따름
                 .build();
-
         try (InputStream inputStream = file.getInputStream()) {
             PutObjectResponse response = s3Client.putObject(putObjectRequest,
                     software.amazon.awssdk.core.sync.RequestBody.fromInputStream(inputStream, file.getSize()));
-
             if (response.sdkHttpResponse().isSuccessful()) {
-                return filePrefix+fileName;
+                return filePrefixFound + fileName;
             } else {
                 throw new RuntimeException("파일 업로드 실패");
             }
         } catch (IOException e) {
-            throw new RuntimeException("파일 IO 에러");
+            throw new RuntimeException("파일 IO 에러", e);
         }
     }
 
-    // S3 파일 삭제
-    public void deleteFile(String fileUrl) {
-        // S3에서의 파일 경로 추출 (filePrefix 이후의 경로만 사용)
-        String fileKey = fileUrl.split("/")[3];
+    // Lost 이미지 업로드
+    public String uploadLostFile(MultipartFile file) {
+        String fileName = generateFileName(file);
+        String key = prefixLost + fileName;
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(file.getContentType())
+                .build();
+        try (InputStream inputStream = file.getInputStream()) {
+            PutObjectResponse response = s3Client.putObject(putObjectRequest,
+                    software.amazon.awssdk.core.sync.RequestBody.fromInputStream(inputStream, file.getSize()));
+            if (response.sdkHttpResponse().isSuccessful()) {
+                return filePrefixLost + fileName;
+            } else {
+                throw new RuntimeException("파일 업로드 실패");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("파일 IO 에러", e);
+        }
+    }
 
+    // 파일 업로드: type 매개변수를 통해 "found" 또는 "lost"에 따라 분기
+    public String uploadFile(MultipartFile file, String type) {
+        if ("found".equalsIgnoreCase(type)) {
+            return uploadFoundFile(file);
+        } else if ("lost".equalsIgnoreCase(type)) {
+            return uploadLostFile(file);
+        } else {
+            throw new IllegalArgumentException("Unknown file type: " + type);
+        }
+    }
+
+    // S3에서 파일 삭제 (fileUrl에서 키 추출)
+    public void deleteFile(String fileUrl) {
+        String fileKey;
+        if (fileUrl.startsWith(filePrefixFound)) {
+            fileKey = fileUrl.substring(filePrefixFound.length());
+        } else if (fileUrl.startsWith(filePrefixLost)) {
+            fileKey = fileUrl.substring(filePrefixLost.length());
+        } else {
+            fileKey = fileUrl.substring(fileUrl.indexOf("/", 8) + 1);
+        }
         DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
                 .bucket(bucketName)
                 .key(fileKey)
                 .build();
-        try{
+        try {
             s3Client.deleteObject(deleteObjectRequest);
         } catch (AwsServiceException e) {
-            System.err.println("파일 삭제 실패");
-            throw new RuntimeException("파일 삭제 실패");
+            System.err.println("파일 삭제 실패: " + e.getMessage());
+            throw new RuntimeException("파일 삭제 실패", e);
         }
     }
 
-    /*
-     * 파일 업데이트 메서드
-     * 기존 파일을 삭제하고 새로운 파일을 업로드
-     */
-    public String updateFile(String existingFileUrl, MultipartFile newFile) throws IOException {
-        // 기존 파일 삭제
+    // 기존 파일을 삭제한 후, 새로운 파일 업로드 (파일 유형은 기존 URL에 따라 결정)
+    public String updateFile(String existingFileUrl, MultipartFile newFile) {
         deleteFile(existingFileUrl);
-
-        // 새 파일 업로드
-        return uploadFile(newFile);
+        if (existingFileUrl.contains(prefixFound)) {
+            return uploadFoundFile(newFile);
+        } else if (existingFileUrl.contains(prefixLost)) {
+            return uploadLostFile(newFile);
+        } else {
+            // 기본값: found
+            return uploadFoundFile(newFile);
+        }
     }
 
+    // S3에서 파일을 다운로드하여 byte 배열로 반환
     public byte[] getFileAsBytes(String fileUrl) {
-        String fileKey = fileUrl.replace(filePrefix, "");
-
+        String fileKey;
+        if (fileUrl.startsWith(filePrefixFound)) {
+            fileKey = fileUrl.substring(filePrefixFound.length());
+        } else if (fileUrl.startsWith(filePrefixLost)) {
+            fileKey = fileUrl.substring(filePrefixLost.length());
+        } else {
+            fileKey = fileUrl.substring(fileUrl.indexOf("/", 8) + 1);
+        }
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucketName)
                 .key(fileKey)
                 .build();
-
         try (ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObject(getObjectRequest);
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-
             byte[] buffer = new byte[1024];
             int length;
             while ((length = s3Object.read(buffer)) != -1) {
                 outputStream.write(buffer, 0, length);
             }
-
             return outputStream.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException("파일 다운로드 실패", e);
         }
     }
 
+    // S3 파일을 MultipartFile로 반환 (커스텀 MultipartFile 구현체 사용)
     public MultipartFile getFileAsMultipartFile(String fileUrl, String contentType) {
         byte[] fileBytes = getFileAsBytes(fileUrl);
-        String fileKey = fileUrl.replace(filePrefix, "");
+        String fileKey;
+        if (fileUrl.startsWith(filePrefixFound)) {
+            fileKey = fileUrl.substring(filePrefixFound.length());
+        } else if (fileUrl.startsWith(filePrefixLost)) {
+            fileKey = fileUrl.substring(filePrefixLost.length());
+        } else {
+            fileKey = fileUrl.substring(fileUrl.indexOf("/", 8) + 1);
+        }
         String fileName = fileKey.substring(fileKey.lastIndexOf("/") + 1);
-
         return new CustomMultipartFile(fileBytes, fileName, contentType);
     }
 
-
     /**
-     * 외부 S3 버킷의 파일 URL을 받아서 해당 파일을 다운로드 후,
-     * 우리 S3 버킷에 업로드하고 우리 서비스의 URL을 반환하는 메서드
-     *
-     * @param externalFileUrl 외부 S3 버킷의 파일 URL
-     * @return 우리 S3 버킷에 업로드된 파일의 URL
+     * 외부 S3 버킷 또는 외부 링크에서 파일을 다운로드한 후,
+     * 우리 S3 버킷의 found 폴더에 업로드하고 해당 URL을 반환하는 메서드.
      */
     public String uploadFileFromExternalLink(String externalFileUrl) {
         try {
-            // URL 생성 및 연결 설정
             URL url = new URL(externalFileUrl);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.connect();
-
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
                 throw new RuntimeException("외부 파일 다운로드 실패, 응답 코드: " + responseCode);
             }
-
-            // 컨텐츠 타입 추출
             String contentType = connection.getContentType();
-
-            // Content-Disposition 헤더에 파일명이 있는지 확인 (예: attachment; filename="example.png")
             String originalFileName = null;
             String disposition = connection.getHeaderField("Content-Disposition");
             if (disposition != null && disposition.contains("filename=")) {
                 int index = disposition.indexOf("filename=") + 9;
                 originalFileName = disposition.substring(index);
-                // 양쪽에 따옴표가 붙어있으면 제거
                 if (originalFileName.startsWith("\"") && originalFileName.endsWith("\"")) {
                     originalFileName = originalFileName.substring(1, originalFileName.length() - 1);
                 }
             }
-            // Content-Disposition에 파일명이 없으면 URL의 path에서 추출 (쿼리 파라미터 제외)
             if (originalFileName == null || originalFileName.isEmpty()) {
-                String path = url.getPath(); // 예: "/prod/…/1b49f4d11fbf432e93740d3c182a41f4.png"
+                String path = url.getPath();
                 originalFileName = path.substring(path.lastIndexOf('/') + 1);
             }
-
-            // 파일 확장자 추출 (예: png)
             String filenameExtension = StringUtils.getFilenameExtension(originalFileName);
-
-            // 새로운 파일명 생성 (uuid + 타임스탬프 + 확장자)
             String uuid = UUID.randomUUID().toString();
             String newFileName = uuid + System.currentTimeMillis() + (filenameExtension != null ? "." + filenameExtension : "");
 
-            // 응답 스트림을 읽어 byte 배열로 변환
             try (InputStream inputStream = connection.getInputStream();
                  ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-
                 byte[] buffer = new byte[1024];
                 int length;
                 while ((length = inputStream.read(buffer)) != -1) {
@@ -188,7 +226,6 @@ public class S3Service {
                 }
                 byte[] fileBytes = outputStream.toByteArray();
 
-                // 컨텐츠 타입이 기본값일 경우 파일명을 기반으로 추정 (예: 이미지 파일이면 image/png 등)
                 if ("application/octet-stream".equals(contentType)) {
                     String guessedContentType = URLConnection.guessContentTypeFromName(originalFileName);
                     if (guessedContentType != null) {
@@ -196,19 +233,18 @@ public class S3Service {
                     }
                 }
 
-                // S3 업로드 요청 생성 및 실행
+                // 기본적으로 found 폴더에 업로드 (필요에 따라 lost로 변경 가능)
+                String key = prefixFound + newFileName;
                 PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                         .bucket(bucketName)
-                        .key(newFileName)
+                        .key(key)
                         .contentType(contentType)
-                        .acl(ObjectCannedACL.PUBLIC_READ)
                         .build();
 
                 PutObjectResponse response = s3Client.putObject(putObjectRequest,
                         software.amazon.awssdk.core.sync.RequestBody.fromBytes(fileBytes));
-
                 if (response.sdkHttpResponse().isSuccessful()) {
-                    return filePrefix + newFileName;
+                    return filePrefixFound + newFileName;
                 } else {
                     throw new RuntimeException("파일 업로드 실패");
                 }
@@ -217,5 +253,4 @@ public class S3Service {
             throw new RuntimeException("외부 파일 처리 중 에러 발생", e);
         }
     }
-
 }
