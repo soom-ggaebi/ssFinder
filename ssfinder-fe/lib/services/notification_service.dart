@@ -18,9 +18,8 @@ class NotificationService {
   Future<void> initialize() async {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('ic_notification');
-    final InitializationSettings initializationSettings = InitializationSettings(
-      android: androidSettings,
-    );
+    final InitializationSettings initializationSettings =
+        InitializationSettings(android: androidSettings);
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
@@ -30,7 +29,8 @@ class NotificationService {
 
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
   }
 

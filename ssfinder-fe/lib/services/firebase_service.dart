@@ -16,11 +16,12 @@ class FirebaseService {
   }
 
   Future<void> _setupForegroundNotification() async {
-    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: false,
-      badge: true,
-      sound: true,
-    );
+    await FirebaseMessaging.instance
+        .setForegroundNotificationPresentationOptions(
+          alert: false,
+          badge: true,
+          sound: true,
+        );
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
