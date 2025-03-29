@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sumsumfinder/services/kakao_login_service.dart';
-import 'package:sumsumfinder/screens/main/notifications_page.dart';
+import 'package:sumsumfinder/screens/main/noti_list_page.dart';
 import 'package:sumsumfinder/screens/main/my_page.dart';
 import 'package:sumsumfinder/widgets/main/login_widget.dart';
 import 'package:sumsumfinder/widgets/main/weather_widget.dart';

@@ -5,7 +5,7 @@ import 'package:sumsumfinder/models/lost_item_model.dart';
 import 'package:sumsumfinder/services/api_service.dart';
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:sumsumfinder/screens/main/notifications_page.dart';
+import 'package:sumsumfinder/screens/main/noti_list_page.dart';
 
 /// LostPage는 분실물 데이터를 API로 받아와 탭별로 필터링하여 보여주는 페이지입니다.
 class LostPage extends StatefulWidget {
@@ -82,12 +82,7 @@ class _LostPageState extends State<LostPage>
     return Scaffold(
       appBar: CustomAppBar(
         title: '잃어버린 물건',
-        onBackPressed: () {
-          Navigator.pop(context);
-        },
-        onClosePressed: () {
-          // 사용되지 않지만 필수 파라미터이므로 빈 함수 전달
-        },
+        isFromBottomNav: true,
         customActions: [
           Center(
             child: Padding(

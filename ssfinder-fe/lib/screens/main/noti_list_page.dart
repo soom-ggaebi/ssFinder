@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 import 'package:sumsumfinder/services/kakao_login_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({Key? key}) : super(key: key);
@@ -13,6 +14,12 @@ class NotificationPage extends StatefulWidget {
 class _NotificationPageState extends State<NotificationPage> {
   // 카카오 로그인 서비스 인스턴스
   final _kakaoLoginService = KakaoLoginService();
+
+  // 알림 설정 상태를 저장하는 변수들
+  bool notificationTransfer = true;
+  bool notificationChat = true;
+  bool notificationAiMatch = true;
+  bool notificationItemReminder = true;
 
   // 샘플 알림 데이터
   final List<NotificationItem> notifications = [
@@ -39,6 +46,25 @@ class _NotificationPageState extends State<NotificationPage> {
     super.initState();
     // 로그인 상태 확인 및 비로그인 시 자동 뒤로가기
     _checkLoginStatus();
+    // 알림 설정 상태 로드
+    _loadNotificationSettings();
+  }
+
+  // 알림 설정 상태 로드
+  Future<void> _loadNotificationSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        // 개별 알림 설정 상태 로드
+        notificationTransfer = prefs.getBool('notification_TRANSFER') ?? true;
+        notificationChat = prefs.getBool('notification_CHAT') ?? true;
+        notificationAiMatch = prefs.getBool('notification_AI_MATCH') ?? true;
+        notificationItemReminder =
+            prefs.getBool('notification_ITEM_REMINDER') ?? true;
+      });
+    } catch (e) {
+      print('알림 설정 로드 중 오류: $e');
+    }
   }
 
   // 로그인 상태 확인 및 비로그인 시 뒤로가기

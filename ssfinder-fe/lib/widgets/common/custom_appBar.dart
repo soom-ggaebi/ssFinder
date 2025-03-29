@@ -8,6 +8,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onClosePressed;
   final List<Widget>? customActions;
   final PreferredSizeWidget? bottom;
+  final bool isFromBottomNav; // 하단 네비게이션을 통해 이동된 페이지인지 여부
 
   const CustomAppBar({
     Key? key,
@@ -16,6 +17,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onClosePressed,
     this.customActions,
     this.bottom,
+    this.isFromBottomNav = false, // 기본값은 false
   }) : super(key: key);
 
   @override
@@ -109,6 +111,46 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       // AppBar를 Row로 완전히 커스텀하여 요소들의 정확한 배치 제어
       title: LayoutBuilder(
         builder: (context, constraints) {
+          // 하단 네비게이션으로 이동된 페이지인 경우
+          if (isFromBottomNav) {
+            return Row(
+              children: [
+                // 왼쪽은 빈 공간으로 채움
+                Padding(
+                  padding: const EdgeInsets.only(left: sidePadding),
+                  child: SizedBox(width: iconSize, height: iconSize),
+                ),
+
+                // 가운데 타이틀
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+
+                // 오른쪽 customActions 유지
+                Padding(
+                  padding: const EdgeInsets.only(right: sidePadding),
+                  child:
+                      customActions != null
+                          ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: customActions!,
+                          )
+                          : SizedBox(width: iconSize, height: iconSize),
+                ),
+              ],
+            );
+          }
+
+          // 일반적인 경우 - 뒤로가기, 타이틀, 닫기 버튼 모두 표시
           return Row(
             children: [
               // 왼쪽 패딩과 뒤로가기 버튼
