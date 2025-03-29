@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sumsumfinder/services/kakao_login_service.dart';
+import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 
 class NotificationListPage extends StatefulWidget {
   final KakaoLoginService kakaoLoginService;
@@ -18,6 +19,8 @@ class NotificationListPage extends StatefulWidget {
 
 class _NotificationListPageState extends State<NotificationListPage> {
   late final KakaoLoginService _kakaoLoginService;
+
+  bool allNotificationsEnabled = true;
   // 알림 설정 상태 저장
   Map<String, bool> notificationSettings = {
     'TRANSFER': true, // 습득물 인계 알림
@@ -33,6 +36,31 @@ class _NotificationListPageState extends State<NotificationListPage> {
     super.initState();
     _kakaoLoginService = widget.kakaoLoginService;
     _loadNotificationSettings();
+  }
+
+  // 전체 알림 설정 상태 로드
+  Future<void> _loadAllNotificationSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      bool allEnabled = true;
+
+      // 모든 알림 설정이 켜져 있는지 확인
+      for (var value in notificationSettings.values) {
+        if (!value) {
+          allEnabled = false;
+          break;
+        }
+      }
+
+      setState(() {
+        allNotificationsEnabled = allEnabled;
+      });
+
+      // 전체 알림 설정 저장
+      await prefs.setBool('notifications_enabled', allEnabled);
+    } catch (e) {
+      print('전체 알림 설정 로드 중 오류: $e');
+    }
   }
 
   // 알림 설정 불러오기
@@ -99,6 +127,15 @@ class _NotificationListPageState extends State<NotificationListPage> {
           });
         }
       }
+
+      // 전체 알림 설정 상태 계산 및 업데이트
+      bool allEnabled = notificationSettings.values.every((enabled) => enabled);
+      setState(() {
+        allNotificationsEnabled = allEnabled;
+      });
+
+      // 전체 알림 상태 저장
+      await prefs.setBool('notifications_enabled', allEnabled);
     } catch (e) {
       // 에러 처리
       print('알림 설정 불러오기 오류: $e');
@@ -106,6 +143,105 @@ class _NotificationListPageState extends State<NotificationListPage> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  // 전체 알림 설정 저장
+  Future<void> _saveAllNotificationSettings(bool value) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    // 먼저 UI 업데이트
+    setState(() {
+      allNotificationsEnabled = value;
+      // 모든 개별 알림 설정을 같은 값으로 설정
+      for (var key in notificationSettings.keys) {
+        notificationSettings[key] = value;
+      }
+    });
+
+    try {
+      // FCM 토큰 가져오기
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
+
+      // 인증 토큰 가져오기
+      final authToken = await _kakaoLoginService.getAccessToken();
+
+      if (authToken == null) {
+        print('인증 토큰이 없습니다. 로그인이 필요합니다.');
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('로그인 상태를 확인해주세요.')),
+        );
+        // 설정을 원래대로 되돌림
+        setState(() {
+          allNotificationsEnabled = !value;
+          for (var key in notificationSettings.keys) {
+            notificationSettings[key] = !value;
+          }
+        });
+        return;
+      }
+
+      bool allSuccess = true;
+
+      // 각 알림 유형별로 설정 저장
+      for (String key in notificationSettings.keys) {
+        try {
+          final response = await http.patch(
+            Uri.parse(
+              '${dotenv.env['BACKEND_URL']}/api/notifications/settings',
+            ),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $authToken',
+            },
+            body: json.encode({
+              'notification_type': key,
+              'enabled': value,
+              'fcm_token': fcmToken,
+            }),
+          );
+
+          if (response.statusCode != 204 && response.statusCode != 200) {
+            print('$key 알림 설정 저장 실패: 상태 코드 ${response.statusCode}');
+            allSuccess = false;
+          }
+        } catch (e) {
+          print('$key 알림 설정 중 예외 발생: $e');
+          allSuccess = false;
+        }
+      }
+
+      if (allSuccess) {
+        // 서버 저장 성공 시 로컬에도 저장
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('notifications_enabled', value);
+
+        // 개별 알림 설정도 전체 설정과 동일하게 설정
+        for (var key in notificationSettings.keys) {
+          await prefs.setBool('notification_$key', value);
+        }
+
+        // scaffoldMessenger.showSnackBar(
+        //   const SnackBar(content: Text('모든 알림 설정이 변경되었습니다.')),
+        // );
+      } else {
+        // 일부 실패 시 안내
+        // scaffoldMessenger.showSnackBar(
+        //   const SnackBar(content: Text('일부 알림 설정 변경에 실패했습니다. 다시 시도해 주세요.')),
+        // );
+      }
+    } catch (e) {
+      print('전체 알림 설정 중 예외 발생: $e');
+      // 예외 발생 시 UI 롤백 및 오류 메시지
+      setState(() {
+        allNotificationsEnabled = !value;
+        for (var key in notificationSettings.keys) {
+          notificationSettings[key] = !value;
+        }
+      });
+      // scaffoldMessenger.showSnackBar(
+      //   SnackBar(content: Text('알림 설정 중 오류 발생: $e')),
+      // );
     }
   }
 
@@ -162,24 +298,33 @@ class _NotificationListPageState extends State<NotificationListPage> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('notification_$key', value);
 
-        // 부모 화면의 전체 알림 토글 상태 업데이트를 위한 값 설정
-        final bool anyEnabled = notificationSettings.values.any(
-          (enabled) => enabled,
-        );
-        await prefs.setBool('notifications_enabled', anyEnabled);
+        // 전체 알림 설정 상태 업데이트
+        bool allEnabled = true;
+        for (var enabled in notificationSettings.values) {
+          if (!enabled) {
+            allEnabled = false;
+            break;
+          }
+        }
 
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('$key 알림 설정이 변경되었습니다.')),
-        );
+        setState(() {
+          allNotificationsEnabled = allEnabled;
+        });
+
+        await prefs.setBool('notifications_enabled', allEnabled);
+
+        // scaffoldMessenger.showSnackBar(
+        //   SnackBar(content: Text('$key 알림 설정이 변경되었습니다.')),
+        // );
       } else {
         print('$key 알림 설정 저장 실패: 상태 코드 ${response.statusCode}');
         // 실패 시 UI 롤백 및 오류 메시지
         setState(() {
           notificationSettings[key] = !value;
         });
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('$key 알림 설정 변경에 실패했습니다. 다시 시도해 주세요.')),
-        );
+        // scaffoldMessenger.showSnackBar(
+        //   SnackBar(content: Text('$key 알림 설정 변경에 실패했습니다. 다시 시도해 주세요.')),
+        // );
       }
     } catch (e) {
       print('알림 설정 중 예외 발생: $e');
@@ -187,16 +332,21 @@ class _NotificationListPageState extends State<NotificationListPage> {
       setState(() {
         notificationSettings[key] = !value;
       });
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('알림 설정 중 오류 발생: $e')),
-      );
+      // scaffoldMessenger.showSnackBar(
+      //   SnackBar(content: Text('알림 설정 중 오류 발생: $e')),
+      // );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('알림 설정'), elevation: 0),
+      appBar: CustomAppBar(
+        title: '알림 설정',
+        onBackPressed: () => Navigator.of(context).pop(),
+        onClosePressed:
+            () => Navigator.of(context).popUntil((route) => route.isFirst),
+      ),
       body:
           isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -204,11 +354,55 @@ class _NotificationListPageState extends State<NotificationListPage> {
                 children: [
                   const SizedBox(height: 12),
                   _buildNotificationCategory('알림 설정'),
+
+                  // 전체 알림 설정 추가
+                  Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.notifications,
+                        color: Colors.grey[700],
+                      ),
+                      title: const Text(
+                        '전체 알림',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '모든 알림을 한번에 설정합니다',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      trailing: Switch(
+                        value: allNotificationsEnabled,
+                        onChanged: (value) async {
+                          await _saveAllNotificationSettings(value);
+                        },
+                        activeColor: Colors.white,
+                        activeTrackColor: const Color(0xFF6750A4),
+                        inactiveThumbColor: Colors.white,
+                        inactiveTrackColor: Colors.grey[300],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+                  _buildNotificationCategory('개별 알림 설정'),
                   _buildNotificationItem(
                     '습득물 인계 알림',
                     '습득물 인계 마감일이 1일 전, 당일일 경우 알림을 받습니다',
                     'TRANSFER',
                   ),
+                  // 나머지 기존 항목들...
                   _buildNotificationItem(
                     '채팅 알림',
                     '새로운 채팅 메시지가 도착하면 알림을 받습니다',
