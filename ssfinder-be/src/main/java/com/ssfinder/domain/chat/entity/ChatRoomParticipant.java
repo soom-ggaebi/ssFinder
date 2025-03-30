@@ -3,6 +3,7 @@ package com.ssfinder.domain.chat.entity;
 import com.ssfinder.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -39,6 +40,7 @@ public class ChatRoomParticipant {
     private ChatRoom chatRoom;
 
     @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     @Column(name = "left_at")

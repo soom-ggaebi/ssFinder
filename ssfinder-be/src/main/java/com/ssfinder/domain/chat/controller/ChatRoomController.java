@@ -1,5 +1,6 @@
 package com.ssfinder.domain.chat.controller;
 
+import com.ssfinder.domain.chat.dto.response.ChatRoomEntryResponse;
 import com.ssfinder.domain.chat.service.ChatRoomService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.global.common.response.ApiResponse;
@@ -30,11 +31,12 @@ public class ChatRoomController {
     private final ChatRoomService chatRoomService;
 
     @PostMapping("/{foundItemId}")
-    public ApiResponse<> getOrCreateChatRoom(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                        @NotNull @PathVariable Integer foundItemId) {
+    public ApiResponse<ChatRoomEntryResponse> getOrCreateChatRoom(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                                  @NotNull @PathVariable Integer foundItemId) {
         Integer userId = userDetails.getUserId();
 
-        chatRoomService.getOrCreateChatRoom(userId, foundItemId);
+        ChatRoomEntryResponse response = chatRoomService.getOrCreateChatRoom(userId, foundItemId);
 
+        return ApiResponse.ok(response);
     }
 }

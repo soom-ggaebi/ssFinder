@@ -3,9 +3,12 @@ package com.ssfinder.domain.chat.repository;
 import com.ssfinder.domain.chat.entity.ChatRoom;
 import com.ssfinder.domain.chat.entity.ChatRoomParticipant;
 import com.ssfinder.domain.user.entity.User;
+import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * packageName    : com.ssfinder.domain.chat.repository<br>
@@ -22,5 +25,11 @@ import java.util.List;
 public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomParticipant, Integer> {
     List<ChatRoomParticipant> findChatRoomParticipantByChatRoomAndUser(ChatRoom chatRoom, User user);
 
-    List<ChatRoomParticipant> findChatRoomParticipantsByFoundItemAnd
+    @Query("SELECT crp " +
+            "FROM ChatRoomParticipant crp " +
+            "JOIN ChatRoom cr ON crp.chatRoom.id = cr.id " +
+            "WHERE crp.user.id = :userId " +
+            "AND cr.foundItem.id = :foundItemId")
+    Optional<ChatRoomParticipant> findByUserAndFoundItem(@Param("userId") Integer userId,
+                                                         @Param("foundItemId") Integer FoundItemId);
 }
