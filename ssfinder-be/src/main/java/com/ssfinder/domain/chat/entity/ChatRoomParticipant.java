@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
  * <br>
  */
 @Entity
-@Table(name = "user_chat_room")
+@Table(name = "chat_room_participant")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
