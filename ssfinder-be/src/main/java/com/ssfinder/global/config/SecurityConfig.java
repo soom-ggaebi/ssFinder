@@ -29,7 +29,7 @@ public class SecurityConfig {
     public static final String[] allowUrls = {
             "/", "/api/auth/**", "/swagger-ui/**", "/swagger-ui.html",
             "/v3/api-docs/**", "/swagger-resources/**", "/error",
-            "/agarang", "/ws/**", "/app/**"
+            "/agarang", "/ws/**", "/app/**", "/api/found-items/**", "/api/lost-items/**"
     };
 
     private final JwtUtil jwtUtil;
