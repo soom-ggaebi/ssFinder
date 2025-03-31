@@ -14,6 +14,9 @@ java {
 }
 
 configurations {
+	all {
+		exclude group: 'org.slf4j', module: 'slf4j-reload4j'
+	}
 	compileOnly {
 		extendsFrom annotationProcessor
 	}
@@ -57,6 +60,23 @@ dependencies {
 	// aws s3
 	implementation group: 'software.amazon.awssdk', name: 's3', version: '2.29.44'
 	implementation group: 'software.amazon.awssdk', name: 'sts', version: '2.29.44'
+
+	// hdfs
+	implementation 'org.apache.hadoop:hadoop-client:3.2.3'
+	implementation 'org.apache.hadoop:hadoop-hdfs:3.2.3'
+	implementation 'org.apache.hadoop:hadoop-common:3.2.3'
+	implementation 'org.apache.hadoop:hadoop-annotations:3.2.3'
+	implementation 'org.apache.hadoop:hadoop-auth:3.2.3'
+
+	// OpenCV 관련 의존성
+	implementation 'org.openpnp:opencv:4.5.5-1'  // Java용 OpenCV 라이브러리 (자동으로 네이티브 라이브러리 로드)
+
+	// 이미지 처리 관련 추가 의존성
+	implementation 'net.coobird:thumbnailator:0.4.14'  // 이미지 리사이징 유틸리티
+	implementation 'org.apache.commons:commons-imaging:1.0-alpha2'  // 추가 이미지 처리 유틸리티
+
+	// 비동기 처리를 위한 의존성
+	implementation 'org.springframework:spring-context'  // @Async 사용
 
 }
 

@@ -26,13 +26,13 @@ public class S3Service {
 
     private final S3Client s3Client;
 
-    @Value("${AWS_S3_BUCKET}")
+    @Value("${aws.s3.bucket}")
     private String bucketName;
 
-    @Value("${AWS_S3_PREFIX_FOUND}")
+    @Value("${aws.s3.prefix.found}")
     private String prefixFound;
 
-    @Value("${AWS_S3_PREFIX_LOST}")
+    @Value("${aws.s3.prefix.lost}")
     private String prefixLost;
 
     private String filePrefixFound;

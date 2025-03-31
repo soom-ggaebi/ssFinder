@@ -18,7 +18,10 @@ import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
+import com.ssfinder.global.common.service.HadoopService;
+import com.ssfinder.global.common.service.ImageProcessingService;
 import com.ssfinder.global.common.service.S3Service;
+import com.ssfinder.global.util.CustomMultipartFile;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -27,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -59,11 +63,14 @@ public class FoundItemService {
     private final UserService userService;
     private final ItemCategoryRepository itemCategoryRepository;
     private final S3Service s3Service;
-
+    private final ImageProcessingService imageProcessingService;
+    private final HadoopService hadoopService;
+    private final ElasticsearchService elasticsearchService;
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
     @Transactional
     public FoundItemRegisterResponse registerFoundItem(int userId, FoundItemRegisterRequest requestDTO) {
+
         FoundItem foundItem = foundItemMapper.toEntity(requestDTO);
 
         User user = userService.findUserById(userId);
@@ -82,12 +89,42 @@ public class FoundItemService {
             foundItem.setCoordinates(coordinates);
         }
 
-        String imageUrl = null;
-        if(Objects.nonNull(requestDTO.getImage()) && !requestDTO.getImage().isEmpty()){
-            imageUrl = s3Service.uploadFile(requestDTO.getImage(),"found");
-        }
+        try {
+            String imageUrl = null;
+            byte[] processedImageBytes = null;
+            MultipartFile originalImage = requestDTO.getImage();
 
-        foundItem.setImage(imageUrl);
+            if (Objects.nonNull(originalImage) && !originalImage.isEmpty()) {
+
+                processedImageBytes = imageProcessingService.processImage(originalImage);
+                log.info("이미지 전처리 완료: {}", originalImage.getOriginalFilename());
+
+                String originalFilename = originalImage.getOriginalFilename();
+                String contentType = "image/jpeg";
+
+                if (originalFilename != null && !originalFilename.toLowerCase().endsWith(".jpg")
+                        && !originalFilename.toLowerCase().endsWith(".jpeg")) {
+                    int dotIndex = originalFilename.lastIndexOf('.');
+                    if (dotIndex > 0) {
+                        originalFilename = originalFilename.substring(0, dotIndex) + ".jpg";
+                    } else {
+                        originalFilename = originalFilename + ".jpg";
+                    }
+                }
+
+                CustomMultipartFile processedImageFile = new CustomMultipartFile(
+                        processedImageBytes,
+                        originalFilename,
+                        contentType
+                );
+
+                imageUrl = s3Service.uploadFile(processedImageFile, "found");
+                foundItem.setImage(imageUrl);
+                log.info("전처리된 이미지를 S3에 업로드 완료: {}", imageUrl);
+            }
+        } catch (Exception e) {
+            log.error("이미지 처리 중 오류 발생: {}", e.getMessage(), e);
+        }
 
         LocalDateTime now = LocalDateTime.now();
         foundItem.setCreatedAt(now);
