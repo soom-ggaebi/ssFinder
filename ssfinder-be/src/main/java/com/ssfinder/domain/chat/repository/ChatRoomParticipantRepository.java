@@ -31,5 +31,5 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
             "WHERE crp.user.id = :userId " +
             "AND cr.foundItem.id = :foundItemId")
     Optional<ChatRoomParticipant> findByUserAndFoundItem(@Param("userId") Integer userId,
-                                                         @Param("foundItemId") Integer FoundItemId);
+                                                         @Param("foundItemId") Integer foundItemId);
 }
