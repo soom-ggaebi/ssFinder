@@ -24,9 +24,9 @@ import java.util.Optional;
 public interface ItemCategoryRepository extends JpaRepository<ItemCategory, Integer> {
     Optional<ItemCategory> findByNameAndLevel(String name, Level level);
 
-    @Query("SELECT com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo(ic.id, ic.name, pic.id, pic.name) " +
+    @Query("SELECT new com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo(ic.id, ic.name, pic.id, pic.name) " +
             "FROM ItemCategory ic " +
-            "LEFT JOIN ItemCategory pic ON ic.parent_id = pic.id " +
+            "LEFT JOIN ItemCategory pic ON ic.itemCategory.id = pic.id " +
             "WHERE ic.id = :id")
-    Optional<ItemCategoryInfo> findWithParentById(@Param("id") Integer Id);
+    Optional<ItemCategoryInfo> findWithParentById(@Param("id") Integer id);
 }
