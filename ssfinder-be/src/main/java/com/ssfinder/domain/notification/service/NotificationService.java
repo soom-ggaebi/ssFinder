@@ -38,7 +38,8 @@ public class NotificationService {
     // 1. 습득물 게시글 최초 등록일로부터 6일차, 7일차 알림
     @Scheduled(cron = "0 0 10 * * *")
     @Transactional(readOnly = true)
-    public void sendLostItemReminders() {
+    public void sendFoundItemReminders() {
+        log.info("[알림] 습득물 게시글 알림 스케쥴링 시작");
         // 6일차 알림 대상 조회
         List<FoundItem> sixDayItems = foundService.getStoredItemsFoundDaysAgo(6);
         log.info("6일차 Found items: {}", sixDayItems);
@@ -63,6 +64,8 @@ public class NotificationService {
                 );
             }
         }
+
+        log.info("[알림] 습득물 게시글 6일차 알림 스케쥴링 완료");
 
         // 7일차 알림 대상 조회
         List<FoundItem> sevenDayItems = foundService.getStoredItemsFoundDaysAgo(7);
@@ -89,6 +92,8 @@ public class NotificationService {
                 );
             }
         }
+
+        log.info("[알림] 습득물 게시글 7일차 알림 스케쥴링 완료");
     }
 
     // 2. 채팅 알림
