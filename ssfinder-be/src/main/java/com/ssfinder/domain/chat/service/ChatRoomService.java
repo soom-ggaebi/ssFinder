@@ -80,7 +80,9 @@ public class ChatRoomService {
                         () -> createChatRoom(user, foundItem)
                 );
 
-        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper.mapToChatRoomFoundItem(foundItem);
+        ItemCategoryInfo itemCategoryInfo = itemCategoryService.findWithParentById(foundItem.getItemCategory().getId());
+
+        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper.mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
 
 
         return ChatRoomEntryResponse.builder()

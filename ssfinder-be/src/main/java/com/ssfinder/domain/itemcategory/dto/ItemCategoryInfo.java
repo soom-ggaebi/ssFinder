@@ -1,5 +1,7 @@
 package com.ssfinder.domain.itemcategory.dto;
 
+import lombok.*;
+
 /**
  * packageName    : com.ssfinder.domain.itemcategory.dto<br>
  * fileName       : ItemCategoryInfo.java<br>
@@ -12,6 +14,10 @@ package com.ssfinder.domain.itemcategory.dto;
  * 2025-04-01         nature1216          최초생성<br>
  * <br>
  */
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
+@Setter
 public class ItemCategoryInfo {
     private Integer id;
     private String name;

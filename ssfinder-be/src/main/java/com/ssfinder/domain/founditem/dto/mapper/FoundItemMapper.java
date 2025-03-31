@@ -8,6 +8,7 @@ import com.ssfinder.domain.founditem.dto.response.FoundItemRegisterResponse;
 import com.ssfinder.domain.founditem.dto.response.FoundItemStatusUpdateResponse;
 import com.ssfinder.domain.founditem.dto.response.FoundItemUpdateResponse;
 import com.ssfinder.domain.founditem.entity.FoundItem;
+import com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo;
 import com.ssfinder.domain.itemcategory.entity.ItemCategory;
 import org.mapstruct.*;
 
@@ -61,8 +62,12 @@ public interface FoundItemMapper {
     FoundItemStatusUpdateResponse toStatusUpdateResponse(FoundItem foundItem);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "foundItem.id", target = "foundItemId")
-    ChatRoomFoundItem mapToChatRoomFoundItem(FoundItem foundItem);
+    @Mappings({
+            @Mapping(source = "foundItem.id", target = "foundItemId"),
+            @Mapping(source = "itemCategoryInfo", target = "category"),
+            @Mapping(source = "foundItem.name", target = "name")
+    })
+    ChatRoomFoundItem mapToChatRoomFoundItem(FoundItem foundItem, ItemCategoryInfo itemCategoryInfo);
 
     default ItemCategory createItemCategory(Integer id) {
         ItemCategory itemCategory = new ItemCategory();

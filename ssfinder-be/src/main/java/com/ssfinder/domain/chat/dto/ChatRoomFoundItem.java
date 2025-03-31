@@ -1,7 +1,7 @@
 package com.ssfinder.domain.chat.dto;
 
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
-import com.ssfinder.domain.itemcategory.entity.ItemCategory;
+import com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo;
 import lombok.Builder;
 
 /**
@@ -19,7 +19,7 @@ import lombok.Builder;
 @Builder
 public record ChatRoomFoundItem(
         Integer foundItemId,
-        ItemCategory category, // TODO
+        ItemCategoryInfo category,
         String name,
         String color,
         String image,
