@@ -5,10 +5,10 @@ import lombok.Getter;
 
 /**
  * packageName    : com.ssfinder.domain.route.dto.response<br>
- * fileName       : *.java<br>
+ * fileName       : VerificationStatus.java<br>
  * author         : okeio<br>
  * date           : 2025-03-31<br>
- * description    :  <br>
+ * description    : 회원 간 경로 검증 상태 Enum 클래스입니다. <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
@@ -17,7 +17,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum OverlapStatus {
+public enum VerificationStatus {
     NO_FINDER_LOCATION("V001", "습득자는 해당 장소를 지나지 않았습니다."),
     NO_LOSER_LOCATION("V002", "분실자는 해당 장소를 지나지 않았습니다."),
     TIME_MISMATCH("V003", "장소는 일치하지만 시간 조건이 충족되지 않았습니다."),

@@ -18,5 +18,5 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record RoutesOverlapResponse(
         boolean overlapExists,
-        OverlapStatus verifiedStatus
+        VerificationStatus verifiedStatus
 ) { }
