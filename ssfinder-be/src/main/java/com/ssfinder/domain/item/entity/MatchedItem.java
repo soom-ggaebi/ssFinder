@@ -1,7 +1,7 @@
 package com.ssfinder.domain.item.entity;
 
-import com.ssfinder.domain.found.entity.FoundItem;
-import com.ssfinder.domain.lost.entity.LostItem;
+import com.ssfinder.domain.founditem.entity.FoundItem;
+import com.ssfinder.domain.lostitem.entity.LostItem;
 import jakarta.persistence.*;
 import lombok.*;
 

@@ -3,6 +3,7 @@ package com.ssfinder.domain.chat.entity;
 import com.ssfinder.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.apache.kafka.common.protocol.types.Field;
 
 import java.time.LocalDateTime;
 
@@ -39,7 +40,7 @@ public class UserChatRoom {
     private ChatRoom chatRoom;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "left_at")
     private LocalDateTime leftAt;
@@ -54,4 +55,8 @@ public class UserChatRoom {
     // mongodb id 값 참조 - 추후 수정 필요하면 수정
     @Column(name = "latest_read_message_id")
     private String latestReadMessageId;
+
+    @Column(name = "notification_enabled", nullable = false)
+    @Builder.Default
+    private Boolean notificationEnabled = true;
 }

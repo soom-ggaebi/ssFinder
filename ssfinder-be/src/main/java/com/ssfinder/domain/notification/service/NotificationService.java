@@ -1,7 +1,7 @@
 package com.ssfinder.domain.notification.service;
 
-import com.ssfinder.domain.found.entity.FoundItem;
-import com.ssfinder.domain.found.service.FoundService;
+import com.ssfinder.domain.founditem.entity.FoundItem;
+import com.ssfinder.domain.founditem.service.FoundItemService;
 import com.ssfinder.domain.notification.entity.NotificationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,7 @@ import java.util.Map;
 public class NotificationService {
     private final FcmTokenService fcmTokenService;
     private final FcmMessageService fcmMessageService;
-    private final FoundService foundService;
+    private final FoundItemService foundItemService;
     private final UserNotificationSettingService userNotificationSettingService;
 
     // 1. 습득물 게시글 최초 등록일로부터 6일차, 7일차 알림
@@ -41,7 +41,7 @@ public class NotificationService {
     public void sendFoundItemReminders() {
         log.info("[알림] 습득물 게시글 알림 스케쥴링 시작");
         // 6일차 알림 대상 조회
-        List<FoundItem> sixDayItems = foundService.getStoredItemsFoundDaysAgo(6);
+        List<FoundItem> sixDayItems = foundItemService.getStoredItemsFoundDaysAgo(6);
         log.info("6일차 Found items: {}", sixDayItems);
         for (FoundItem item : sixDayItems) {
             Integer userId = item.getUser().getId();
@@ -68,7 +68,7 @@ public class NotificationService {
         log.info("[알림] 습득물 게시글 6일차 알림 스케쥴링 완료");
 
         // 7일차 알림 대상 조회
-        List<FoundItem> sevenDayItems = foundService.getStoredItemsFoundDaysAgo(7);
+        List<FoundItem> sevenDayItems = foundItemService.getStoredItemsFoundDaysAgo(7);
         log.info("7일차 Found items: {}", sevenDayItems);
 
         for (FoundItem item : sevenDayItems) {

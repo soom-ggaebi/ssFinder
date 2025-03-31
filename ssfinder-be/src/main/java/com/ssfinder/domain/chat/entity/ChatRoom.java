@@ -1,6 +1,6 @@
 package com.ssfinder.domain.chat.entity;
 
-import com.ssfinder.domain.found.entity.FoundItem;
+import com.ssfinder.domain.founditem.entity.FoundItem;
 import jakarta.persistence.*;
 import lombok.*;
 
