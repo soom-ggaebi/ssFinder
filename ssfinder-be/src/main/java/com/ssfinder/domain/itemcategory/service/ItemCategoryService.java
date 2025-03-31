@@ -6,6 +6,7 @@ import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * packageName    : com.ssfinder.domain.itemcategory.service<br>
@@ -20,9 +21,11 @@ import org.springframework.stereotype.Service;
  * <br>
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class ItemCategoryService {
-    ItemCategoryRepository itemCategoryRepository;
+    private final ItemCategoryRepository itemCategoryRepository;
+
     public ItemCategoryInfo findWithParentById(Integer id) {
         return itemCategoryRepository.findWithParentById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
