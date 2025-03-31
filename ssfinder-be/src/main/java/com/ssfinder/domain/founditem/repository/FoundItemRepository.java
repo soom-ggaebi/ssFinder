@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * packageName    : com.ssfinder.domain.found.repository<br>
@@ -33,4 +34,6 @@ public interface FoundItemRepository extends JpaRepository<FoundItem, Integer> {
                                             @Param("maxLon") double maxLon);
 
     List<FoundItem> findByFoundAtAndStatus(LocalDate date, FoundItemStatus foundItemStatus);
+
+    Optional<FoundItem> getFoundItemById(int id);
 }

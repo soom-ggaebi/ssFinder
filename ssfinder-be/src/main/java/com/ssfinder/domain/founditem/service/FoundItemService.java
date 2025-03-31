@@ -12,8 +12,8 @@ import com.ssfinder.domain.founditem.dto.response.FoundItemUpdateResponse;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
 import com.ssfinder.domain.founditem.repository.FoundItemRepository;
-import com.ssfinder.domain.item.entity.ItemCategory;
-import com.ssfinder.domain.item.repository.ItemCategoryRepository;
+import com.ssfinder.domain.itemcategory.entity.ItemCategory;
+import com.ssfinder.domain.itemcategory.repository.ItemCategoryRepository;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
  * 2025-03-27          joker901010           코드리뷰 수정<br>
+ * 2025-03-31          nature1216            findFoundItemById 메소드 추가<br>
  * <br>
  */
 @Slf4j
@@ -198,6 +199,11 @@ public class FoundItemService {
 
     public List<FoundItem> getStoredItemsFoundDaysAgo(int daysAgo) {
         return foundItemRepository.findByFoundAtAndStatus(LocalDate.now().minusDays(daysAgo), FoundItemStatus.STORED);
+    }
+
+    public FoundItem findFoundItemById(Integer foundItemId) {
+        return foundItemRepository.findById(foundItemId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
     }
 
 }

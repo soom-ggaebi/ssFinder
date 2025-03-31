@@ -1,6 +1,6 @@
 package com.ssfinder.domain.lostitem.dto.mapper;
 
-import com.ssfinder.domain.item.entity.ItemCategory;
+import com.ssfinder.domain.itemcategory.entity.ItemCategory;
 import com.ssfinder.domain.lostitem.dto.request.LostItemRegisterRequest;
 import com.ssfinder.domain.lostitem.dto.request.LostItemUpdateRequest;
 import com.ssfinder.domain.lostitem.dto.response.LostItemResponse;

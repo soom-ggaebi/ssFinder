@@ -1,25 +1,25 @@
 package com.ssfinder.domain.chat.service;
 
+import com.ssfinder.domain.chat.dto.ChatRoomFoundItem;
 import com.ssfinder.domain.chat.dto.response.ChatRoomEntryResponse;
 import com.ssfinder.domain.chat.entity.ChatRoom;
 import com.ssfinder.domain.chat.entity.ChatRoomParticipant;
 import com.ssfinder.domain.chat.entity.ChatRoomStatus;
 import com.ssfinder.domain.chat.repository.ChatRoomParticipantRepository;
 import com.ssfinder.domain.chat.repository.ChatRoomRepository;
-import com.ssfinder.domain.found.entity.FoundItem;
+import com.ssfinder.domain.founditem.dto.mapper.FoundItemMapper;
+import com.ssfinder.domain.founditem.entity.FoundItem;
+import com.ssfinder.domain.founditem.service.FoundItemService;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import org.checkerframework.checker.units.qual.C;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * packageName    : com.ssfinder.domain.chat.service<br>
@@ -38,6 +38,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ChatRoomService {
     private final UserService userService;
+    private final FoundItemService foundItemService;
+    private final FoundItemMapper foundItemMapper;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
 
@@ -57,17 +59,27 @@ public class ChatRoomService {
 
     public ChatRoomEntryResponse getOrCreateChatRoom(Integer userId, Integer foundItemId) {
         User user = userService.findUserById(userId);
-        FoundItem foundItem = FoundItem.builder().build(); // TODO
-        // TODO userId == foundItemId.user.id 확인
+        FoundItem foundItem = foundItemService.findFoundItemById(foundItemId);
+
+        if(Objects.nonNull(userId) && Objects.nonNull(foundItem) && userId == foundItem.getUser().getId()) {
+            throw new CustomException(ErrorCode.CANNOT_CHAT_WITH_SELF);
+        }
+
         ChatRoomParticipant participant = chatRoomParticipantRepository
                 .findByUserAndFoundItem(userId, foundItemId)
                 .orElseGet(
                         () -> createChatRoom(user, foundItem)
                 );
 
-        ChatRoom chatRoom = participant.getChatRoom();
+        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper.mapToChatRoomFoundItem(foundItem);
 
-        return ChatRoomEntryResponse.builder().build();
+
+        return ChatRoomEntryResponse.builder()
+                .chatRoomId(participant.getChatRoom().getId())
+                .opponentId(foundItem.getUser().getId())
+                .opponentNickname(foundItem.getUser().getNickname())
+                .chatRoomFoundItem(chatRoomFoundItem)
+                .build();
     }
 
     private ChatRoomParticipant createChatRoom(User user, FoundItem foundItem) {
