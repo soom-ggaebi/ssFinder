@@ -1,7 +1,7 @@
-package com.ssfinder.domain.item.repository;
+package com.ssfinder.domain.itemcategory.repository;
 
-import com.ssfinder.domain.item.entity.ItemCategory;
-import com.ssfinder.domain.item.entity.Level;
+import com.ssfinder.domain.itemcategory.entity.ItemCategory;
+import com.ssfinder.domain.itemcategory.entity.Level;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

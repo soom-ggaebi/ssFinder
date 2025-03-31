@@ -1,4 +1,4 @@
-package com.ssfinder.domain.item.entity;
+package com.ssfinder.domain.itemcategory.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

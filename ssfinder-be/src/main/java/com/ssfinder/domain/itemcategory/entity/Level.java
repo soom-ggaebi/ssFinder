@@ -1,4 +1,4 @@
-package com.ssfinder.domain.item.entity;
+package com.ssfinder.domain.itemcategory.entity;
 
 /**
  * packageName    : com.ssfinder.domain.item.entity<br>
