@@ -24,12 +24,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // 각 탭에 해당하는 페이지 리스트
-  final List<Widget> _pages = [
-    MainPage(),
-    LostPage(),
-    FoundPage(),
-    ChatListPage(),
-  ];
+  final List<Widget> _pages = [MainPage(), LostPage(), FoundPage(), ChatPage()];
 
   void _onNavBarTap(int index) {
     setState(() {
