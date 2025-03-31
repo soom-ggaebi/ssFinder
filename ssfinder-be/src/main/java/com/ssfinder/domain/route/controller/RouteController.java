@@ -51,7 +51,7 @@ public class RouteController {
     // TODO
     @PostMapping("/overlap")
     public ApiResponse<RoutesOverlapResponse> overlapRoutes(@Valid @RequestBody RoutesOverlapRequest routesOverlapRequest) {
-        RoutesOverlapResponse routesOverlapResponse = routeService.checkOverlapRoutes();
-        return null;
+        RoutesOverlapResponse routesOverlapResponse = routeService.checkOverlapRoutes(routesOverlapRequest);
+        return ApiResponse.ok(routesOverlapResponse);
     }
 }
