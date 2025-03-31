@@ -1,14 +1,12 @@
-package com.ssfinder.domain.chat.entity;
+package com.ssfinder.domain.founditem.entity;
 
-import com.ssfinder.domain.founditem.entity.FoundItem;
+import com.ssfinder.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
 /**
- * packageName    : com.ssfinder.domain.chat.entity<br>
- * fileName       : ChatRoom.java<br>
+ * packageName    : com.ssfinder.domain.found.entity<br>
+ * fileName       : FoundItemBookmark.java<br>
  * author         : joker901010<br>
  * date           : 2025-03-19<br>
  * description    :  <br>
@@ -19,24 +17,22 @@ import java.time.LocalDateTime;
  * <br>
  */
 @Entity
-@Table(name = "chat_room")
+@Table(name = "found_item_bookmark")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class ChatRoom {
+public class FoundItemBookmark {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @ManyToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    private User user;
+
+    @ManyToOne
     @JoinColumn(name = "found_item_id", referencedColumnName = "id", nullable = false)
     private FoundItem foundItem;
-
-    @Column(name = "latest_sent_at")
-    private LocalDateTime latestSentAt;
-
-    @Column(name = "latest_message")
-    private String latestMessage;
 }
