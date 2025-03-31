@@ -1,8 +1,11 @@
 package com.ssfinder.domain.itemcategory.repository;
 
+import com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo;
 import com.ssfinder.domain.itemcategory.entity.ItemCategory;
 import com.ssfinder.domain.itemcategory.entity.Level;
+import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
 
@@ -20,4 +23,10 @@ import java.util.Optional;
  */
 public interface ItemCategoryRepository extends JpaRepository<ItemCategory, Integer> {
     Optional<ItemCategory> findByNameAndLevel(String name, Level level);
+
+    @Query("SELECT com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo(ic.id, ic.name, pic.id, pic.name) " +
+            "FROM ItemCategory ic " +
+            "LEFT JOIN ItemCategory pic ON ic.parent_id = pic.id " +
+            "WHERE ic.id = :id")
+    Optional<ItemCategoryInfo> findWithParentById(@Param("id") Integer Id);
 }
