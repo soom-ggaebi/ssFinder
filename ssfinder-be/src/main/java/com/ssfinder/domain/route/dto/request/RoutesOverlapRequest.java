@@ -21,6 +21,5 @@ import java.time.LocalDateTime;
 public record RoutesOverlapRequest(
         Integer lostUserId,
         Integer foundUserId,
-        LocalDateTime startTime,
-        LocalDateTime endTime
+        Integer foundItemId
 ) { }
