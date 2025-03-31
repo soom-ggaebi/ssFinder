@@ -59,9 +59,36 @@ Future<void> main() async {
   // 주기적 토큰 갱신 설정
   kakaoLoginService.setupPeriodicTokenRefresh();
 
+  // 로그인 상태 변화 감지 및 위치 추적 제어
+  kakaoLoginService.onLoginStatusChanged = (isLoggedIn) {
+    if (isLoggedIn) {
+      locationService.startLocationService();
+    } else {
+      locationService.stopLocationService();
+    }
+  };
+
   // 자동 로그인 시도 (결과 출력을 위한 디버그 로그 추가)
   bool autoLoginResult = await kakaoLoginService.autoLogin();
   print('자동 로그인 결과: $autoLoginResult');
 
+  // 자동 로그인 결과에 따라 위치 추적 시작 또는 중지
+  if (autoLoginResult) {
+    await locationService.startLocationService();
+  } else {
+    await locationService.stopLocationService();
+  }
+
   runApp(MyApp());
+}
+
+Future<void> _requestPermissions() async {
+  // 알림 권한 요청 (Android 13 이상 포함)
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
+  }
+  // 위치 권한 요청
+  if (await Permission.location.isDenied) {
+    await Permission.location.request();
+  }
 }
