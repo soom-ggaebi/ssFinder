@@ -1,5 +1,8 @@
 package com.ssfinder.domain.route.dto.response;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 /**
  * packageName    : com.ssfinder.domain.route.dto.response<br>
  * fileName       : RoutesOverlapResponse.java<br>
@@ -12,6 +15,8 @@ package com.ssfinder.domain.route.dto.response;
  * 2025-03-28          okeio           최초생성<br>
  * <br>
  */
-// TODO
-public record RoutesOverlapResponse() {
-}
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record RoutesOverlapResponse(
+        boolean overlapExists,
+        OverlapStatus verifiedStatus
+) { }
