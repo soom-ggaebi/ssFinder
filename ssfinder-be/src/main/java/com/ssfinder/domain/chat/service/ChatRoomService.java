@@ -10,11 +10,14 @@ import com.ssfinder.domain.chat.repository.ChatRoomRepository;
 import com.ssfinder.domain.founditem.dto.mapper.FoundItemMapper;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemService;
+import com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo;
+import com.ssfinder.domain.itemcategory.service.ItemCategoryService;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,12 +36,14 @@ import java.util.Objects;
  * 2025-03-28          nature1216          최초생성<br>
  * <br>
  */
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class ChatRoomService {
     private final UserService userService;
     private final FoundItemService foundItemService;
+    private final ItemCategoryService itemCategoryService;
     private final FoundItemMapper foundItemMapper;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
@@ -61,7 +66,11 @@ public class ChatRoomService {
         User user = userService.findUserById(userId);
         FoundItem foundItem = foundItemService.findFoundItemById(foundItemId);
 
-        if(Objects.nonNull(userId) && Objects.nonNull(foundItem) && userId == foundItem.getUser().getId()) {
+        if(Objects.isNull(foundItem.getUser())) {
+            throw new CustomException(ErrorCode.NO_FINDER_FOR_ITEM);
+        }
+
+        if(Objects.nonNull(userId) && userId == foundItem.getUser().getId()) {
             throw new CustomException(ErrorCode.CANNOT_CHAT_WITH_SELF);
         }
 
