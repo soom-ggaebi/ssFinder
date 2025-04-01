@@ -32,10 +32,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Getter
 @Setter
-@CompoundIndexes({
-        @CompoundIndex(name = "user_time_idx", def = "{'userId': 1, 'timestamp': 1}"),
-        @CompoundIndex(name = "event_time_idx", def = "{'eventTimestamp': 1}")
-})
 public class UserLocation {
 
     @Id
