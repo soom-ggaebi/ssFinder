@@ -1,6 +1,6 @@
 package com.ssfinder.domain.notification.repository;
 
-import com.ssfinder.domain.notification.entity.UserNotificationSettings;
+import com.ssfinder.domain.notification.entity.UserNotificationSetting;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -17,6 +17,6 @@ import java.util.Optional;
  * 2025-03-25          okeio           최초생성<br>
  * <br>
  */
-public interface UserNotificationSettingRepository extends JpaRepository<UserNotificationSettings, Integer> {
-    Optional<UserNotificationSettings> findByUserId(Integer userId);
+public interface UserNotificationSettingRepository extends JpaRepository<UserNotificationSetting, Integer> {
+    Optional<UserNotificationSetting> findByUserId(Integer userId);
 }
