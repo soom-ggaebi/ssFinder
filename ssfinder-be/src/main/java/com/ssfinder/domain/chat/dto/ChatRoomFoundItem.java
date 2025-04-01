@@ -1,5 +1,7 @@
 package com.ssfinder.domain.chat.dto;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
 import com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo;
 import lombok.Builder;
@@ -17,8 +19,9 @@ import lombok.Builder;
  * <br>
  */
 @Builder
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record ChatRoomFoundItem(
-        Integer foundItemId,
+        Integer id,
         ItemCategoryInfo category,
         String name,
         String color,

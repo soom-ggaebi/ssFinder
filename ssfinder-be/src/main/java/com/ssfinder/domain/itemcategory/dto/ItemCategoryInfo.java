@@ -1,5 +1,7 @@
 package com.ssfinder.domain.itemcategory.dto;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.*;
 
 /**
@@ -18,6 +20,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Setter
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ItemCategoryInfo {
     private Integer id;
     private String name;

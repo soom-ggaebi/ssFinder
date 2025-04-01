@@ -20,16 +20,12 @@ import java.util.Optional;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
+ * 2025-03-28          nature1216            findChatRoomParticipantByChatRoomAndUser 추가
+ * 2025-04-01          nature1216            getChatRoomParticipantByChatRoomAndUserIsNot 추가
  * <br>
  */
 public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomParticipant, Integer> {
     List<ChatRoomParticipant> findChatRoomParticipantByChatRoomAndUser(ChatRoom chatRoom, User user);
 
-    @Query("SELECT crp " +
-            "FROM ChatRoomParticipant crp " +
-            "JOIN ChatRoom cr ON crp.chatRoom.id = cr.id " +
-            "WHERE crp.user.id = :userId " +
-            "AND cr.foundItem.id = :foundItemId")
-    Optional<ChatRoomParticipant> findByUserAndFoundItem(@Param("userId") Integer userId,
-                                                         @Param("foundItemId") Integer foundItemId);
+    ChatRoomParticipant getChatRoomParticipantByChatRoomAndUserIsNot(ChatRoom chatRoom, User user);
 }

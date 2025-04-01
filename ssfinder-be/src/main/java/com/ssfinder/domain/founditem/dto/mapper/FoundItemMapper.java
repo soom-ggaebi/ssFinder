@@ -63,7 +63,7 @@ public interface FoundItemMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mappings({
-            @Mapping(source = "foundItem.id", target = "foundItemId"),
+            @Mapping(source = "foundItem.id", target = "id"),
             @Mapping(source = "itemCategoryInfo", target = "category"),
             @Mapping(source = "foundItem.name", target = "name")
     })

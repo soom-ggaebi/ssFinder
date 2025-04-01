@@ -1,16 +1,13 @@
 package com.ssfinder.domain.chat.controller;
 
+import com.ssfinder.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.ssfinder.domain.chat.dto.response.ChatRoomEntryResponse;
 import com.ssfinder.domain.chat.service.ChatRoomService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.global.common.response.ApiResponse;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * packageName    : com.ssfinder.domain.chat.controller<br>
@@ -25,17 +22,27 @@ import org.springframework.web.bind.annotation.RestController;
  * <br>
  */
 @RestController
-@RequestMapping("/api/chat-room")
+@RequestMapping("/api/chat-rooms")
 @RequiredArgsConstructor
 public class ChatRoomController {
     private final ChatRoomService chatRoomService;
 
     @PostMapping("/{foundItemId}")
     public ApiResponse<ChatRoomEntryResponse> getOrCreateChatRoom(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                                                  @NotNull @PathVariable Integer foundItemId) {
+                                                                  @PathVariable Integer foundItemId) {
         Integer userId = userDetails.getUserId();
 
         ChatRoomEntryResponse response = chatRoomService.getOrCreateChatRoom(userId, foundItemId);
+
+        return ApiResponse.ok(response);
+    }
+
+    @GetMapping("/{chatRoomId}")
+    public ApiResponse<ChatRoomDetailResponse> getChatRoomDetail(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                                 @PathVariable Integer chatRoomId) {
+        Integer userId = userDetails.getUserId();
+
+        ChatRoomDetailResponse response = chatRoomService.getChatRoomDetail(userId, chatRoomId);
 
         return ApiResponse.ok(response);
     }

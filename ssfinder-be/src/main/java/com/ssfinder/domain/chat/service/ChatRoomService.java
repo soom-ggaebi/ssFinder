@@ -1,5 +1,7 @@
 package com.ssfinder.domain.chat.service;
 
+import com.ssfinder.domain.chat.dto.ChatRoomFoundItem;
+import com.ssfinder.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.ssfinder.domain.chat.dto.response.ChatRoomEntryResponse;
 import com.ssfinder.domain.chat.entity.ChatRoom;
 import com.ssfinder.domain.chat.entity.ChatRoomParticipant;
@@ -9,6 +11,7 @@ import com.ssfinder.domain.chat.repository.ChatRoomRepository;
 import com.ssfinder.domain.founditem.dto.mapper.FoundItemMapper;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemService;
+import com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo;
 import com.ssfinder.domain.itemcategory.service.ItemCategoryService;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
@@ -55,7 +58,7 @@ public class ChatRoomService {
         User user = userService.findUserById(UserId);
         ChatRoom chatRoom = findById(chatRoomId);
         List<ChatRoomParticipant> participants = chatRoomParticipantRepository
-                        .findChatRoomParticipantByChatRoomAndUser(chatRoom, user);
+                .findChatRoomParticipantByChatRoomAndUser(chatRoom, user);
 
         return !participants.isEmpty();
     }
@@ -80,6 +83,25 @@ public class ChatRoomService {
 
         return ChatRoomEntryResponse.builder()
                 .chatRoomId(chatRoom.getId())
+                .build();
+    }
+
+    public ChatRoomDetailResponse getChatRoomDetail(Integer userId, Integer chatRoomId) {
+        ChatRoom chatRoom = findById(chatRoomId);
+        FoundItem foundItem = chatRoom.getFoundItem();
+        User user = userService.findUserById(userId);
+
+        ChatRoomParticipant chatRoomParticipant = chatRoomParticipantRepository.getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user);
+        ItemCategoryInfo itemCategoryInfo = itemCategoryService.findWithParentById(foundItem.getItemCategory().getId());
+
+        User opponentUser = chatRoomParticipant.getUser();
+        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper.mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
+
+        return ChatRoomDetailResponse.builder()
+                .chatRoomId(chatRoomId)
+                .opponentId(opponentUser.getId())
+                .opponentNickname(opponentUser.getNickname())
+                .foundItem(chatRoomFoundItem)
                 .build();
     }
 
