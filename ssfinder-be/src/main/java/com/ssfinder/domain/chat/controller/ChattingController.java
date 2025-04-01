@@ -40,7 +40,6 @@ public class ChattingController {
                      @DestinationVariable Integer chatRoomId,
                      Principal principal) {
         Integer userId = Integer.parseInt(principal.getName());
-        System.out.println(userId);
         chatService.send(userId, chatRoomId, request);
     }
 
