@@ -1,8 +1,7 @@
 package com.ssfinder.domain.notification.dto.request;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.ssfinder.domain.notification.entity.NotificationType;
+import com.ssfinder.domain.notification.entity.WeatherCondition;
 import jakarta.validation.constraints.NotNull;
 
 /**
@@ -18,5 +17,6 @@ import jakarta.validation.constraints.NotNull;
  * <br>
  */
 public record NotificationRequest(
-        @NotNull NotificationType type
+        @NotNull NotificationType type,
+        @NotNull WeatherCondition weather
 ) { }

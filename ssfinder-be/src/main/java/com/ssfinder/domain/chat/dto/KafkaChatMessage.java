@@ -23,7 +23,7 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatMessageKafka implements Serializable {
+public class KafkaChatMessage implements Serializable {
     private String id;
     private Integer senderId;
     private Integer chatRoomId;

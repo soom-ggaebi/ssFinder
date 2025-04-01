@@ -34,6 +34,12 @@ public enum ErrorCode {
     USER_NOT_FOUND("USER-001", HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."),
     USER_DELETED("USER-002", HttpStatus.BAD_REQUEST, "탈퇴한 회원입니다."),
 
+    CHAT_ROOM_PARTICIPANT_NOT_FOUND("CHAT-001", HttpStatus.NOT_FOUND, "채팅방 참여 정보를 찾을 수 없습니다."),
+    CHAT_ROOM_NOT_FOUND("CHAT-002", HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."),
+    CHAT_ROOM_ACCESS_DENIED("CHAT-003", HttpStatus.FORBIDDEN, "채팅방 참여자가 아닙니다."),
+    CANNOT_CHAT_WITH_SELF("CHAT-004", HttpStatus.BAD_REQUEST, "자기 자신과는 채팅을 시작할 수 없습니다."),
+    NO_FINDER_FOR_ITEM("CHAT-005", HttpStatus.BAD_REQUEST, "해당 습득물에는 습득자 정보가 없어 채팅을 시작할 수 없습니다."),
+
     CATEGORY_NOT_FOUND("CATEGORY-001", HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."),
 
     FOUND_ITEM_NOT_FOUND("FOUND-001", HttpStatus.NOT_FOUND, "존재하지 않는 습득물입니다."),
