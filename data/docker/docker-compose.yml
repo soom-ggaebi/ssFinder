@@ -3,10 +3,12 @@ services:
   fastapi-app:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.app
+      dockerfile: docker/Dockerfile
     ports:
       - "8000:8000"
-      - "4040-4050:4040-4050"
     env_file:
       - ../.env
-    network_mode: "host"
+    extra_hosts:
+      - "nn1:43.201.252.40"
+      - "dn1:43.201.252.40"
+      - "j12c105a.p.ssafy.io:43.201.252.40"

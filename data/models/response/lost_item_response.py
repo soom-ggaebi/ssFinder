@@ -26,6 +26,7 @@ def parse_items(xml_content: str):
         fdPrdtNm = item.findtext('fdPrdtNm', '').strip()
         fdYmd = item.findtext('fdYmd', '').strip()
         prdtClNm = item.findtext('prdtClNm', '').strip()
+        fdSn = item.findtext('fdSn','').strip()
         found_at = None
         if fdYmd:
             try:
@@ -39,7 +40,8 @@ def parse_items(xml_content: str):
             'image': fdFilePathImg,
             'name': fdPrdtNm,
             'found_at': found_at,
-            'prdtClNm': prdtClNm
+            'prdtClNm': prdtClNm,
+            'fdSn': fdSn
         })
     return results
 
