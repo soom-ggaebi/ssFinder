@@ -33,8 +33,8 @@ public record KakaoLoginRequest (
         String name,
         @NotBlank String profileNickname,
         @NotBlank @Email String email,
-        @Pattern(regexp = "\\d{4}") String birthyear,
-        @Pattern(regexp = "\\d{4}") String birthday,
+        @Pattern(regexp = "^$|\\d{4}") String birthyear,
+        @Pattern(regexp = "^$|\\d{4}") String birthday,
         String gender,
         @NotBlank String phoneNumber,
         @NotBlank String providerId,
@@ -49,11 +49,13 @@ public record KakaoLoginRequest (
                 .gender(Gender.from(gender))
                 .createdAt(LocalDateTime.now());
 
-        if (Objects.nonNull(name)) {
+        if (Objects.nonNull(name) && !name.isBlank()) {
             builder.name(name);
         }
 
-        if (Objects.nonNull(birthyear) && Objects.nonNull(birthday)) {
+        if (Objects.nonNull(birthyear) && !birthyear.isBlank()
+                && Objects.nonNull(birthday) && !birthday.isBlank()) {
+
             try {
                 LocalDate birthDate = LocalDate.of(
                         Integer.parseInt(birthyear),
