@@ -8,24 +8,24 @@ import java.time.LocalDateTime;
 
 /**
  * packageName    : com.ssfinder.domain.notification.entity<br>
- * fileName       : Notification.java<br>
- * author         : joker901010<br>
- * date           : 2025-03-19<br>
- * description    :  <br>
+ * fileName       : NotificationHistory.java<br>
+ * author         : okeio<br>
+ * date           : 2025-04-01<br>
+ * description    : 알림 이력을 관리하는 Entity 클래스입니다. <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
- * 2025-03-19          joker901010           최초생성<br>
+ * 2025-04-01          okeio           최초생성<br>
  * <br>
  */
 @Entity
-@Table(name = "notification")
+@Table(name = "notification_history")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Notification {
+public class NotificationHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -41,16 +41,17 @@ public class Notification {
     @Column(columnDefinition = "TEXT")
     private String body;
 
-    @Column(name = "scheduled_at")
-    private LocalDateTime scheduledAt;
-
-    @Column(name = "flag_send", nullable = false)
-    private Boolean flagSend;
-
     @Column(length = 13, nullable = false)
-    private String type;
+    @Enumerated(EnumType.STRING)
+    private NotificationType type;
 
-    @Column(name = "is_active", nullable = false)
+    @Column(nullable = false)
     @Builder.Default
-    private Boolean isActive = true;
+    private boolean isRead = false;
+
+    @Column(name = "send_at", nullable = false)
+    private LocalDateTime sendAt;
+
+    @Column(name = "read_at")
+    private LocalDateTime readAt;
 }
