@@ -3,6 +3,7 @@ package com.ssfinder.domain.notification.service;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemService;
 import com.ssfinder.domain.notification.entity.NotificationType;
+import com.ssfinder.domain.notification.entity.WeatherCondition;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -141,8 +142,7 @@ public class NotificationService {
     }
 
     // 4. 소지품 알림
-    // TODO 날씨 api 연결 - 비:우산 , 황사:마스크
-    public void sendItemReminderNotification(Integer userId) {
+    public void sendItemReminderNotification(Integer userId, WeatherCondition weatherCondition) {
         if (userNotificationSettingService.isNotificationDisabledFor(userId, NotificationType.ITEM_REMINDER))
             return;
 
@@ -154,7 +154,7 @@ public class NotificationService {
             fcmMessageService.sendNotificationToUsers(
                     tokens,
                     "숨숨 파인더",
-                    "혹시 잊으신 물건이 있으신가요?",
+                    weatherCondition.getNotificationContent(),
                     data
             );
         }
