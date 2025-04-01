@@ -50,7 +50,9 @@ public enum ErrorCode {
     BOOKMARK_ACCESS_DENIED("BOOKMARK-003", HttpStatus.FORBIDDEN, "본인만 접근 가능한 항목입니다."),
 
     LOST_ITEM_NOT_FOUND("LOST-001", HttpStatus.NOT_FOUND, "존재하지 않는 분실물입니다."),
-    LOST_ITEM_ACCESS_DENIED("LOST-002", HttpStatus.FORBIDDEN, "본인만 접근 가능한 항목입니다.");
+    LOST_ITEM_ACCESS_DENIED("LOST-002", HttpStatus.FORBIDDEN, "본인만 접근 가능한 항목입니다."),
+
+    USER_NOTIFICATION_SETTINGS_NOT_FOUND("NOTIFICATION-001", HttpStatus.NOT_FOUND, "알림 설정이 없습니다.");
 
     private final String code;
     private final HttpStatus httpStatus;

@@ -2,6 +2,7 @@ package com.ssfinder.domain.notification.dto.request;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.ssfinder.domain.notification.entity.NotificationType;
 import jakarta.validation.constraints.NotNull;
 
 /**
@@ -16,8 +17,6 @@ import jakarta.validation.constraints.NotNull;
  * 2025-03-25          okeio           최초생성<br>
  * <br>
  */
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public record TokenTestRequest(
-        @NotNull Integer senderId,
-        @NotNull String message
+public record NotificationRequest(
+        @NotNull NotificationType type
 ) { }

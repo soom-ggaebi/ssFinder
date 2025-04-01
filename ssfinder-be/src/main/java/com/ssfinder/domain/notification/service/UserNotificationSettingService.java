@@ -4,8 +4,10 @@ import com.ssfinder.domain.notification.dto.request.SettingUpdateRequest;
 import com.ssfinder.domain.notification.dto.response.NotificationSetting;
 import com.ssfinder.domain.notification.dto.response.SettingsGetResponse;
 import com.ssfinder.domain.notification.entity.NotificationType;
-import com.ssfinder.domain.notification.entity.UserNotificationSettings;
+import com.ssfinder.domain.notification.entity.UserNotificationSetting;
 import com.ssfinder.domain.notification.repository.UserNotificationSettingRepository;
+import com.ssfinder.global.common.exception.CustomException;
+import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,10 +35,10 @@ public class UserNotificationSettingService {
     private final UserNotificationSettingRepository userNotificationSettingRepository;
 
     public SettingsGetResponse getUserNotificationSettings(Integer userId) {
-        UserNotificationSettings settings = userNotificationSettingRepository.findByUserId(userId)
+        UserNotificationSetting settings = userNotificationSettingRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     // 설정이 없으면 새로 생성
-                    UserNotificationSettings newSettings = new UserNotificationSettings();
+                    UserNotificationSetting newSettings = new UserNotificationSetting();
                     newSettings.setUserId(userId);
                     return newSettings;
                 });
@@ -51,7 +53,7 @@ public class UserNotificationSettingService {
     }
 
     public void updateUserNotificationSettings(Integer userId, SettingUpdateRequest settingUpdateRequest) {
-        UserNotificationSettings settings = userNotificationSettingRepository.findByUserId(userId)
+        UserNotificationSetting settings = userNotificationSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User notification settings not found"));
 
         switch(settingUpdateRequest.notificationType()) {
@@ -68,5 +70,17 @@ public class UserNotificationSettingService {
                 settings.setItemReminderEnabled(settingUpdateRequest.enabled());
                 break;
         }
+    }
+
+    public boolean isNotificationDisabledFor(Integer userId, NotificationType notificationType) {
+        UserNotificationSetting settings = userNotificationSettingRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOTIFICATION_SETTINGS_NOT_FOUND));
+
+        return !switch (notificationType) {
+            case TRANSFER -> settings.isTransferNotificationEnabled();
+            case CHAT -> settings.isChatNotificationEnabled();
+            case AI_MATCH -> settings.isAiMatchNotificationEnabled();
+            case ITEM_REMINDER -> settings.isItemReminderEnabled();
+        };
     }
 }

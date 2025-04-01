@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +21,7 @@ import java.util.Optional;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
+ * 2025-03-31          okeio        findFoundItemById 메서드 추가<br>
  * <br>
  */
 public interface FoundItemRepository extends JpaRepository<FoundItem, Integer> {
@@ -34,6 +36,4 @@ public interface FoundItemRepository extends JpaRepository<FoundItem, Integer> {
                                             @Param("maxLon") double maxLon);
 
     List<FoundItem> findByFoundAtAndStatus(LocalDate date, FoundItemStatus foundItemStatus);
-
-    Optional<FoundItem> getFoundItemById(int id);
 }

@@ -46,7 +46,11 @@ import java.util.stream.Collectors;
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
  * 2025-03-27          joker901010           코드리뷰 수정<br>
+<<<<<<< HEAD
  * 2025-03-31          nature1216            findFoundItemById 메소드 추가<br>
+=======
+ * 2025-03-31          okeio            findFoundItemById 추가<br>
+>>>>>>> 2022588ee29b0d68f83c3c9ca3608d1f895b57c0
  * <br>
  */
 @Slf4j
@@ -201,6 +205,7 @@ public class FoundItemService {
         return foundItemRepository.findByFoundAtAndStatus(LocalDate.now().minusDays(daysAgo), FoundItemStatus.STORED);
     }
 
+    @Transactional(readOnly = true)
     public FoundItem findFoundItemById(Integer foundItemId) {
         return foundItemRepository.findById(foundItemId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
