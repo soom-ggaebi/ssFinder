@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
+ * 2025-03-31          nature1216            채팅방 생성, 상세정보 조회 메소드 추가
  * <br>
  */
 @RestController
