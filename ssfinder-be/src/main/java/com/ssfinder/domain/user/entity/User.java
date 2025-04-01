@@ -12,11 +12,12 @@ import java.time.LocalDateTime;
  * fileName       : User.java<br>
  * author         : okeio<br>
  * date           : 2025-03-19<br>
- * description    :  <br>
+ * description    : User Entity 클래스입니다. <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-19          okeio           최초생성<br>
+ * 2025-04-01          okeio           일부 필드 nullable 제거<br>
  * <br>
  */
 @Entity
@@ -31,13 +32,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false)
     private String name;
 
     @Column(nullable = false)
     private String nickname;
 
-    @Column(nullable = false)
     private LocalDate birth;
 
     @Column(nullable = false, length = 100)
