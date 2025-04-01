@@ -67,8 +67,8 @@ public class NotificationController {
     public ApiResponse<?> sendItemReminderNotification(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                        @Valid @RequestBody NotificationRequest notificationRequest) {
         if (NotificationType.ITEM_REMINDER.equals(notificationRequest.type())) {
-            log.info("소지품 알림 발송 to {}", userDetails.getUserId());
-            notificationService.sendItemReminderNotification(userDetails.getUserId());
+            log.info("[소지품 알림 발송] userId: {}, weather: {}", userDetails.getUserId(), notificationRequest.weather());
+            notificationService.sendItemReminderNotification(userDetails.getUserId(), notificationRequest.weather());
         }
 
         return ApiResponse.noContent();
