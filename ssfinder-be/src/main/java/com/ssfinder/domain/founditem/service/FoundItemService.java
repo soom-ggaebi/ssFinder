@@ -22,6 +22,7 @@ import com.ssfinder.global.common.service.HadoopService;
 import com.ssfinder.global.common.service.ImageProcessingService;
 import com.ssfinder.global.common.service.S3Service;
 import com.ssfinder.global.util.CustomMultipartFile;
+import net.coobird.thumbnailator.Thumbnails;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -32,11 +33,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -89,48 +90,186 @@ public class FoundItemService {
             foundItem.setCoordinates(coordinates);
         }
 
+        String imageUrl = null;
+        byte[] processedImageBytes = null;
+        MultipartFile originalImage = requestDTO.getImage();
+
         try {
-            String imageUrl = null;
-            byte[] processedImageBytes = null;
-            MultipartFile originalImage = requestDTO.getImage();
-
             if (Objects.nonNull(originalImage) && !originalImage.isEmpty()) {
-
-                processedImageBytes = imageProcessingService.processImage(originalImage);
-                log.info("이미지 전처리 완료: {}", originalImage.getOriginalFilename());
-
                 String originalFilename = originalImage.getOriginalFilename();
-                String contentType = "image/jpeg";
+                log.info("원본 이미지 파일명: {}", originalFilename);
 
-                if (originalFilename != null && !originalFilename.toLowerCase().endsWith(".jpg")
-                        && !originalFilename.toLowerCase().endsWith(".jpeg")) {
-                    int dotIndex = originalFilename.lastIndexOf('.');
-                    if (dotIndex > 0) {
-                        originalFilename = originalFilename.substring(0, dotIndex) + ".jpg";
-                    } else {
-                        originalFilename = originalFilename + ".jpg";
+                // 다양한 이미지 형식을 받기 위한 전략적 접근
+                try {
+                    // 1. 정상적인 이미지 전처리 시도
+                    processedImageBytes = imageProcessingService.processImage(originalImage);
+                    log.info("기본 이미지 전처리 성공: {}", originalFilename);
+                } catch (Exception e) {
+                    log.error("기본 이미지 전처리 실패, 대체 방법 시도: {}", e.getMessage());
+
+                    try {
+                        // 2. 전처리 실패 시 Thumbnailator 직접 사용 시도
+                        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                        Thumbnails.of(originalImage.getInputStream())
+                                .size(512, 512)  // 기본 리사이즈 크기
+                                .outputFormat("jpg")
+                                .outputQuality(0.9)  // 90% 품질
+                                .toOutputStream(outputStream);
+                        processedImageBytes = outputStream.toByteArray();
+                        log.info("Thumbnailator 직접 변환 성공");
+                    } catch (Exception e2) {
+                        log.error("Thumbnailator 변환 실패, 마지막 시도: {}", e2.getMessage());
+
+                        try {
+                            // 3. 마지막 시도: 원본 이미지 바이트 사용
+                            processedImageBytes = originalImage.getBytes();
+                            log.info("원본 이미지 바이트 사용으로 진행");
+                        } catch (IOException ioe) {
+                            log.error("원본 이미지 바이트 읽기 실패, 이미지 저장 불가: {}", ioe.getMessage());
+                        }
                     }
                 }
 
-                CustomMultipartFile processedImageFile = new CustomMultipartFile(
-                        processedImageBytes,
-                        originalFilename,
-                        contentType
-                );
+                // 처리된 이미지가 있을 경우 저장 진행
+                if (processedImageBytes != null) {
+                    // 파일명을 항상 jpg로 변환
+                    if (originalFilename != null) {
+                        int dotIndex = originalFilename.lastIndexOf('.');
+                        if (dotIndex > 0) {
+                            originalFilename = originalFilename.substring(0, dotIndex) + ".jpg";
+                        } else {
+                            originalFilename = originalFilename + ".jpg";
+                        }
+                    } else {
+                        originalFilename = "image_" + System.currentTimeMillis() + ".jpg";
+                    }
 
-                imageUrl = s3Service.uploadFile(processedImageFile, "found");
-                foundItem.setImage(imageUrl);
-                log.info("전처리된 이미지를 S3에 업로드 완료: {}", imageUrl);
+                    String contentType = "image/jpeg";
+
+                    CustomMultipartFile processedImageFile = new CustomMultipartFile(
+                            processedImageBytes,
+                            originalFilename,
+                            contentType
+                    );
+
+                    // S3에 이미지 업로드
+                    try {
+                        imageUrl = s3Service.uploadFile(processedImageFile, "found");
+                        foundItem.setImage(imageUrl);
+                        log.info("전처리된 이미지를 S3에 업로드 완료: {}", imageUrl);
+                    } catch (Exception e) {
+                        log.error("S3 이미지 업로드 실패: {}", e.getMessage());
+                    }
+                }
             }
         } catch (Exception e) {
-            log.error("이미지 처리 중 오류 발생: {}", e.getMessage(), e);
+            log.error("이미지 처리 중 예상치 못한 오류 발생: {}", e.getMessage(), e);
         }
 
         LocalDateTime now = LocalDateTime.now();
         foundItem.setCreatedAt(now);
         foundItem.setUpdatedAt(now);
 
+        // MySQL DB에 저장
         FoundItem savedItem = foundItemRepository.save(foundItem);
+
+        // Hadoop과 Elasticsearch에 데이터 업로드
+        String hdfsImagePath = null;
+
+        try {
+            // HDFS에 JPG 이미지 저장
+            if (processedImageBytes != null) {
+                try {
+                    hdfsImagePath = hadoopService.getFoundImagePath(savedItem.getId().toString());
+                    boolean success = hadoopService.saveImage(hdfsImagePath, processedImageBytes);
+                    log.info("HDFS 이미지 저장 결과: {}, 경로: {}", success, hdfsImagePath);
+
+                    if (!success) {
+                        log.error("HDFS에 이미지 저장 실패");
+                    }
+                } catch (Exception e) {
+                    log.error("HDFS 이미지 저장 중 오류 발생: {}", e.getMessage());
+                }
+            } else {
+                log.info("저장할 이미지가 없습니다.");
+            }
+        } catch (Exception e) {
+            log.error("HDFS 이미지 저장 시도 중 예상치 못한 오류: {}", e.getMessage());
+        }
+
+        try {
+            // Elasticsearch에 문서 인덱싱
+            elasticsearchService.indexFoundItem(savedItem, hdfsImagePath);
+            log.info("Elasticsearch에 문서 인덱싱 요청 완료");
+        } catch (Exception e) {
+            log.error("Elasticsearch 인덱싱 중 오류 발생: {}", e.getMessage());
+        }
+
+        try {
+            // CSV 저장에 필요한 데이터 준비
+            List<Map<String, Object>> records = new ArrayList<>();
+            Map<String, Object> record = new HashMap<>();
+
+            // ElasticSearch 문서 형식과 동일하게 필드 설정 (null 체크 포함)
+            record.put("mysql_id", savedItem.getId().toString());
+            record.put("management_id", savedItem.getManagementId() != null ? savedItem.getManagementId() : "");
+            record.put("name", savedItem.getName() != null ? savedItem.getName() : "");
+            record.put("color", savedItem.getColor() != null ? savedItem.getColor() : "");
+            record.put("found_at", savedItem.getFoundAt() != null ? savedItem.getFoundAt().toString() : "");
+            record.put("status", savedItem.getStatus() != null ? savedItem.getStatus().name() : "");
+            record.put("location", savedItem.getLocation() != null ? savedItem.getLocation() : "");
+            record.put("stored_at", savedItem.getStoredAt() != null ? savedItem.getStoredAt() : "");
+            record.put("phone", savedItem.getPhone() != null ? savedItem.getPhone() : "");
+            record.put("detail", savedItem.getDetail() != null ? savedItem.getDetail() : "");
+            record.put("image", imageUrl != null ? imageUrl : "");
+            record.put("image_hdfs", hdfsImagePath != null ? hdfsImagePath : "");
+
+            // 좌표 정보
+            if (savedItem.getCoordinates() != null) {
+                record.put("latitude", savedItem.getCoordinates().getY());
+                record.put("longitude", savedItem.getCoordinates().getX());
+            } else {
+                record.put("latitude", 0.0);
+                record.put("longitude", 0.0);
+            }
+
+            // 카테고리 정보 설정
+            if (savedItem.getItemCategory() != null) {
+                ItemCategory category = savedItem.getItemCategory();
+                if (category.getItemCategory() == null) {
+                    // 주 카테고리만 있는 경우
+                    record.put("category_major", category.getName());
+                    record.put("category_minor", "");
+                } else {
+                    // 주 카테고리와 부 카테고리가 모두 있는 경우
+                    record.put("category_minor", category.getName());
+                    record.put("category_major", category.getItemCategory().getName());
+                }
+            } else {
+                record.put("category_major", "");
+                record.put("category_minor", "");
+            }
+
+            record.put("created_at", savedItem.getCreatedAt().toString());
+            records.add(record);
+
+            // HDFS에 CSV 데이터 저장 - 헤더도 ElasticSearch 문서 필드와 동일하게 설정
+            List<String> headers = Arrays.asList(
+                    "mysql_id", "management_id", "name", "color", "found_at",
+                    "status", "location", "stored_at", "phone", "detail",
+                    "image", "image_hdfs", "latitude", "longitude",
+                    "category_major", "category_minor", "created_at"
+            );
+
+            try {
+                boolean csvSuccess = hadoopService.appendToCsv(hadoopService.getFoundCsvPath(), records, headers);
+                log.info("HDFS CSV 저장 결과: {}", csvSuccess);
+            } catch (Exception e) {
+                log.error("HDFS CSV 저장 중 오류 발생: {}", e.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("HDFS/Elasticsearch 데이터 준비 중 오류 발생: {}", e.getMessage(), e);
+        }
 
         return foundItemMapper.toResponse(savedItem);
     }

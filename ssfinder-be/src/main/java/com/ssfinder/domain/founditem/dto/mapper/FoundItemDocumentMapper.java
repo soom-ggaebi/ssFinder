@@ -37,9 +37,17 @@ public interface FoundItemDocumentMapper {
     @Mapping(target = "longitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getX() : null)")
     @Mapping(target = "locationGeo", expression = "java(createGeoPoint(foundItem))")
     @Mapping(source = "status", target = "status")
-    @Mapping(target = "imageHdfs", ignore = true)
+    @Mapping(source = "managementId", target = "managementId")
+    @Mapping(target = "imageHdfs", source = "hdfsImagePath")
     @Mapping(target = "categoryMajor", ignore = true)
     @Mapping(target = "categoryMinor", ignore = true)
+    @Mapping(source = "detail", target = "detail")
+    @Mapping(source = "phone", target = "phone")
+    @Mapping(source = "storedAt", target = "storedAt")
+    @Mapping(source = "color", target = "color")
+    @Mapping(source = "location", target = "location")
+    @Mapping(source = "name", target = "name")
+    @Mapping(source = "image", target = "image")
     FoundItemDocument toDocument(FoundItem foundItem, @Context String hdfsImagePath);
 
     @AfterMapping

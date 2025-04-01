@@ -8,7 +8,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 import org.springframework.data.elasticsearch.annotations.GeoPointField;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 
-@Document(indexName = "find-items")
+@Document(indexName = "found-items")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -21,22 +21,16 @@ public class FoundItemDocument {
     private String id;
 
     @Field(type = FieldType.Keyword)
+    private String mysqlId;
+
+    @Field(type = FieldType.Keyword)
     private String managementId;
-
-    @Field(type = FieldType.Keyword)
-    private String color;
-
-    @Field(type = FieldType.Text)
-    private String storedAt;
-
-    @Field(type = FieldType.Keyword)
-    private String image;
-
-    @Field(type = FieldType.Keyword)
-    private String imageHdfs;
 
     @Field(type = FieldType.Text, analyzer = "standard")
     private String name;
+
+    @Field(type = FieldType.Keyword)
+    private String color;
 
     @Field(type = FieldType.Date)
     private String foundAt;
@@ -53,6 +47,15 @@ public class FoundItemDocument {
     @Field(type = FieldType.Text)
     private String detail;
 
+    @Field(type = FieldType.Keyword)
+    private String image;
+
+    @Field(type = FieldType.Keyword)
+    private String imageHdfs;
+
+    @Field(type = FieldType.Text)
+    private String storedAt;
+
     @Field(type = FieldType.Double)
     private Double latitude;
 
@@ -64,9 +67,6 @@ public class FoundItemDocument {
 
     @Field(type = FieldType.Keyword)
     private String categoryMinor;
-
-    @Field(type = FieldType.Keyword)
-    private String mysqlId;
 
     @GeoPointField
     private GeoPoint locationGeo;
