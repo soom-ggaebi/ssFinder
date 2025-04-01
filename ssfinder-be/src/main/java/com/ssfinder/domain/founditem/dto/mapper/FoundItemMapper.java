@@ -1,5 +1,6 @@
 package com.ssfinder.domain.founditem.dto.mapper;
 
+import com.ssfinder.domain.chat.dto.ChatRoomFoundItem;
 import com.ssfinder.domain.founditem.dto.request.FoundItemRegisterRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
 import com.ssfinder.domain.founditem.dto.response.FoundItemDetailResponse;
@@ -7,11 +8,9 @@ import com.ssfinder.domain.founditem.dto.response.FoundItemRegisterResponse;
 import com.ssfinder.domain.founditem.dto.response.FoundItemStatusUpdateResponse;
 import com.ssfinder.domain.founditem.dto.response.FoundItemUpdateResponse;
 import com.ssfinder.domain.founditem.entity.FoundItem;
-import com.ssfinder.domain.item.entity.ItemCategory;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.ReportingPolicy;
+import com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo;
+import com.ssfinder.domain.itemcategory.entity.ItemCategory;
+import org.mapstruct.*;
 
 /**
  * packageName    : com.ssfinder.domain.foundItem.mapper<br>
@@ -61,6 +60,14 @@ public interface FoundItemMapper {
     @Mapping(target = "status", expression = "java(foundItem.getStatus().name())")
     @Mapping(source = "updatedAt", target = "updatedAt")
     FoundItemStatusUpdateResponse toStatusUpdateResponse(FoundItem foundItem);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mappings({
+            @Mapping(source = "foundItem.id", target = "id"),
+            @Mapping(source = "itemCategoryInfo", target = "category"),
+            @Mapping(source = "foundItem.name", target = "name")
+    })
+    ChatRoomFoundItem mapToChatRoomFoundItem(FoundItem foundItem, ItemCategoryInfo itemCategoryInfo);
 
     default ItemCategory createItemCategory(Integer id) {
         ItemCategory itemCategory = new ItemCategory();

@@ -1,11 +1,8 @@
-package com.ssfinder.domain.chat.controller;
-
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+package com.ssfinder.domain.itemcategory.entity;
 
 /**
- * packageName    : com.ssfinder.domain.chat.controller<br>
- * fileName       : ChatController.java<br>
+ * packageName    : com.ssfinder.domain.item.entity<br>
+ * fileName       : Level.java<br>
  * author         : joker901010<br>
  * date           : 2025-03-19<br>
  * description    :  <br>
@@ -15,8 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
  * 2025-03-19          joker901010           최초생성<br>
  * <br>
  */
-@RestController
-@RequestMapping("/api/chats")
-public class ChatQueryController {
-
+public enum Level {
+    MAJOR,MINOR
 }

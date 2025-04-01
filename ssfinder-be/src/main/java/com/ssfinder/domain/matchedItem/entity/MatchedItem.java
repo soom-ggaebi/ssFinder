@@ -1,4 +1,4 @@
-package com.ssfinder.domain.item.entity;
+package com.ssfinder.domain.matchedItem.entity;
 
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.lostitem.entity.LostItem;

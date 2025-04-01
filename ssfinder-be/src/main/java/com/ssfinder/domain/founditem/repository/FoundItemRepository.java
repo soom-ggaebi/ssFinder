@@ -36,6 +36,4 @@ public interface FoundItemRepository extends JpaRepository<FoundItem, Integer> {
                                             @Param("maxLon") double maxLon);
 
     List<FoundItem> findByFoundAtAndStatus(LocalDate date, FoundItemStatus foundItemStatus);
-
-    Optional<FoundItem> findFoundItemById(Integer id);
 }

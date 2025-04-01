@@ -3,7 +3,7 @@ package com.ssfinder.domain.chat.entity;
 import com.ssfinder.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
-import org.apache.kafka.common.protocol.types.Field;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -20,13 +20,13 @@ import java.time.LocalDateTime;
  * <br>
  */
 @Entity
-@Table(name = "user_chat_room")
+@Table(name = "chat_room_participant")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class UserChatRoom {
+public class ChatRoomParticipant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -40,6 +40,7 @@ public class UserChatRoom {
     private ChatRoom chatRoom;
 
     @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     @Column(name = "left_at")
