@@ -1,6 +1,5 @@
 package com.ssfinder.domain.chat.service;
 
-import com.ssfinder.domain.chat.dto.ChatRoomFoundItem;
 import com.ssfinder.domain.chat.dto.response.ChatRoomEntryResponse;
 import com.ssfinder.domain.chat.entity.ChatRoom;
 import com.ssfinder.domain.chat.entity.ChatRoomParticipant;
@@ -10,7 +9,6 @@ import com.ssfinder.domain.chat.repository.ChatRoomRepository;
 import com.ssfinder.domain.founditem.dto.mapper.FoundItemMapper;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemService;
-import com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo;
 import com.ssfinder.domain.itemcategory.service.ItemCategoryService;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
@@ -74,40 +72,37 @@ public class ChatRoomService {
             throw new CustomException(ErrorCode.CANNOT_CHAT_WITH_SELF);
         }
 
-        ChatRoomParticipant participant = chatRoomParticipantRepository
+        ChatRoom chatRoom = chatRoomRepository
                 .findByUserAndFoundItem(userId, foundItemId)
                 .orElseGet(
                         () -> createChatRoom(user, foundItem)
                 );
 
-        ItemCategoryInfo itemCategoryInfo = itemCategoryService.findWithParentById(foundItem.getItemCategory().getId());
-
-        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper.mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
-
-
         return ChatRoomEntryResponse.builder()
-                .chatRoomId(participant.getChatRoom().getId())
-                .opponentId(foundItem.getUser().getId())
-                .opponentNickname(foundItem.getUser().getNickname())
-                .chatRoomFoundItem(chatRoomFoundItem)
+                .chatRoomId(chatRoom.getId())
                 .build();
     }
 
-    private ChatRoomParticipant createChatRoom(User user, FoundItem foundItem) {
+    private ChatRoom createChatRoom(User user, FoundItem foundItem) {
         ChatRoom chatRoom = ChatRoom.builder()
                 .foundItem(foundItem)
                 .build();
 
         chatRoomRepository.save(chatRoom);
 
-        ChatRoomParticipant chatRoomParticipant = ChatRoomParticipant.builder()
+        chatRoomParticipantRepository.save(ChatRoomParticipant.builder()
                 .chatRoom(chatRoom)
                 .status(ChatRoomStatus.ACTIVE)
                 .user(user)
-                .build();
+                .build());
 
-        chatRoomParticipantRepository.save(chatRoomParticipant);
+        chatRoomParticipantRepository.save(ChatRoomParticipant.builder()
+                .chatRoom(chatRoom)
+                .status(ChatRoomStatus.ACTIVE)
+                .user(foundItem.getUser())
+                .build()
+        );
 
-        return chatRoomParticipant;
+        return chatRoom;
     }
 }
