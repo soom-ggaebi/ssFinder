@@ -91,6 +91,10 @@ public class ChatRoomService {
         FoundItem foundItem = chatRoom.getFoundItem();
         User user = userService.findUserById(userId);
 
+        if(!isInChatRoom(chatRoomId, userId)) {
+            throw new CustomException(ErrorCode.CHAT_ROOM_ACCESS_DENIED);
+        }
+
         ChatRoomParticipant chatRoomParticipant = chatRoomParticipantRepository.getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user);
         ItemCategoryInfo itemCategoryInfo = itemCategoryService.findWithParentById(foundItem.getItemCategory().getId());
 
