@@ -3,9 +3,11 @@ package com.ssfinder.domain.notification.controller;
 import com.ssfinder.domain.notification.dto.request.FcmTokenRequest;
 import com.ssfinder.domain.notification.dto.request.NotificationRequest;
 import com.ssfinder.domain.notification.dto.request.SettingUpdateRequest;
+import com.ssfinder.domain.notification.dto.response.NotificationSliceResponse;
 import com.ssfinder.domain.notification.dto.response.SettingsGetResponse;
 import com.ssfinder.domain.notification.entity.NotificationType;
 import com.ssfinder.domain.notification.service.FcmTokenService;
+import com.ssfinder.domain.notification.service.NotificationHistoryService;
 import com.ssfinder.domain.notification.service.NotificationService;
 import com.ssfinder.domain.notification.service.UserNotificationSettingService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
@@ -37,6 +39,7 @@ public class NotificationController {
     private final FcmTokenService fcmTokenService;
     private final UserNotificationSettingService userNotificationSettingService;
     private final NotificationService notificationService;
+    private final NotificationHistoryService notificationHistoryService;
 
     @PostMapping("/token")
     public ApiResponse<?> registerFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody FcmTokenRequest fcmTokenRequest) {
@@ -74,4 +77,16 @@ public class NotificationController {
         return ApiResponse.noContent();
     }
 
+    @GetMapping
+    public ApiResponse<NotificationSliceResponse> getNotificationHistory(
+            @RequestParam("type") NotificationType notificationType,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "lastId", required = false) Integer lastId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        NotificationSliceResponse notificationHistorySlice = notificationHistoryService.getNotificationHistory
+                (userDetails.getUserId(), notificationType, page, size, lastId);
+
+        return ApiResponse.ok(notificationHistorySlice);
+    }
 }
