@@ -38,7 +38,6 @@ public interface FoundItemDocumentMapper {
     @Mapping(target = "locationGeo", expression = "java(createGeoPoint(foundItem))")
     @Mapping(source = "status", target = "status")
     @Mapping(source = "managementId", target = "managementId")
-    @Mapping(target = "imageHdfs", source = "hdfsImagePath")
     @Mapping(target = "categoryMajor", ignore = true)
     @Mapping(target = "categoryMinor", ignore = true)
     @Mapping(source = "detail", target = "detail")

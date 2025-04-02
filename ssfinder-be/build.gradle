@@ -16,6 +16,8 @@ java {
 configurations {
 	all {
 		exclude group: 'org.slf4j', module: 'slf4j-reload4j'
+		resolutionStrategy.force 'com.google.protobuf:protobuf-java:2.6.1'
+
 	}
 	compileOnly {
 		extendsFrom annotationProcessor

@@ -5,10 +5,7 @@ import com.ssfinder.domain.founditem.dto.request.FoundItemRegisterRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemStatusUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
-import com.ssfinder.domain.founditem.dto.response.FoundItemDetailResponse;
-import com.ssfinder.domain.founditem.dto.response.FoundItemRegisterResponse;
-import com.ssfinder.domain.founditem.dto.response.FoundItemStatusUpdateResponse;
-import com.ssfinder.domain.founditem.dto.response.FoundItemUpdateResponse;
+import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
 import com.ssfinder.domain.founditem.repository.FoundItemRepository;
@@ -91,6 +88,7 @@ public class FoundItemService {
         }
 
         String imageUrl = null;
+        String hdfsImagePath = null;
         byte[] processedImageBytes = null;
         MultipartFile originalImage = requestDTO.getImage();
 
@@ -173,9 +171,6 @@ public class FoundItemService {
         // MySQL DB에 저장
         FoundItem savedItem = foundItemRepository.save(foundItem);
 
-        // Hadoop과 Elasticsearch에 데이터 업로드
-        String hdfsImagePath = null;
-
         try {
             // HDFS에 JPG 이미지 저장
             if (processedImageBytes != null) {
@@ -198,77 +193,11 @@ public class FoundItemService {
         }
 
         try {
-            // Elasticsearch에 문서 인덱싱
-            elasticsearchService.indexFoundItem(savedItem, hdfsImagePath);
+            // Elasticsearch에 문서 인덱싱 (HDFS 이미지 경로 포함)
+//            elasticsearchService.indexFoundItem(savedItem, hdfsImagePath);
             log.info("Elasticsearch에 문서 인덱싱 요청 완료");
         } catch (Exception e) {
             log.error("Elasticsearch 인덱싱 중 오류 발생: {}", e.getMessage());
-        }
-
-        try {
-            // CSV 저장에 필요한 데이터 준비
-            List<Map<String, Object>> records = new ArrayList<>();
-            Map<String, Object> record = new HashMap<>();
-
-            // ElasticSearch 문서 형식과 동일하게 필드 설정 (null 체크 포함)
-            record.put("mysql_id", savedItem.getId().toString());
-            record.put("management_id", savedItem.getManagementId() != null ? savedItem.getManagementId() : "");
-            record.put("name", savedItem.getName() != null ? savedItem.getName() : "");
-            record.put("color", savedItem.getColor() != null ? savedItem.getColor() : "");
-            record.put("found_at", savedItem.getFoundAt() != null ? savedItem.getFoundAt().toString() : "");
-            record.put("status", savedItem.getStatus() != null ? savedItem.getStatus().name() : "");
-            record.put("location", savedItem.getLocation() != null ? savedItem.getLocation() : "");
-            record.put("stored_at", savedItem.getStoredAt() != null ? savedItem.getStoredAt() : "");
-            record.put("phone", savedItem.getPhone() != null ? savedItem.getPhone() : "");
-            record.put("detail", savedItem.getDetail() != null ? savedItem.getDetail() : "");
-            record.put("image", imageUrl != null ? imageUrl : "");
-            record.put("image_hdfs", hdfsImagePath != null ? hdfsImagePath : "");
-
-            // 좌표 정보
-            if (savedItem.getCoordinates() != null) {
-                record.put("latitude", savedItem.getCoordinates().getY());
-                record.put("longitude", savedItem.getCoordinates().getX());
-            } else {
-                record.put("latitude", 0.0);
-                record.put("longitude", 0.0);
-            }
-
-            // 카테고리 정보 설정
-            if (savedItem.getItemCategory() != null) {
-                ItemCategory category = savedItem.getItemCategory();
-                if (category.getItemCategory() == null) {
-                    // 주 카테고리만 있는 경우
-                    record.put("category_major", category.getName());
-                    record.put("category_minor", "");
-                } else {
-                    // 주 카테고리와 부 카테고리가 모두 있는 경우
-                    record.put("category_minor", category.getName());
-                    record.put("category_major", category.getItemCategory().getName());
-                }
-            } else {
-                record.put("category_major", "");
-                record.put("category_minor", "");
-            }
-
-            record.put("created_at", savedItem.getCreatedAt().toString());
-            records.add(record);
-
-            // HDFS에 CSV 데이터 저장 - 헤더도 ElasticSearch 문서 필드와 동일하게 설정
-            List<String> headers = Arrays.asList(
-                    "mysql_id", "management_id", "name", "color", "found_at",
-                    "status", "location", "stored_at", "phone", "detail",
-                    "image", "image_hdfs", "latitude", "longitude",
-                    "category_major", "category_minor", "created_at"
-            );
-
-            try {
-                boolean csvSuccess = hadoopService.appendToCsv(hadoopService.getFoundCsvPath(), records, headers);
-                log.info("HDFS CSV 저장 결과: {}", csvSuccess);
-            } catch (Exception e) {
-                log.error("HDFS CSV 저장 중 오류 발생: {}", e.getMessage());
-            }
-        } catch (Exception e) {
-            log.error("HDFS/Elasticsearch 데이터 준비 중 오류 발생: {}", e.getMessage(), e);
         }
 
         return foundItemMapper.toResponse(savedItem);
@@ -319,6 +248,7 @@ public class FoundItemService {
 
     @Transactional
     public void deleteFoundItem(Integer userId, Integer foundId) {
+        System.out.println("userId"+userId);
 
         FoundItem foundItem = foundItemRepository.findById(foundId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
@@ -354,6 +284,7 @@ public class FoundItemService {
     @Transactional(readOnly = true)
     public List<FoundItemDetailResponse> getMyFoundItems(int userId) {
         List<FoundItem> foundItems = foundItemRepository.findAllByUserId(userId);
+
         return foundItems.stream()
                 .map(foundItemMapper::toDetailResponse)
                 .collect(Collectors.toList());
@@ -376,5 +307,36 @@ public class FoundItemService {
         return foundItemRepository.findByFoundAtAndStatus(LocalDate.now().minusDays(daysAgo), FoundItemStatus.STORED);
     }
 
+    public FoundItemTestResponse test() {
+        FoundItem item = foundItemRepository.findById(1).get();
+
+        FoundItemTestResponse response = new FoundItemTestResponse();
+        response.setId(item.getId());
+        response.setName(item.getName());
+        response.setFoundAt(item.getFoundAt());
+        response.setColor(item.getColor());
+        response.setStatus(item.getStatus().toString());
+        response.setImage(null);
+        response.setStoredAt(item.getStoredAt());
+        response.setCreatedAt(item.getCreatedAt());
+        response.setUpdatedAt(item.getUpdatedAt());
+        response.setLatitude(item.getCoordinates().getX());
+        response.setLongitude(item.getCoordinates().getY());
+
+        // 카테고리 처리: 부모가 있으면 부모는 major, 현재 카테고리는 minor, 없으면 major만 설정
+        if (item.getItemCategory() != null) {
+            if (item.getItemCategory().getItemCategory() != null) {
+                // 부모 카테고리가 있는 경우
+                response.setMajorCategory(item.getItemCategory().getItemCategory().getName());
+                response.setMinorCategory(item.getItemCategory().getName());
+            } else {
+                // 부모 카테고리가 없는 경우: 현재 카테고리가 major로 간주
+                response.setMajorCategory(item.getItemCategory().getName());
+                response.setMinorCategory(null);
+            }
+        }
+
+        return response;
+    }
 }
 
