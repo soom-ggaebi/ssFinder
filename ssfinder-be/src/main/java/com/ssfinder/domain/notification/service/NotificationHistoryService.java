@@ -5,6 +5,8 @@ import com.ssfinder.domain.notification.dto.response.NotificationSliceResponse;
 import com.ssfinder.domain.notification.entity.NotificationHistory;
 import com.ssfinder.domain.notification.entity.NotificationType;
 import com.ssfinder.domain.notification.repository.NotificationHistoryRepository;
+import com.ssfinder.domain.user.entity.User;
+import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -37,11 +39,24 @@ import java.util.Objects;
 public class NotificationHistoryService {
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final NotificationMapper notificationMapper;
+    private final UserService userService;
 
-    public NotificationHistory saveNotificationHistory(NotificationHistory notificationHistory) {
+    public NotificationHistory saveNotificationHistory(Integer userId, NotificationType type, String title, String body) {
+        log.info("[알림 이력 추가] userId: {}, type: {}, body: {}", userId, type.name(), body);
+
+        User user = userService.getReferenceById(userId);
+
+        NotificationHistory notificationHistory = NotificationHistory.builder()
+                .user(user)
+                .title(title)
+                .type(type)
+                .body(body)
+                .build();
+
         return notificationHistoryRepository.save(notificationHistory);
     }
 
+    @Transactional(readOnly = true)
     public NotificationSliceResponse getNotificationHistory(Integer userId, NotificationType notificationType, int page, int size, Integer lastId) {
         Slice<NotificationHistory> slice = null;
 
@@ -54,6 +69,7 @@ public class NotificationHistoryService {
         return notificationMapper.toNotificationSliceResponse(slice);
     }
 
+    @Transactional(readOnly = true)
     public Slice<NotificationHistory> getNotificationHistoryAfterLastId(Integer userId, NotificationType notificationType, int lastId, Pageable pageable) {
         NotificationHistory lastNotification = notificationHistoryRepository.findById(lastId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOTIFICATION_HISTORY_NOT_FOUND));

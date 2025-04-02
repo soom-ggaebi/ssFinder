@@ -1,13 +1,10 @@
 package com.ssfinder.domain.notification.event;
 
-import com.ssfinder.domain.notification.entity.NotificationHistory;
 import com.ssfinder.domain.notification.service.NotificationHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * packageName    : com.ssfinder.domain.notification.event<br>
@@ -30,14 +27,7 @@ public class NotificationHistoryEventListener {
 
     @EventListener
     public void handleNotificationHistoryEvent(NotificationHistoryEvent event) {
-        log.info("[알림 이력 추가] {}", event.toString());
-        NotificationHistory notificationHistory = NotificationHistory.builder()
-                .user(event.getUser())
-                .title(event.getTitle())
-                .type(event.getType())
-                .body(event.getBody())
-                .build();
-        notificationHistoryService.saveNotificationHistory(notificationHistory);
+        notificationHistoryService.saveNotificationHistory(event.getUserId(), event.getType(), event.getTitle(), event.getBody());
     }
 
 }
