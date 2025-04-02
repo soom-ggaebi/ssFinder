@@ -8,7 +8,7 @@ router = APIRouter()
 
 # 분석기 가져오기
 def get_analyzer():
-    from app.main import analyzer
+    from main import analyzer
     if not analyzer:
         raise HTTPException(status_code=500, detail="분석기가 초기화되지 않았습니다.")
     
