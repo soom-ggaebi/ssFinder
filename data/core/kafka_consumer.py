@@ -133,11 +133,11 @@ def get_or_create_category(category_name, parent_id, level):
 def insert_into_mysql(message):
     conn = None
     try:
-        logger.debug(f"MySQL 연결 시도: {DB_HOST}:{DB_PORT}")
-        conn = get_db_connection()
-        logger.debug("MySQL 연결 성공")
-        
         management_id = message.get('management_id')
+        logger.info(f"MySQL 연결 시도: {DB_HOST}:{DB_PORT} (management_id={management_id})")
+        conn = get_db_connection()
+        logger.info(f"MySQL 연결 성공 (management_id={management_id})")
+        
         if not management_id:
             logger.error("management_id가 없어 MySQL에 저장할 수 없습니다.")
             return None
@@ -154,43 +154,64 @@ def insert_into_mysql(message):
             message['status'] = 'STORED'
             logger.warning(f"{management_id}: 상태가 없어 기본값 설정")
         
-        with conn.cursor() as cursor:
-            select_sql = "SELECT id FROM found_item WHERE management_id = %s"
-            cursor.execute(select_sql, (management_id,))
-            row = cursor.fetchone()
-            if row:
-                logger.info(f"이미 존재하는 관리번호: {management_id}, mysql_id: {row['id']}")
-                message['mysql_id'] = row['id']
-                return row['id']
+        try:
+            with conn.cursor() as cursor:
+                select_sql = "SELECT id FROM found_item WHERE management_id = %s"
+                logger.info(f"중복 확인 SQL 실행 (management_id={management_id}): {select_sql}")
+                cursor.execute(select_sql, (management_id,))
+                row = cursor.fetchone()
+                if row:
+                    logger.info(f"이미 존재하는 관리번호: {management_id}, mysql_id: {row['id']}")
+                    message['mysql_id'] = row['id']
+                    return row['id']
+                logger.info(f"중복 확인 완료: 신규 레코드 (management_id={management_id})")
+        except Exception as e:
+            logger.error(f"중복 확인 중 오류 발생 ({management_id}): {e}")
+            import traceback
+            logger.error(f"상세 오류: {traceback.format_exc()}")
+            raise
 
+        logger.info(f"카테고리 처리 시작 (management_id={management_id})")
         category_id = None
         try:
             prdtClNm = message.get('prdtClNm', '')
             if prdtClNm:
+                logger.info(f"상품 카테고리: {prdtClNm} (management_id={management_id})")
                 category_parts = [part.strip() for part in prdtClNm.split('>') if part.strip()]
                 if category_parts:
                     parent_name = category_parts[0]
+                    logger.info(f"상위 카테고리 조회/생성: {parent_name} (management_id={management_id})")
                     parent_id = get_or_create_category(parent_name, None, "MAJOR")
+                    logger.info(f"상위 카테고리 ID: {parent_id} (management_id={management_id})")
                     message['category_major'] = parent_name
                     if len(category_parts) > 1:
                         child_name = category_parts[1]
+                        logger.info(f"하위 카테고리 조회/생성: {child_name} (parent_id={parent_id}, management_id={management_id})")
                         category_id = get_or_create_category(child_name, parent_id, "MINOR")
+                        logger.info(f"하위 카테고리 ID: {category_id} (management_id={management_id})")
                         message['category_minor'] = child_name
                     else:
                         message['category_minor'] = None
                         category_id = parent_id
+                        logger.info(f"하위 카테고리 없음, 상위 카테고리 ID 사용: {category_id} (management_id={management_id})")
         except Exception as e:
             logger.error(f"카테고리 처리 에러 ({management_id}): {e}")
+            import traceback
+            logger.error(f"상세 오류: {traceback.format_exc()}")
+            logger.info(f"기본 카테고리 조회 시도 (management_id={management_id})")
             category_id = get_default_category_id(conn)
-            logger.info(f"기본 카테고리({category_id})를 사용합니다.")
+            logger.info(f"기본 카테고리({category_id})를 사용합니다. (management_id={management_id})")
         
         if category_id is None:
+            logger.info(f"카테고리 ID가 없어 기본 카테고리 조회 시도 (management_id={management_id})")
             category_id = get_default_category_id(conn)
-            logger.info(f"카테고리 ID가 없어 기본 카테고리({category_id})를 사용합니다.")
+            logger.info(f"카테고리 ID가 없어 기본 카테고리({category_id})를 사용합니다. (management_id={management_id})")
             
+        logger.info(f"위치 정보 처리 시작 (management_id={management_id})")
         latitude = message.get('latitude')
         longitude = message.get('longitude')
         
+        logger.info(f"원본 위도/경도: {latitude}, {longitude} (management_id={management_id})")
         if latitude is not None and longitude is not None:
             if abs(latitude) > 90:
                 temp = latitude
@@ -198,19 +219,22 @@ def insert_into_mysql(message):
                 longitude = temp
                 message['latitude'] = latitude
                 message['longitude'] = longitude
-                logger.warning(f"SQL 실행 전 위도/경도 교정: 위도={latitude}, 경도={longitude}")
+                logger.warning(f"SQL 실행 전 위도/경도 교정: 위도={latitude}, 경도={longitude} (management_id={management_id})")
             
             if abs(latitude) > 90 or abs(longitude) > 180:
-                logger.warning(f"최종 위도/경도({latitude}, {longitude})가 유효하지 않아 기본값으로 설정")
+                logger.warning(f"최종 위도/경도({latitude}, {longitude})가 유효하지 않아 기본값으로 설정 (management_id={management_id})")
                 latitude = 37.5665
                 longitude = 126.9780
                 message['latitude'] = latitude
                 message['longitude'] = longitude
         else:
+            logger.warning(f"위도/경도 정보 없음, 기본값 설정 (management_id={management_id})")
             latitude = 37.5665
             longitude = 126.9780
             message['latitude'] = latitude
             message['longitude'] = longitude
+        
+        logger.info(f"최종 위도/경도: {latitude}, {longitude} (management_id={management_id})")
 
         try:
             with conn.cursor() as cursor:
@@ -219,7 +243,7 @@ def insert_into_mysql(message):
                     (management_id, name, color, stored_at, image, found_at, item_category_id, status, location, coordinates, phone, detail, created_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, ST_PointFromText(CONCAT('POINT(', %s, ' ', %s, ')'), 4326), %s, %s, %s)
                 """
-                cursor.execute(sql, (
+                params = (
                     message.get('management_id'),
                     message.get('name'),
                     message.get('color'),
@@ -234,12 +258,44 @@ def insert_into_mysql(message):
                     message.get('phone'),
                     message.get('detail'),
                     datetime.utcnow()
-                ))
-                auto_id = cursor.lastrowid
-            logger.debug(f"MySQL commit 시도: {management_id}")
-            conn.commit()
+                )
+                
+                # 로그 메시지가 너무 길어지지 않도록 일부 내용만 로깅
+                param_log = f"management_id={params[0]}, name={params[1]}, category_id={params[6]}, status={params[7]}, lat={params[9]}, lon={params[10]}"
+                logger.info(f"SQL 실행 시도 (management_id={management_id}): {sql}")
+                logger.info(f"SQL 파라미터 주요 정보: {param_log}")
+                
+                try:
+                    cursor.execute(sql, params)
+                    auto_id = cursor.lastrowid
+                    logger.info(f"SQL 실행 성공, lastrowid={auto_id} (management_id={management_id})")
+                except Exception as sql_error:
+                    logger.error(f"SQL 실행 오류 ({management_id}): {sql_error}")
+                    import traceback
+                    logger.error(f"SQL 오류 상세: {traceback.format_exc()}")
+                    # SQL 예외 정보 더 자세히 로깅
+                    if hasattr(sql_error, 'args'):
+                        logger.error(f"SQL 오류 인자: {sql_error.args}")
+                    raise
+            
+            logger.info(f"MySQL commit 시도 (management_id={management_id})")
+            try:
+                conn.commit()
+                logger.info(f"MySQL commit 성공 (management_id={management_id})")
+            except Exception as commit_error:
+                logger.error(f"MySQL commit 오류 ({management_id}): {commit_error}")
+                import traceback
+                logger.error(f"Commit 오류 상세: {traceback.format_exc()}")
+                if conn:
+                    try:
+                        conn.rollback()
+                        logger.info(f"MySQL 롤백 완료 (commit 실패로 인한): {management_id}")
+                    except Exception as rollback_error:
+                        logger.error(f"MySQL 롤백 실패: {rollback_error}")
+                raise commit_error
+            
             message['mysql_id'] = auto_id
-            logger.info(f"MySQL 저장 성공: management_id={management_id}, id={auto_id}")
+            logger.info(f"MySQL 저장 완료: management_id={management_id}, id={auto_id}")
             return auto_id
         except Exception as e:
             logger.error(f"데이터 삽입 에러 ({management_id}): {e}")
@@ -248,9 +304,9 @@ def insert_into_mysql(message):
             if conn:
                 try:
                     conn.rollback()
-                    logger.debug(f"MySQL 롤백 완료: {management_id}")
-                except:
-                    pass
+                    logger.info(f"MySQL 롤백 완료: {management_id}")
+                except Exception as rollback_error:
+                    logger.error(f"MySQL 롤백 실패: {rollback_error}")
             raise
     except Exception as e:
         logger.error(f"MySQL 저장 에러: {e}")
@@ -259,15 +315,17 @@ def insert_into_mysql(message):
         if conn:
             try:
                 conn.rollback()
-            except:
-                pass
+                logger.info(f"최상위 예외 처리에서 롤백 완료")
+            except Exception as rollback_error:
+                logger.error(f"최상위 예외 처리에서 롤백 실패: {rollback_error}")
         raise
     finally:
         if conn:
             try:
                 conn.close()
-            except:
-                pass
+                logger.info(f"MySQL 연결 닫힘 (management_id={management_id if 'management_id' in message else 'unknown'})")
+            except Exception as conn_close_error:
+                logger.error(f"MySQL 연결 닫기 실패: {conn_close_error}")
 
 def prepare_message_for_elasticsearch(message):
     if 'mysql_id' in message and message['mysql_id'] is not None:
@@ -325,7 +383,7 @@ def flush_es_bulk():
         doc_id = message.get('mysql_id') if message.get('mysql_id') is not None else message.get('management_id')
         doc_id = str(doc_id)
         actions.append({
-            "_op_type": "index",  
+            "_op_type": "index",  # 문서가 이미 존재하면 실패합니다.
             "_index": ES_INDEX,
             "_id": doc_id,
             "_source": message
