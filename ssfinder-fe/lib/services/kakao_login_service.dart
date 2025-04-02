@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:sumsumfinder/config/environment_config.dart';
 
 class KakaoLoginService {
   // 싱글톤 패턴 구현
@@ -36,8 +37,8 @@ class KakaoLoginService {
   final _storage = const FlutterSecureStorage();
 
   // 백엔드 URL 가져오기
-  String get _backendUrl =>
-      dotenv.env['BACKEND_URL'] ?? 'https://ssfinder.site';
+  // String get _backendUrl => dotenv.env['BACKEND_URL'] ?? '';
+  String _backendUrl = EnvironmentConfig.baseUrl;
 
   // KakaoLoginService 클래스에 추가할 메서드들
 
