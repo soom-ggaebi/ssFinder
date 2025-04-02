@@ -60,7 +60,7 @@ public class ChatService {
     }
 
     private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {
-        if(!chatRoomService.isInChatRoom(userId, chatRoomId)) {
+        if(!chatRoomService.isInChatRoom(chatRoomId, userId)) {
             throw new CustomException(ErrorCode.CHAT_ROOM_ACCESS_DENIED);
         }
     }
