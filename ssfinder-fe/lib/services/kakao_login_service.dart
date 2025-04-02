@@ -355,6 +355,10 @@ class KakaoLoginService {
         return false;
       }
 
+      // JWT 토큰 출력 (이 부분을 추가)
+      final jwtToken = await getAccessToken();
+      print('백엔드 JWT 토큰: $jwtToken');
+
       print('로그인 및 백엔드 인증 완료: ${authResult['result_type']}');
       return true;
     } catch (e) {
