@@ -20,55 +20,58 @@ public class FoundItemDocument {
     @Id
     private String id;
 
-    @Field(type = FieldType.Keyword)
+    @Field(name = "mysql_id", type = FieldType.Keyword)
     private String mysqlId;
 
-    @Field(type = FieldType.Keyword)
+    @Field(name = "user_id", type = FieldType.Keyword)
+    private String userId;
+
+    @Field(name = "management_id", type = FieldType.Keyword)
     private String managementId;
 
-    @Field(type = FieldType.Text, analyzer = "standard")
+    @Field(name = "name", type = FieldType.Text, analyzer = "standard")
     private String name;
 
-    @Field(type = FieldType.Keyword)
+    @Field(name = "color", type = FieldType.Keyword)
     private String color;
 
-    @Field(type = FieldType.Date)
+    @Field(name = "found_at", type = FieldType.Date)
     private String foundAt;
 
-    @Field(type = FieldType.Keyword)
+    @Field(name = "status", type = FieldType.Keyword)
     private String status;
 
-    @Field(type = FieldType.Text)
+    @Field(name = "location", type = FieldType.Text)
     private String location;
 
-    @Field(type = FieldType.Keyword)
+    @Field(name = "phone", type = FieldType.Keyword)
     private String phone;
 
-    @Field(type = FieldType.Text)
+    @Field(name = "detail", type = FieldType.Text)
     private String detail;
 
-    @Field(type = FieldType.Keyword)
+    @Field(name = "image", type = FieldType.Keyword)
     private String image;
 
-    @Field(type = FieldType.Keyword)
+    @Field(name = "image_hdfs", type = FieldType.Keyword)
     private String imageHdfs;
 
-    @Field(type = FieldType.Text)
+    @Field(name = "stored_at", type = FieldType.Text)
     private String storedAt;
 
-    @Field(type = FieldType.Double)
+    @Field(name = "latitude", type = FieldType.Double)
     private Double latitude;
 
-    @Field(type = FieldType.Double)
+    @Field(name = "longitude", type = FieldType.Double)
     private Double longitude;
 
-    @Field(type = FieldType.Keyword)
+    @Field(name = "category_major", type = FieldType.Keyword)
     private String categoryMajor;
 
-    @Field(type = FieldType.Keyword)
+    @Field(name = "category_minor", type = FieldType.Keyword)
     private String categoryMinor;
 
     @GeoPointField
+    @Field(name = "location_geo")
     private GeoPoint locationGeo;
-
 }

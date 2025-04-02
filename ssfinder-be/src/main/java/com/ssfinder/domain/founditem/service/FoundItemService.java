@@ -1,5 +1,6 @@
 package com.ssfinder.domain.founditem.service;
 
+import com.ssfinder.domain.founditem.dto.mapper.FoundItemDocumentMapper;
 import com.ssfinder.domain.founditem.dto.mapper.FoundItemMapper;
 import com.ssfinder.domain.founditem.dto.request.FoundItemRegisterRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemStatusUpdateRequest;
@@ -7,6 +8,7 @@ import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
 import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.entity.FoundItem;
+import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
 import com.ssfinder.domain.founditem.repository.FoundItemRepository;
 import com.ssfinder.domain.item.entity.ItemCategory;
@@ -29,11 +31,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.geo.GeoPoint;
+import org.springframework.data.elasticsearch.core.query.Criteria;
+import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -65,6 +73,8 @@ public class FoundItemService {
     private final HadoopService hadoopService;
     private final ElasticsearchService elasticsearchService;
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+    private final ElasticsearchOperations elasticsearchOperations;
+    private final FoundItemDocumentMapper foundItemDocumentMapper;
 
     @Transactional
     public FoundItemRegisterResponse registerFoundItem(int userId, FoundItemRegisterRequest requestDTO) {
@@ -212,7 +222,7 @@ public class FoundItemService {
     }
 
     @Transactional
-    public FoundItemUpdateResponse updateFoundItem(Integer userId, Integer foundId, FoundItemUpdateRequest updateRequest) throws IOException {
+    public FoundItemUpdateResponse updateFoundItem(int userId, int foundId, FoundItemUpdateRequest updateRequest) throws IOException {
 
         FoundItem foundItem = foundItemRepository.findById(foundId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
@@ -247,25 +257,22 @@ public class FoundItemService {
     }
 
     @Transactional
-    public void deleteFoundItem(Integer userId, Integer foundId) {
-        System.out.println("userId"+userId);
+    public void deleteFoundItem(int userId, int foundId) {
 
         FoundItem foundItem = foundItemRepository.findById(foundId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
 
-        if(!foundItem.getUser().getId().equals(userId)) {
+        if(foundItem.getUser().getId()!=userId) {
             throw new CustomException(ErrorCode.FOUND_ITEM_ACCESS_DENIED);
         }
-
         if (Objects.nonNull(foundItem.getImage())) {
             s3Service.deleteFile(foundItem.getImage());
         }
-
         foundItemRepository.delete(foundItem);
     }
 
     @Transactional
-    public FoundItemStatusUpdateResponse updateFoundItemStatus(int userId, Integer foundId, FoundItemStatusUpdateRequest request) {
+    public FoundItemStatusUpdateResponse updateFoundItemStatus(int userId, int foundId, FoundItemStatusUpdateRequest request) {
 
         FoundItem foundItem = foundItemRepository.findById(foundId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
@@ -290,18 +297,76 @@ public class FoundItemService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public List<FoundItemDetailResponse> getFoundItemsByViewport(FoundItemViewportRequest viewportRequest) {
-        List<FoundItem> foundItems = foundItemRepository.findByCoordinatesWithin(
-                viewportRequest.getMinLatitude(),
-                viewportRequest.getMinLongitude(),
-                viewportRequest.getMaxLatitude(),
-                viewportRequest.getMaxLongitude());
+    // mysql 조회
+//    @Transactional(readOnly = true)
+//    public List<FoundItemDetailResponse> getFoundItemsByViewport(FoundItemViewportRequest viewportRequest) {
+//        List<FoundItem> foundItems = foundItemRepository.findByCoordinatesWithin(
+//                viewportRequest.getMinLatitude(),
+//                viewportRequest.getMinLongitude(),
+//                viewportRequest.getMaxLatitude(),
+//                viewportRequest.getMaxLongitude());
+//
+//        return foundItems.stream()
+//                .map(foundItemMapper::toDetailResponse)
+//                .collect(Collectors.toList());
+//    }
 
-        return foundItems.stream()
-                .map(foundItemMapper::toDetailResponse)
-                .collect(Collectors.toList());
+    // elasticsearch 조회
+    @Transactional(readOnly = true)
+    public List<FoundItemDocumentDetailResponse> getFoundItemsByViewport(FoundItemViewportRequest viewportRequest) {
+        // latitude 범위 조건 (예: minLatitude ~ maxLatitude)
+        Criteria latCriteria = new Criteria("location_geo.lat")
+                .between(viewportRequest.getMinLatitude(), viewportRequest.getMaxLatitude());
+
+        // longitude 범위 조건 (예: minLongitude ~ maxLongitude)
+        Criteria lonCriteria = new Criteria("location_geo.lon")
+                .between(viewportRequest.getMinLongitude(), viewportRequest.getMaxLongitude());
+
+        // 두 조건을 AND 결합
+        Criteria criteria = latCriteria.and(lonCriteria);
+        CriteriaQuery query = new CriteriaQuery(criteria);
+
+        // 쿼리 실행
+        SearchHits<FoundItemDocument> searchHits = elasticsearchOperations.search(query, FoundItemDocument.class);
+
+        return searchHits.getSearchHits().stream().map(hit -> {
+            FoundItemDocument doc = hit.getContent();
+            FoundItemDocumentDetailResponse response = new FoundItemDocumentDetailResponse();
+
+            response.setId(doc.getMysqlId());
+            response.setUserId(doc.getUserId());
+            response.setMajorCategory(doc.getCategoryMajor());
+            response.setMinorCategory(doc.getCategoryMinor());
+            response.setName(doc.getName());
+            response.setColor(doc.getColor());
+            response.setStatus(doc.getStatus());
+            response.setLocation(doc.getLocation());
+            response.setPhone(doc.getPhone());
+            response.setDetail(doc.getDetail());
+            response.setImage(doc.getImage());
+            response.setStoredAt(doc.getStoredAt());
+            response.setLatitude(doc.getLatitude());
+            response.setLongitude(doc.getLongitude());
+            response.setManagementId(doc.getManagementId());
+
+            // foundAt 문자열의 처음 10자를 LocalDate로 파싱
+            if (doc.getFoundAt() != null && doc.getFoundAt().length() >= 10) {
+                try {
+                    response.setFoundAt(LocalDate.parse(doc.getFoundAt().substring(0, 10)));
+                } catch (DateTimeParseException e) {
+                    response.setFoundAt(null);
+                }
+            } else {
+                response.setFoundAt(null);
+            }
+
+            response.setCreatedAt(null);
+            response.setUpdatedAt(null);
+
+            return response;
+        }).collect(Collectors.toList());
     }
+
 
     public List<FoundItem> getStoredItemsFoundDaysAgo(int daysAgo) {
         return foundItemRepository.findByFoundAtAndStatus(LocalDate.now().minusDays(daysAgo), FoundItemStatus.STORED);

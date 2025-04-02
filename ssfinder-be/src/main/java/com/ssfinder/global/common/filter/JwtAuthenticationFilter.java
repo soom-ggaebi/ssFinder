@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,16 +31,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     private static final String[] AllowUrls = new String[]{
-            "/api/auth/", "/ws/", "/app/", "/api/found-items/"
+            "/api/auth/", "/ws/", "/app/"
     };
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String uri = request.getRequestURI();
+        String method = request.getMethod();
         // JWT 검증 제외
         if (Arrays.stream(AllowUrls).anyMatch(uri::startsWith) && !request.getRequestURI().equals("/api/auth/logout")) {
             filterChain.doFilter(request, response);
             return;
+        }
+
+        if (uri.startsWith("/api/found-items/")) {
+            if (uri.equals("/api/found-items/view") && HttpMethod.GET.matches(method)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            if (uri.matches("/api/found-items/\\d+") && HttpMethod.GET.matches(method)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
         }
 
         String authHeader = request.getHeader("Authorization");

@@ -40,8 +40,8 @@ public class FoundItemController {
     private final FoundItemBookmarkService foundItemBookmarkService;
 
     @GetMapping("/view")
-    public ApiResponse<List<FoundItemDetailResponse>> getFoundAll(@Valid @RequestBody FoundItemViewportRequest viewportRequest) {
-        List<FoundItemDetailResponse> response = foundItemService.getFoundItemsByViewport(viewportRequest);
+    public ApiResponse<List<FoundItemDocumentDetailResponse>> getFoundAll(@Valid @RequestBody FoundItemViewportRequest viewportRequest) {
+        List<FoundItemDocumentDetailResponse> response = foundItemService.getFoundItemsByViewport(viewportRequest);
         return ApiResponse.ok(response);
     }
 
@@ -69,7 +69,6 @@ public class FoundItemController {
     @DeleteMapping("/{foundId}")
     public ApiResponse<?> deleteFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
                                           @PathVariable @Min(1) int foundId) {
-        System.out.println("userId"+userDetails.getUserId());
         foundItemService.deleteFoundItem(userDetails.getUserId(), foundId);
         return ApiResponse.noContent();
     }

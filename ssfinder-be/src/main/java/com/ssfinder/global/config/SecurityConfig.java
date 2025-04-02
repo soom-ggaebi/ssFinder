@@ -7,6 +7,7 @@ import com.ssfinder.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -29,7 +30,7 @@ public class SecurityConfig {
     public static final String[] allowUrls = {
             "/", "/api/auth/**", "/swagger-ui/**", "/swagger-ui.html",
             "/v3/api-docs/**", "/swagger-resources/**", "/error",
-            "/agarang", "/ws/**", "/app/**", "/api/found-items/**"
+            "/agarang", "/ws/**", "/app/**"
     };
 
     private final JwtUtil jwtUtil;
@@ -55,6 +56,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(allowUrls).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/found-items/view").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/found-items/{foundId}").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
