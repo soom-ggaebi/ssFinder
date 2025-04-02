@@ -2,7 +2,7 @@ import torch
 from PIL import Image
 from transformers import BlipProcessor, BlipForConditionalGeneration, BlipForQuestionAnswering
 from typing import Dict, List, Any
-from app.models.translator import Translator
+from models.translator import Translator
 from config import config
 
 # 이미지 분석 및 캡셔닝
