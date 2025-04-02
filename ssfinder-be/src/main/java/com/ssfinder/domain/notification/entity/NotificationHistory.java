@@ -3,6 +3,8 @@ package com.ssfinder.domain.notification.entity;
 import com.ssfinder.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -25,6 +27,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class NotificationHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,6 +53,7 @@ public class NotificationHistory {
     private boolean isRead = false;
 
     @Column(name = "send_at", nullable = false)
+    @CreatedDate
     private LocalDateTime sendAt;
 
     @Column(name = "read_at")
