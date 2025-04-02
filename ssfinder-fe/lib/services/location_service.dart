@@ -1,10 +1,10 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'dart:developer' as developer;
 import './notification_service.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// 위치 데이터 저장에 필요한 상수들
 class LocationConstants {
@@ -223,7 +223,7 @@ class LocationTaskHandler extends TaskHandler {
 
     await _locationBox!.add(locationData);
 
-    // 마지막 저장 이후 10분 이상 경과 시 날씨 알림을 전송합니다.
+    // 이동을 시작할 때, 마지막 저장 이후 10분 이상 경과 시 날씨 알림을 전송합니다.
     if (_lastSavedTime != null) {
       final minutesSinceLastSave = now.difference(_lastSavedTime!).inMinutes;
       if (minutesSinceLastSave >= 10) {
