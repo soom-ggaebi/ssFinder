@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'dart:developer' as developer;
 import './notification_service.dart';
+import './location_api_service.dart';
 
 /// 위치 데이터 저장에 필요한 상수들
 class LocationConstants {
@@ -49,6 +50,32 @@ class LocationData {
   @override
   String toString() =>
       'LocationData(lat: $latitude, lng: $longitude, time: $timestamp)';
+}
+
+// Hive에 데이터를 추가하고, 최대 개수를 초과하면 서버 전송 후 초기화
+Future<void> _addToHiveAndSendIfNeeded(
+  Box<Map<dynamic, dynamic>> box,
+  double latitude,
+  double longitude,
+) async {
+  if (box.length >= LocationConstants.maxLocations) {
+    final route =
+        box.values.map((map) => Map<String, dynamic>.from(map)).toList();
+
+    try {
+      await LocationApiService().sendLocationData(route);
+      await box.clear(); // 데이터 초기화
+    } catch (e) {
+      developer.log('서버 전송 실패: $e', name: 'LocationService');
+      // 실패 시 데이터를 삭제하지 않음
+    }
+  }
+
+  await box.add({
+    'latitude': latitude,
+    'longitude': longitude,
+    'timestamp': DateTime.now().toIso8601String(),
+  });
 }
 
 /// 위치 서비스를 관리하는 클래스
@@ -115,15 +142,7 @@ class LocationService {
   Future<void> saveLocation(double latitude, double longitude) async {
     if (!_isInitialized) await initialize();
 
-    if (locationBox.length >= LocationConstants.maxLocations) {
-      await locationBox.deleteAt(0);
-    }
-
-    await locationBox.add({
-      'latitude': latitude,
-      'longitude': longitude,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
+    await _addToHiveAndSendIfNeeded(locationBox, latitude, longitude);
   }
 
   Future<bool> stopLocationService() async {
@@ -159,6 +178,7 @@ class LocationService {
   Future<void> serverSendLocations() async {
     if (!_isInitialized) await initialize();
 
+    // Hive에 저장된 모든 위치 데이터 가져오기
     List<LocationData> locations = getAllLocations();
     developer.log(
       "저장된 위치 정보 (총 ${locations.length}개):",
@@ -172,6 +192,11 @@ class LocationService {
       );
     }
 
+    // 서버로 데이터 전송
+    final route = locations.map((location) => location.toMap()).toList();
+    await LocationApiService().sendLocationData(route);
+
+    // Hive 데이터 초기화
     await clearAllLocations();
     developer.log("저장된 모든 위치 정보가 삭제되었습니다.", name: 'LocationService');
   }
@@ -210,23 +235,14 @@ class LocationTaskHandler extends TaskHandler {
       return;
     }
 
-    if (_locationBox!.length >= LocationConstants.maxLocations) {
-      await _locationBox!.deleteAt(0);
-    }
-
-    final now = DateTime.now();
-    final locationData = {
-      'latitude': latitude,
-      'longitude': longitude,
-      'timestamp': now.toIso8601String(),
-    };
-
-    await _locationBox!.add(locationData);
+    await _addToHiveAndSendIfNeeded(_locationBox!, latitude, longitude);
 
     // 이동을 시작할 때, 마지막 저장 이후 10분 이상 경과 시 날씨 알림을 전송합니다.
+    final now = DateTime.now();
+
     if (_lastSavedTime != null) {
       final minutesSinceLastSave = now.difference(_lastSavedTime!).inMinutes;
-      if (minutesSinceLastSave >= 10) {
+      if (minutesSinceLastSave >= 30) {
         await NotificationService().showWeatherNotification();
       }
     }
