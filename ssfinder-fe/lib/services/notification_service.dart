@@ -1,4 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import './location_service.dart';
+import './weather_service.dart';
+import './notification_api_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -54,5 +57,42 @@ class NotificationService {
       ),
       payload: payload,
     );
+  }
+
+  Future<void> showWeatherNotification() async {
+    try {
+      String weather;
+
+      // LocationService 인스턴스 가져오기
+      final locationService = LocationService();
+
+      // 현재 위치 가져오기
+      final position = await locationService.getCurrentPosition();
+
+      // 날씨 정보 가져오기
+      final weatherData = await WeatherService.getWeather(
+        position.latitude,
+        position.longitude,
+      );
+
+      final notificationService = NotificationApiService();
+
+      final type = "ITEM_REMINDER";
+      final weatherId = weatherData['weather'][0]['id'];
+
+      if (weatherId >= 500 && weatherId <= 531) {
+        weather = 'RAIN';
+      } else if (weatherId >= 600 && weatherId <= 622) {
+        weather = 'SNOW';
+      } else if ([731, 751, 761].contains(weatherId)) {
+        weather = 'DUSTY';
+      } else {
+        weather = 'DEFAULT';
+      }
+
+      notificationService.postNotification(type: type, weather: weather);
+    } catch (e) {
+      print('날씨 정보를 가져오는 데 실패했습니다: $e');
+    }
   }
 }
