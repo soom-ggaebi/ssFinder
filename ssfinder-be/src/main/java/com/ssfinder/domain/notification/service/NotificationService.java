@@ -4,8 +4,10 @@ import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemService;
 import com.ssfinder.domain.notification.entity.NotificationType;
 import com.ssfinder.domain.notification.entity.WeatherCondition;
+import com.ssfinder.domain.notification.event.NotificationHistoryEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,7 @@ import java.util.Map;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-25          okeio          최초생성<br>
+ * 2025-04-02          okeio          알림 이력 관리를 위한 EventPublisher 추가<br>
  * <br>
  */
 @Slf4j
@@ -35,49 +38,37 @@ public class NotificationService {
     private final FcmMessageService fcmMessageService;
     private final FoundItemService foundItemService;
     private final UserNotificationSettingService userNotificationSettingService;
+    private final ApplicationEventPublisher eventPublisher;
+
+    private final static String NOTIFICATION_TITLE = "숨숨파인더";
 
     // 1. 습득물 게시글 최초 등록일로부터 6일차, 7일차 알림
     @Scheduled(cron = "0 0 10 * * *")
     @Transactional(readOnly = true)
     public void sendFoundItemReminders() {
         log.info("[알림] 습득물 게시글 알림 스케쥴링 시작");
+
         // 6일차 알림 대상 조회
-        List<FoundItem> sixDayItems = foundItemService.getStoredItemsFoundDaysAgo(6);
-        log.info("6일차 Found items: {}", sixDayItems);
-        for (FoundItem item : sixDayItems) {
-            Integer userId = item.getUser().getId();
-
-            // 알림 설정 확인
-            if (userNotificationSettingService.isNotificationDisabledFor(userId, NotificationType.TRANSFER))
-                continue;
-
-            List<String> tokens = fcmTokenService.getFcmTokens(userId);
-            if (!tokens.isEmpty()) {
-                Map<String, String> data = new HashMap<>();
-                data.put("type", NotificationType.TRANSFER.name());
-                data.put("itemId", item.getId().toString());
-
-                fcmMessageService.sendNotificationToUsers(
-                        tokens,
-                        "습득물 알림",
-                        "등록하신 습득물 게시글 '" + item.getName() + "'이 내일이면 7일이 됩니다.",
-                        data
-                );
-            }
-        }
-
+        processFoundItemNotifications(6, "등록하신 습득물 게시글 '%s'이 내일이면 7일이 됩니다.");
         log.info("[알림] 습득물 게시글 6일차 알림 스케쥴링 완료");
 
         // 7일차 알림 대상 조회
-        List<FoundItem> sevenDayItems = foundItemService.getStoredItemsFoundDaysAgo(7);
-        log.info("7일차 Found items: {}", sevenDayItems);
+        processFoundItemNotifications(7, "등록하신 습득물 게시글 '%s'이 오늘로 7일이 되었습니다.");
+        log.info("[알림] 습득물 게시글 7일차 알림 스케쥴링 완료");
+    }
 
-        for (FoundItem item : sevenDayItems) {
+    private void processFoundItemNotifications(int days, String messageTemplate) {
+        List<FoundItem> items = foundItemService.getStoredItemsFoundDaysAgo(days);
+        log.info("[알림] {}일차 Found items: {}", days, items.size());
+
+        for (FoundItem item : items) {
             Integer userId = item.getUser().getId();
 
             // 알림 설정 확인
             if (userNotificationSettingService.isNotificationDisabledFor(userId, NotificationType.TRANSFER))
                 continue;
+
+            String notificationContent = String.format(messageTemplate, item.getName());
 
             List<String> tokens = fcmTokenService.getFcmTokens(userId);
             if (!tokens.isEmpty()) {
@@ -87,14 +78,16 @@ public class NotificationService {
 
                 fcmMessageService.sendNotificationToUsers(
                         tokens,
-                        "습득물 알림",
-                        "등록하신 습득물 게시글 '" + item.getName() + "'이 오늘로 7일이 되었습니다.",
+                        NOTIFICATION_TITLE,
+                        notificationContent,
                         data
                 );
+
+                eventPublisher.publishEvent(new NotificationHistoryEvent(
+                        this, userId, NOTIFICATION_TITLE, notificationContent, NotificationType.TRANSFER
+                ));
             }
         }
-
-        log.info("[알림] 습득물 게시글 7일차 알림 스케쥴링 완료");
     }
 
     // 2. 채팅 알림
@@ -153,10 +146,14 @@ public class NotificationService {
 
             fcmMessageService.sendNotificationToUsers(
                     tokens,
-                    "숨숨 파인더",
+                    NOTIFICATION_TITLE,
                     weatherCondition.getNotificationContent(),
                     data
             );
         }
+
+        eventPublisher.publishEvent(
+                new NotificationHistoryEvent(this, userId, NOTIFICATION_TITLE,
+                        weatherCondition.getNotificationContent(), NotificationType.ITEM_REMINDER));
     }
 }
