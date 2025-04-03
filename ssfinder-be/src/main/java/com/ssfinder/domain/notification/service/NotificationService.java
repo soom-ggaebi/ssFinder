@@ -65,7 +65,7 @@ public class NotificationService {
             Integer userId = item.getUser().getId();
 
             // 알림 설정 확인
-            if (userNotificationSettingService.isNotificationDisabledFor(userId, NotificationType.TRANSFER))
+            if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.TRANSFER))
                 continue;
 
             String notificationContent = String.format(messageTemplate, item.getName());
@@ -94,7 +94,7 @@ public class NotificationService {
     // TODO 채팅 로직에서 채팅 DB 저장 시 트리거
     public void sendChatNotification(Integer userId, String senderName, String message) {
         // 알림 설정 확인
-        if (userNotificationSettingService.isNotificationDisabledFor(userId, NotificationType.CHAT))
+        if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.CHAT))
             return;
 
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
@@ -136,7 +136,7 @@ public class NotificationService {
 
     // 4. 소지품 알림
     public void sendItemReminderNotification(Integer userId, WeatherCondition weatherCondition) {
-        if (userNotificationSettingService.isNotificationDisabledFor(userId, NotificationType.ITEM_REMINDER))
+        if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.ITEM_REMINDER))
             return;
 
         List<String> tokens = fcmTokenService.getFcmTokens(userId);

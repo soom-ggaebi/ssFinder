@@ -19,14 +19,15 @@ import java.util.List;
 
 /**
  * packageName    : com.ssfinder.domain.notification.service<br>
- * fileName       : *.java<br>
+ * fileName       : UserNotificationSettingService.java<br>
  * author         : okeio<br>
  * date           : 2025-03-25<br>
- * description    :  <br>
+ * description    : UserNotificationSetting Entity 와 관련된 Service 클래스입니다. <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-25          okeio           최초생성<br>
+ * 2025-04-03          okeio           알림 ALL 타입 추가<br>
  * <br>
  */
 @Slf4j
@@ -65,18 +66,26 @@ public class UserNotificationSettingService {
             case ITEM_REMINDER:
                 settings.setItemReminderEnabled(settingUpdateRequest.enabled());
                 break;
+            case ALL:
+                settings.setTransferNotificationEnabled(settingUpdateRequest.enabled());
+                settings.setChatNotificationEnabled(settingUpdateRequest.enabled());
+                settings.setAiMatchNotificationEnabled(settingUpdateRequest.enabled());
+                settings.setItemReminderEnabled(settingUpdateRequest.enabled());
+                break;
         }
     }
 
-    public boolean isNotificationDisabledFor(Integer userId, NotificationType notificationType) {
+    public boolean isNotificationEnabledFor(Integer userId, NotificationType notificationType) {
         try {
             UserNotificationSetting settings = getOrCreateSettings(userId);
 
-            return !switch (notificationType) {
+            return switch (notificationType) {
                 case TRANSFER -> settings.isTransferNotificationEnabled();
                 case CHAT -> settings.isChatNotificationEnabled();
                 case AI_MATCH -> settings.isAiMatchNotificationEnabled();
                 case ITEM_REMINDER -> settings.isItemReminderEnabled();
+
+                default -> throw new CustomException(ErrorCode.INVALID_NOTIFICATION_TYPE);
             };
         } catch (CustomException e) {
             if (e.getErrorCode() == ErrorCode.USER_NOT_FOUND) {
