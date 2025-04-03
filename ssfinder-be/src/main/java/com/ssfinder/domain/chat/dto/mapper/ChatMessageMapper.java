@@ -1,6 +1,6 @@
 package com.ssfinder.domain.chat.dto.mapper;
 
-import com.ssfinder.domain.chat.dto.response.MessageSendResponse;
+import com.ssfinder.domain.chat.dto.KafkaChatMessage;
 import com.ssfinder.domain.chat.entity.ChatMessage;
 import org.mapstruct.*;
 
@@ -20,10 +20,8 @@ import org.mapstruct.*;
 public interface ChatMessageMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mappings({
-            @Mapping(source = "chatMessage.senderId", target = "userId"),
-            @Mapping(source = "chatMessage.id", target = "messageId"),
-            @Mapping(source = "nickname", target = "nickname")
+            @Mapping(source = "chatMessage.id", target = "messageId")
     })
-    MessageSendResponse mapToMessageSendResponse(ChatMessage chatMessage, String nickname);
+    KafkaChatMessage mapToMessageSendResponse(ChatMessage chatMessage, String nickname);
 
 }

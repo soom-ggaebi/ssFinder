@@ -1,22 +1,16 @@
 package com.ssfinder.domain.chat.controller;
 
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
-import com.ssfinder.domain.chat.dto.response.MessageSendResponse;
 import com.ssfinder.domain.chat.service.ChatService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.response.ApiResponse;
-import com.ssfinder.global.util.JwtUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.*;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.annotation.SendToUser;
-import org.springframework.messaging.support.ErrorMessage;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
-import java.time.LocalDateTime;
 
 /**
  * packageName    : com.ssfinder.domain.chat.controller<br>
