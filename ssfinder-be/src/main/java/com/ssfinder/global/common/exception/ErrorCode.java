@@ -54,7 +54,8 @@ public enum ErrorCode {
 
     USER_NOTIFICATION_SETTINGS_NOT_FOUND("NOTIFICATION-001", HttpStatus.NOT_FOUND, "알림 설정이 없습니다."),
     NOTIFICATION_HISTORY_NOT_FOUND("NOTIFICATION-002", HttpStatus.NOT_FOUND, "존재하지 않는 알림 이력입니다."),
-    NOTIFICATION_HISTORY_ALREADY_DELETED("NOTIFICATION-003", HttpStatus.CONFLICT, "이미 삭제된 알림 이력입니다.");
+    NOTIFICATION_HISTORY_ALREADY_DELETED("NOTIFICATION-003", HttpStatus.CONFLICT, "이미 삭제된 알림 이력입니다."),
+    INVALID_NOTIFICATION_TYPE("NOTIFICATION-004",HttpStatus.BAD_REQUEST, "이 작업에서 지원되지 않는 알림 타입입니다.");
 
     private final String code;
     private final HttpStatus httpStatus;
