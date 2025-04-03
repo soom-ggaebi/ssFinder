@@ -58,26 +58,26 @@ public class NotificationHistoryService {
     }
 
     @Transactional(readOnly = true)
-    public NotificationSliceResponse getNotificationHistory(Integer userId, NotificationType notificationType, int page, int size, Integer lastId) {
-        Slice<NotificationHistory> slice = null;
-
-        if (Objects.isNull(lastId)) {
-            slice = notificationHistoryRepository.findByUserIdAndTypeAndIsDeletedFalseOrderBySendAtDesc(userId, notificationType, PageRequest.of(page, size));
-        } else {
-            slice = getNotificationHistoryAfterLastId(userId, notificationType, lastId, PageRequest.of(0, size));
-        }
-
+    public NotificationSliceResponse getNotificationHistory(Integer userId, NotificationType type, int page, int size, Integer lastId) {
+        Slice<NotificationHistory> slice = fetchNotifications(userId, type, lastId, page, size);
         return notificationMapper.toNotificationSliceResponse(slice);
     }
 
-    @Transactional(readOnly = true)
-    public Slice<NotificationHistory> getNotificationHistoryAfterLastId(Integer userId, NotificationType notificationType, int lastId, Pageable pageable) {
-        NotificationHistory lastNotification = notificationHistoryRepository.findById(lastId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOTIFICATION_HISTORY_NOT_FOUND));
+    private Slice<NotificationHistory> fetchNotifications(Integer userId, NotificationType type, Integer lastId, int page, int size) {
+        boolean hasType = !Objects.isNull(type);
+        boolean hasLastId = !Objects.isNull(lastId);
 
-        LocalDateTime lastDateTime = lastNotification.getSendAt();
-
-        return notificationHistoryRepository.findByUserIdAndTypeAndIsDeletedFalseAndSendAtLessThanOrderBySendAtDesc(userId, notificationType, lastDateTime, pageable);
+        if (hasType && hasLastId) {
+            return notificationHistoryRepository.findByUserIdAndTypeAndIdLessThanAndIsDeletedFalseOrderBySendAtDesc(userId, type, lastId, PageRequest.of(0, size));
+        } else if (hasType) {
+            return notificationHistoryRepository.findByUserIdAndTypeAndIsDeletedFalseOrderBySendAtDesc(userId, type, PageRequest.of(page, size));
+        } else if (hasLastId) {
+            // type 없이 lastId 이후 불러오는 메서드
+            return notificationHistoryRepository.findByUserIdAndIdLessThanAndIsDeletedFalseOrderBySendAtDesc(userId, lastId, PageRequest.of(0, size));
+        } else {
+            // type 없이 모두 불러오는 메서드
+            return notificationHistoryRepository.findByUserIdAndIsDeletedFalseOrderBySendAtDesc(userId, PageRequest.of(page, size));
+        }
     }
 
     public void deleteNotificationHistory(Integer userId, Integer notificationId) {
