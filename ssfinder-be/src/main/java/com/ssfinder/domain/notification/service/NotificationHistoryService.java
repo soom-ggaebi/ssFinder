@@ -61,7 +61,7 @@ public class NotificationHistoryService {
         Slice<NotificationHistory> slice = null;
 
         if (Objects.isNull(lastId)) {
-            slice = notificationHistoryRepository.findByUserIdAndTypeOrderBySendAtDesc(userId, notificationType, PageRequest.of(page, size));
+            slice = notificationHistoryRepository.findByUserIdAndTypeAndIsDeletedFalseOrderBySendAtDesc(userId, notificationType, PageRequest.of(page, size));
         } else {
             slice = getNotificationHistoryAfterLastId(userId, notificationType, lastId, PageRequest.of(0, size));
         }
@@ -76,7 +76,19 @@ public class NotificationHistoryService {
 
         LocalDateTime lastDateTime = lastNotification.getSendAt();
 
-        return notificationHistoryRepository.findByUserIdAndTypeAndSendAtLessThanOrderBySendAtDesc(userId, notificationType, lastDateTime, pageable);
+        return notificationHistoryRepository.findByUserIdAndTypeAndIsDeletedFalseAndSendAtLessThanOrderBySendAtDesc(userId, notificationType, lastDateTime, pageable);
+    }
+
+    public void deleteNotificationHistory(Integer userId, Integer notificationId) {
+        NotificationHistory notificationHistory = notificationHistoryRepository.findByIdAndUserId(notificationId, userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOTIFICATION_HISTORY_NOT_FOUND));
+
+        if (notificationHistory.getIsDeleted()) {
+            throw new CustomException(ErrorCode.NOTIFICATION_HISTORY_ALREADY_DELETED);
+        }
+
+        notificationHistory.setIsDeleted(true);
+        notificationHistory.setDeletedAt(LocalDateTime.now());
     }
 
 }
