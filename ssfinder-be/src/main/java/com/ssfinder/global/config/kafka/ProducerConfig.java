@@ -1,8 +1,10 @@
 package com.ssfinder.global.config.kafka;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.kafka.common.protocol.Message;
+import com.ssfinder.domain.chat.dto.KafkaChatMessage;
+import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -27,23 +29,29 @@ import java.util.Map;
  */
 @EnableKafka
 @Configuration
+@RequiredArgsConstructor
 public class ProducerConfig {
+
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
     @Bean
-    public ProducerFactory<String, Message> producerFactory() {
+    public ProducerFactory<String, KafkaChatMessage> producerFactory() {
         return new DefaultKafkaProducerFactory<>(producerConfigurations());
     }
 
     @Bean
     public Map<String, Object> producerConfigurations() {
         return ImmutableMap.<String, Object>builder()
-                .put(org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "https://ssfinder.site:9092")
+                .put(org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
                 .put(org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class)
                 .put(org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class)
+                .put(org.apache.kafka.clients.producer.ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, false)
                 .build();
     }
 
     @Bean
-    public KafkaTemplate<String, Message> kafkaTemplate() {
+    public KafkaTemplate<String, KafkaChatMessage> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
 }

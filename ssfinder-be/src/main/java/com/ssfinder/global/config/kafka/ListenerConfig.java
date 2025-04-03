@@ -2,13 +2,15 @@ package com.ssfinder.global.config.kafka;
 
 import com.google.common.collect.ImmutableMap;
 
+import com.ssfinder.domain.chat.dto.KafkaChatMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.protocol.Message;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
@@ -31,22 +33,24 @@ import java.util.Map;
 @Configuration
 public class ListenerConfig {
 
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
     @Bean
-    ConcurrentKafkaListenerContainerFactory<String, Message> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, Message> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
+    public ConcurrentKafkaListenerContainerFactory<String, KafkaChatMessage> chatMessageListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, KafkaChatMessage> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(chatMessageConsumerFactory());
         return factory;
     }
 
     @Bean
-    public DefaultKafkaConsumerFactory consumerFactory() {
-        JsonDeserializer deserializer = new JsonDeserializer();
+    public ConsumerFactory<String, KafkaChatMessage> chatMessageConsumerFactory() {
+        JsonDeserializer<KafkaChatMessage> deserializer = new JsonDeserializer<>();
         deserializer.addTrustedPackages("*");
 
         Map<String, Object> consumerConfigurations =
                 ImmutableMap.<String, Object>builder()
-                        .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "https://ssfinder.site:9092")
-                        .put(ConsumerConfig.GROUP_ID_CONFIG, "ssfinder")
+                        .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
                         .put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class)
                         .put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer)
                         .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
