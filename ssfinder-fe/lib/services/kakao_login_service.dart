@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:sumsumfinder/config/environment_config.dart';
 
 class KakaoLoginService {
   // 싱글톤 패턴 구현
@@ -16,18 +17,28 @@ class KakaoLoginService {
     return _instance;
   }
 
-  KakaoLoginService._internal();
+  KakaoLoginService._internal() {
+    // isLoggedIn 값이 변경될 때마다 onLoginStatusChanged 콜백 호출
+    isLoggedIn.addListener(() {
+      if (onLoginStatusChanged != null) {
+        onLoginStatusChanged!(isLoggedIn.value);
+      }
+    });
+  }
 
   // 로그인 상태를 관리하는 변수
   final ValueNotifier<bool> isLoggedIn = ValueNotifier<bool>(false);
   User? user;
 
+  // 로그인 상태 변화 콜백 (true: 로그인, false: 로그아웃)
+  void Function(bool)? onLoginStatusChanged;
+
   // 토큰 저장을 위한 secure storage
   final _storage = const FlutterSecureStorage();
 
   // 백엔드 URL 가져오기
-  String get _backendUrl =>
-      dotenv.env['BACKEND_URL'] ?? 'https://ssfinder.site';
+  // String get _backendUrl => dotenv.env['BACKEND_URL'] ?? '';
+  String _backendUrl = EnvironmentConfig.baseUrl;
 
   // KakaoLoginService 클래스에 추가할 메서드들
 
@@ -62,7 +73,7 @@ class KakaoLoginService {
         return false;
       }
 
-      // 4. 카카오 API 토큰 확인
+      // 4. 카카오 API 토큰 확인 (선택적)
       try {
         if (await AuthApi.instance.hasToken()) {
           await UserApi.instance.accessTokenInfo();
@@ -164,6 +175,8 @@ class KakaoLoginService {
     try {
       user = await UserApi.instance.me();
       print('사용자 정보 요청 성공: ${user?.kakaoAccount?.profile?.nickname}');
+      final jwtToken = await getAccessToken();
+      print('백엔드 JWT 토큰: $jwtToken');
     } catch (e) {
       print('사용자 정보 요청 실패: $e');
     }
@@ -203,75 +216,7 @@ class KakaoLoginService {
     }
   }
 
-  // FCM 토큰을 캐싱하기 위한 변수 추가
-  String? _cachedFcmToken;
-  DateTime? _fcmTokenTimestamp;
-
-  Future<String?> getFcmToken({bool forceRefresh = false}) async {
-    try {
-      // 캐시된 토큰이 있고, 1시간 이내에 가져온 것이며, 강제 갱신이 아니라면 캐시된 토큰 반환
-      final now = DateTime.now();
-      if (!forceRefresh &&
-          _cachedFcmToken != null &&
-          _fcmTokenTimestamp != null &&
-          now.difference(_fcmTokenTimestamp!).inHours < 1) {
-        print('캐시된 FCM 토큰 반환');
-        return _cachedFcmToken;
-      }
-
-      // 토큰 새로 요청
-      print('FCM 토큰 요청 시작');
-      _cachedFcmToken = await FirebaseMessaging.instance.getToken();
-      _fcmTokenTimestamp = now;
-
-      if (_cachedFcmToken != null) {
-        print('FCM 토큰 획득 성공: ${_cachedFcmToken!.substring(0, 10)}...');
-      } else {
-        print('FCM 토큰이 null입니다');
-      }
-
-      return _cachedFcmToken;
-    } catch (e) {
-      print('FCM 토큰 획득 중 오류 발생: $e');
-      return null;
-    }
-  }
-
-  // FCM 토큰 저장 메서드
-  Future<void> saveFcmToken() async {
-    try {
-      // 토큰이 없으면 가져오기
-      final fcmToken = await getFcmToken();
-
-      if (fcmToken == null) {
-        print('저장할 FCM 토큰이 없습니다.');
-        return;
-      }
-
-      // 로그인 상태가 아니면 저장하지 않음
-      if (!isLoggedIn.value) {
-        print('로그인 상태가 아니어서 FCM 토큰을 저장하지 않습니다.');
-        return;
-      }
-
-      // 백엔드 API 호출
-      final response = await authenticatedRequest(
-        'PATCH',
-        '/api/users/fcm-token',
-        body: {'fcm_token': fcmToken},
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        print('FCM 토큰 저장 성공');
-      } else {
-        print('FCM 토큰 저장 실패: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('FCM 토큰 저장 중 오류 발생: $e');
-    }
-  }
-
-  // 기존의 authenticateWithBackend 메서드에서 FCM 토큰을 가져오는 부분 수정
+  // 백엔드 서버에 카카오 로그인 정보 전송
   Future<Map<String, dynamic>?> authenticateWithBackend() async {
     if (user == null) {
       print('사용자 정보가 없습니다. 먼저 로그인해주세요.');
@@ -280,7 +225,25 @@ class KakaoLoginService {
 
     try {
       // fcm 토큰 가져오기
-      String? fcmToken = await getFcmToken(forceRefresh: true);
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
+
+      // 기존 토큰 확인
+      final existingAccessToken = await getAccessToken();
+      final existingRefreshToken = await getRefreshToken();
+
+      // 기존 토큰이 있고 유효하다면 해당 토큰 사용
+      if (existingAccessToken != null && existingRefreshToken != null) {
+        final isTokenValid = await ensureAuthenticated();
+        if (isTokenValid) {
+          print('기존 토큰 사용');
+          isLoggedIn.value = true;
+          return {
+            'access_token': existingAccessToken,
+            'refresh_token': existingRefreshToken,
+            'result_type': '기존 토큰 유지',
+          };
+        }
+      }
 
       // 성별 정보 변환 (male/female)
       String? gender;
@@ -412,6 +375,10 @@ class KakaoLoginService {
         return false;
       }
 
+      // JWT 토큰 출력 (이 부분을 추가)
+      final jwtToken = await getAccessToken();
+      print('백엔드 JWT 토큰: $jwtToken');
+
       print('로그인 및 백엔드 인증 완료: ${authResult['result_type']}');
       return true;
     } catch (e) {
@@ -432,7 +399,7 @@ class KakaoLoginService {
 
       if (response.statusCode == 204) {
         // 로그아웃 성공 시 저장된 토큰 삭제
-        await _clearTokens();
+        // await _clearTokens();
         return true;
       } else {
         print('백엔드 로그아웃 실패: ${response.statusCode}');
@@ -460,6 +427,10 @@ class KakaoLoginService {
 
       // 2. 카카오 로그아웃 (백엔드 로그아웃 성공 여부와 관계없이 진행)
       await logout();
+
+      // 로그인 상태 false로 변경
+      isLoggedIn.value = false;
+      user = null;
 
       // 백엔드 로그아웃 결과 반환
       return backendLogoutSuccess;
