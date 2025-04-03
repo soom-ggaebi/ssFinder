@@ -18,7 +18,7 @@ class LocationApiService {
       print(requestBody);
 
       final response = await _dio.post(
-        '${EnvironmentConfig.baseUrl}/api/location',
+        '${EnvironmentConfig.baseUrl}/api/users/routes',
         options: Options(
           headers: {
             'Content-Type': 'application/json',
