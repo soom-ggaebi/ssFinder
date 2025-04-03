@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -89,6 +90,14 @@ public class NotificationHistoryService {
 
         notificationHistory.setIsDeleted(true);
         notificationHistory.setDeletedAt(LocalDateTime.now());
+    }
+
+    public void deleteNotificationHistoryAllByType(Integer userId, NotificationType notificationType) {
+        List<NotificationHistory> list = notificationHistoryRepository.findByUserIdAndTypeAndIsDeletedFalse(userId, notificationType);
+        list.forEach(notificationHistory -> {
+            notificationHistory.setIsDeleted(true);
+            notificationHistory.setDeletedAt(LocalDateTime.now());
+        });
     }
 
 }
