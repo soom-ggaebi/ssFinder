@@ -15,9 +15,9 @@ class NotificationApiService {
     return await _secureStorage.read(key: 'access_token');
   }
 
-  // 알림 데이터 가져오기 (GET)
+  // API 호출 메서드 수정 - ALL 타입 지원
   static Future<NotificationResponse> getNotifications({
-    required String type,
+    String? type, // 타입을 필수에서 선택으로 변경
     int page = 0,
     int size = 10,
     int? lastId,
@@ -28,11 +28,15 @@ class NotificationApiService {
         throw Exception('로그인이 필요합니다');
       }
 
-      final queryParams = {
-        'type': type,
+      // 쿼리 파라미터 구성 - type이 제공되는 경우만 추가
+      final queryParams = <String, String>{
         'page': page.toString(),
         'size': size.toString(),
       };
+
+      if (type != null && type != 'ALL') {
+        queryParams['type'] = type;
+      }
 
       if (lastId != null) {
         queryParams['lastId'] = lastId.toString();
@@ -57,7 +61,6 @@ class NotificationApiService {
       if (response.statusCode == 200) {
         return NotificationResponse.fromJson(json.decode(decodedBody));
       } else {
-        // 에러 응답 파싱 시도
         try {
           return NotificationResponse.fromJson(json.decode(decodedBody));
         } catch (e) {
@@ -100,6 +103,79 @@ class NotificationApiService {
     } catch (e) {
       print('알림 전송 중 오류 발생: $e');
       rethrow;
+    }
+  }
+
+  // 특정 타입의 알림 전체 삭제 메서드
+  static Future<bool> deleteAllNotifications(String type) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('로그인이 필요합니다');
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/api/notifications',
+      ).replace(queryParameters: {'type': type});
+
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      // 성공: 204 No Content
+      if (response.statusCode == 204) {
+        return true;
+      } else {
+        print('전체 알림 삭제 실패: HTTP 상태 코드 ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('전체 알림 삭제 중 오류 발생: $e');
+      return false;
+    }
+  }
+
+  // 알림 삭제 메서드
+  static Future<bool> deleteNotification(int notificationId) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('로그인이 필요합니다');
+      }
+
+      final uri = Uri.parse('$baseUrl/api/notifications/$notificationId');
+
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      // 성공: 204 No Content
+      if (response.statusCode == 204) {
+        return true;
+      }
+      // 충돌: 409 Conflict (이미 삭제된 알림)
+      else if (response.statusCode == 409) {
+        final decodedBody = utf8.decode(response.bodyBytes);
+        final errorData = json.decode(decodedBody);
+        print('알림 삭제 실패: ${errorData['error']['message']}');
+        return false;
+      }
+      // 그 외 오류
+      else {
+        print('알림 삭제 실패: HTTP 상태 코드 ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('알림 삭제 중 오류 발생: $e');
+      return false;
     }
   }
 }
