@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sumsumfinder/screens/main/noti_setting_page.dart';
+import 'package:sumsumfinder/screens/main/info_edit_page.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({Key? key}) : super(key: key);
@@ -168,13 +169,11 @@ class _MyPageState extends State<MyPage> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('notifications_enabled', value);
 
-        // 전체 알림이 꺼지면 개별 알림도 모두 끔
-        if (value == false) {
-          await prefs.setBool('notification_TRANSFER', false);
-          await prefs.setBool('notification_CHAT', false);
-          await prefs.setBool('notification_AI_MATCH', false);
-          await prefs.setBool('notification_ITEM_REMINDER', false);
-        }
+        // 개별 알림 설정도 전체 설정과 동일하게 설정
+        await prefs.setBool('notification_TRANSFER', value);
+        await prefs.setBool('notification_CHAT', value);
+        await prefs.setBool('notification_AI_MATCH', value);
+        await prefs.setBool('notification_ITEM_REMINDER', value);
 
         scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('모든 알림 설정이 변경되었습니다.')),
@@ -410,6 +409,11 @@ class _MyPageState extends State<MyPage> {
             ),
             const SizedBox(height: 12),
 
+            // 회원 정보 수정 추가
+            _buildInfoEditSetting(),
+
+            const SizedBox(height: 12),
+
             // 알림 설정 추가
             _buildNotificationSetting(),
 
@@ -462,61 +466,33 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
+  // 회원 정보 수정 설정 위젯
+  Widget _buildInfoEditSetting() {
+    return _buildSettingsItem('회원 정보 수정', Icons.account_box, () {
+      // noti_setting_page.dart로 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => InfoEditPage(kakaoLoginService: _kakaoLoginService),
+        ),
+      );
+    });
+  }
+
   // 알림 설정 위젯
   Widget _buildNotificationSetting() {
-    return GestureDetector(
-      onTap: () {
-        // noti_setting_page.dart로 이동
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) =>
-                    NotificationListPage(kakaoLoginService: _kakaoLoginService),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[200]!),
+    return _buildSettingsItem('알림 설정', Icons.notifications, () {
+      // noti_setting_page.dart로 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) =>
+                  NotificationListPage(kakaoLoginService: _kakaoLoginService),
         ),
-        child: Row(
-          children: [
-            Icon(Icons.notifications, color: Colors.grey[700], size: 20),
-            const SizedBox(width: 12),
-            Text('알림 설정', style: TextStyle(color: Colors.grey[800])),
-            const Spacer(),
-            // 로딩 상태를 관리하는 StatefulBuilder 사용
-            StatefulBuilder(
-              builder: (context, setInnerState) {
-                return Switch(
-                  value: _notificationEnabled,
-                  onChanged: (value) async {
-                    // 스위치 상태 변경 시 로딩 표시
-                    final scaffoldMessenger = ScaffoldMessenger.of(context);
-                    scaffoldMessenger.showSnackBar(
-                      const SnackBar(
-                        content: Text('알림 설정 변경 중...'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-
-                    await _saveNotificationSettings(value);
-                  },
-                  activeColor: Colors.white,
-                  activeTrackColor: const Color(0xFF6750A4),
-                  inactiveThumbColor: Colors.white,
-                  inactiveTrackColor: Colors.grey[300],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+      );
+    });
   }
 
   // 닉네임 가져오기
