@@ -89,4 +89,13 @@ public class NotificationController {
 
         return ApiResponse.ok(notificationHistorySlice);
     }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<?> deleteNotificationHistory(
+            @PathVariable("id") Integer notificationHistoryId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        notificationHistoryService.deleteNotificationHistory(userDetails.getUserId(), notificationHistoryId);
+
+        return ApiResponse.noContent();
+    }
 }
