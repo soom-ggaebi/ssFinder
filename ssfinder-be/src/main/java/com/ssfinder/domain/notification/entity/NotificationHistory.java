@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-04-01          okeio           최초생성<br>
+ * 2025-04-02          okeio           삭제 여부 필드 추가<br>
  * <br>
  */
 @Entity
@@ -48,14 +49,14 @@ public class NotificationHistory {
     @Enumerated(EnumType.STRING)
     private NotificationType type;
 
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean isRead = false;
-
     @Column(name = "send_at", nullable = false)
     @CreatedDate
     private LocalDateTime sendAt;
 
-    @Column(name = "read_at")
-    private LocalDateTime readAt;
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
 }
