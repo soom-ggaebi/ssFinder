@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:sumsumfinder/models/chat_message.dart';
-import 'package:sumsumfinder/widgets/chat/app_bar_widget.dart';
+import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 import 'package:sumsumfinder/widgets/chat/product_info.dart';
 import 'package:sumsumfinder/widgets/chat/info_banner.dart';
 import 'package:sumsumfinder/widgets/chat/date_divider.dart';
@@ -102,6 +102,36 @@ class _ChatScreenState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: CustomAppBar(
+        title: '기어가는 초콜릿',
+        onBackPressed: () {
+          Navigator.pop(context);
+        },
+        onClosePressed: () {
+          // 모든 이전 라우트를 제거하고 홈으로 이동
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        },
+        customActions: [
+          // 더보기 버튼을 customActions에 추가
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: SizedBox(
+                width: 35,
+                height: 35,
+                child: IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () {
+                    // 더보기 버튼 동작
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -110,13 +140,6 @@ class _ChatScreenState extends State<ChatPage> {
         child: SafeArea(
           child: Column(
             children: [
-              ChatAppBar(
-                title: '기어가는 초콜릿',
-                onBackPressed: () {
-                  Navigator.pop(context);
-                },
-                onMorePressed: () {},
-              ),
               ProductInfoWidget(),
               InfoBannerWidget(otherUserId: "기어가는 초콜릿", myId: "기다리는 토마토"),
               DateDividerWidget(date: '3월 23일'),

@@ -175,6 +175,8 @@ class KakaoLoginService {
     try {
       user = await UserApi.instance.me();
       print('사용자 정보 요청 성공: ${user?.kakaoAccount?.profile?.nickname}');
+      final jwtToken = await getAccessToken();
+      print('백엔드 JWT 토큰: $jwtToken');
     } catch (e) {
       print('사용자 정보 요청 실패: $e');
     }
@@ -224,6 +226,24 @@ class KakaoLoginService {
     try {
       // fcm 토큰 가져오기
       String? fcmToken = await FirebaseMessaging.instance.getToken();
+
+      // 기존 토큰 확인
+      final existingAccessToken = await getAccessToken();
+      final existingRefreshToken = await getRefreshToken();
+
+      // 기존 토큰이 있고 유효하다면 해당 토큰 사용
+      if (existingAccessToken != null && existingRefreshToken != null) {
+        final isTokenValid = await ensureAuthenticated();
+        if (isTokenValid) {
+          print('기존 토큰 사용');
+          isLoggedIn.value = true;
+          return {
+            'access_token': existingAccessToken,
+            'refresh_token': existingRefreshToken,
+            'result_type': '기존 토큰 유지',
+          };
+        }
+      }
 
       // 성별 정보 변환 (male/female)
       String? gender;
@@ -379,7 +399,7 @@ class KakaoLoginService {
 
       if (response.statusCode == 204) {
         // 로그아웃 성공 시 저장된 토큰 삭제
-        await _clearTokens();
+        // await _clearTokens();
         return true;
       } else {
         print('백엔드 로그아웃 실패: ${response.statusCode}');
@@ -407,6 +427,10 @@ class KakaoLoginService {
 
       // 2. 카카오 로그아웃 (백엔드 로그아웃 성공 여부와 관계없이 진행)
       await logout();
+
+      // 로그인 상태 false로 변경
+      isLoggedIn.value = false;
+      user = null;
 
       // 백엔드 로그아웃 결과 반환
       return backendLogoutSuccess;
