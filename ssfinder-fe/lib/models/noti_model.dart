@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
 
-// Notification Type Enum
+// 알림 유형 enum 정의
 enum NotificationType { TRANSFER, CHAT, AI_MATCH, ITEM_REMINDER, ALL }
 
 extension NotificationTypeExtension on NotificationType {
   String get apiValue {
-    return name; // Uses the name of the enum directly
+    switch (this) {
+      case NotificationType.TRANSFER:
+        return 'TRANSFER';
+      case NotificationType.CHAT:
+        return 'CHAT';
+      case NotificationType.AI_MATCH:
+        return 'AI_MATCH';
+      case NotificationType.ITEM_REMINDER:
+        return 'ITEM_REMINDER';
+      case NotificationType.ALL:
+        return 'ALL';
+    }
   }
 
   String get displayName {
@@ -39,7 +50,7 @@ extension NotificationTypeExtension on NotificationType {
   }
 }
 
-// API Response Models
+// API 응답 모델
 class NotificationResponse {
   final bool success;
   final NotificationData? data;
@@ -115,13 +126,21 @@ class NotificationItem {
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
     NotificationType type;
-    try {
-      type = NotificationType.values.firstWhere(
-        (e) => e.name == json['type'],
-        orElse: () => NotificationType.ALL,
-      );
-    } catch (_) {
-      type = NotificationType.ALL;
+    switch (json['type']) {
+      case 'TRANSFER':
+        type = NotificationType.TRANSFER;
+        break;
+      case 'CHAT':
+        type = NotificationType.CHAT;
+        break;
+      case 'AI_MATCH':
+        type = NotificationType.AI_MATCH;
+        break;
+      case 'ITEM_REMINDER':
+        type = NotificationType.ITEM_REMINDER;
+        break;
+      default:
+        type = NotificationType.ALL;
     }
 
     return NotificationItem(
@@ -135,8 +154,8 @@ class NotificationItem {
     );
   }
 
-  // Helper method for date formatting
-  String get formattedDate {
+  // 날짜 포맷팅 헬퍼 메서드
+  String getFormattedDate() {
     try {
       final dateTime = DateTime.parse(sendAt);
       final now = DateTime.now();
