@@ -7,6 +7,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -22,11 +23,11 @@ import java.util.Optional;
  * <br>
  */
 public interface NotificationHistoryRepository extends JpaRepository<NotificationHistory, Integer> {
-    // TODO 기존 조회 로직에서 soft delete 체크
     Slice<NotificationHistory> findByUserIdAndTypeAndIsDeletedFalseOrderBySendAtDesc(Integer userId, NotificationType type, Pageable pageable);
 
     Slice<NotificationHistory> findByUserIdAndTypeAndIsDeletedFalseAndSendAtLessThanOrderBySendAtDesc(Integer userId, NotificationType type, LocalDateTime sendAt, Pageable pageable);
 
     Optional<NotificationHistory> findByIdAndUserId(Integer id, Integer userId);
 
+    List<NotificationHistory> findByUserIdAndTypeAndIsDeletedFalse(Integer userId, NotificationType type);
 }
