@@ -10,15 +10,15 @@ import './location_api_service.dart';
 
 /// 위치 데이터 저장에 필요한 상수들
 class LocationConstants {
-  static const int maxLocations = 1000;
-  static const double minDistanceFilter = 0.3;
+  static const int maxLocations = 1000; // 하이브 저장 개수
+  static const int minTimeBetweenUpdates = 5; // 최소 저장 시간
+  static const double minDistanceFilter = 15.0; // 최소 저장 거리
+  static const int weatherNotificationInterval = 10; // 최소 알림 시간
   static const String boxName = 'locationBox';
   static const String channelId = 'location_service_channel';
   static const String channelName = 'Location Service';
   static const String notificationTitle = '위치 서비스 실행 중';
   static const String notificationText = '앱으로 돌아가려면 탭하세요';
-  static const int minTimeBetweenUpdates = 5; // 최소 5초
-  static const int weatherNotificationInterval = 30; // 30분
 }
 
 /// 위치 정보를 저장하는 데이터 클래스
