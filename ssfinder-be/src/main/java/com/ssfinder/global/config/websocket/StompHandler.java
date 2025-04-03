@@ -42,24 +42,28 @@ public class StompHandler implements ChannelInterceptor {
         final StompHeaderAccessor accessor = StompHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if(StompCommand.CONNECT.equals(accessor.getCommand())) {
-            final String authorization = extractJwt(accessor);
-
-            String token = authorization.substring(7);
-            boolean isValid = jwtUtil.validateToken(token);
-
-            if(!isValid) {
-                logger.error("Invalid JWT");
-                throw new CustomException(ErrorCode.INVALID_TOKEN);
-            }
-
-            Authentication auth = jwtUtil.getAuthentication(token);
-            accessor.setUser(auth);
+            validateJwt(accessor);
         }
 
         return message;
     }
 
-    public String extractJwt(final StompHeaderAccessor accessor) {
+    private String extractJwt(final StompHeaderAccessor accessor) {
         return accessor.getFirstNativeHeader("Authorization");
+    }
+
+    private void validateJwt(final StompHeaderAccessor accessor) {
+        final String authorization = extractJwt(accessor);
+
+        String token = authorization.substring(7);
+        boolean isValid = jwtUtil.validateToken(token);
+
+        if(!isValid) {
+            logger.error("Invalid JWT");
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+
+        Authentication auth = jwtUtil.getAuthentication(token);
+        accessor.setUser(auth);
     }
 }
