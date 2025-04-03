@@ -1,6 +1,7 @@
 package com.ssfinder.domain.notification.controller;
 
 import com.ssfinder.domain.notification.dto.request.FcmTokenRequest;
+import com.ssfinder.domain.notification.dto.request.NotificationHistoryGetRequest;
 import com.ssfinder.domain.notification.dto.request.NotificationRequest;
 import com.ssfinder.domain.notification.dto.request.SettingUpdateRequest;
 import com.ssfinder.domain.notification.dto.response.NotificationSliceResponse;
@@ -79,13 +80,10 @@ public class NotificationController {
 
     @GetMapping
     public ApiResponse<NotificationSliceResponse> getNotificationHistory(
-            @RequestParam("type") NotificationType notificationType,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size,
-            @RequestParam(value = "lastId", required = false) Integer lastId,
+            @Valid @ModelAttribute NotificationHistoryGetRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         NotificationSliceResponse notificationHistorySlice = notificationHistoryService.getNotificationHistory
-                (userDetails.getUserId(), notificationType, page, size, lastId);
+                (userDetails.getUserId(), request.type(), request.page(), request.size(), request.lastId());
 
         return ApiResponse.ok(notificationHistorySlice);
     }
