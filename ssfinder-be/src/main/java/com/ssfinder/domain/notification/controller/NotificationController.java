@@ -98,4 +98,13 @@ public class NotificationController {
 
         return ApiResponse.noContent();
     }
+
+    @DeleteMapping
+    public ApiResponse<?> deleteAllNotificationHistory(
+            @RequestParam("type") NotificationType notificationType,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        notificationHistoryService.deleteNotificationHistoryAllByType(userDetails.getUserId(), notificationType);
+
+        return ApiResponse.noContent();
+    }
 }
