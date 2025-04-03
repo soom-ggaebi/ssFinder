@@ -5,6 +5,7 @@ import com.ssfinder.domain.founditem.dto.request.FoundItemStatusUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
 import com.ssfinder.domain.founditem.dto.response.*;
+import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.service.FoundItemBookmarkService;
 import com.ssfinder.domain.founditem.service.FoundItemService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
@@ -12,6 +13,10 @@ import com.ssfinder.global.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,42 +53,50 @@ public class FoundItemController {
     @PostMapping
     public ApiResponse<?> RegisterFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
                                             @ModelAttribute @Valid FoundItemRegisterRequest requestDTO){
-        FoundItemRegisterResponse responseDTO = foundItemService.registerFoundItem(userDetails.getUserId(), requestDTO);
+        FoundItemDocument responseDTO = foundItemService.registerFoundItem(userDetails.getUserId(), requestDTO);
         return ApiResponse.created(responseDTO);
     }
 
     @GetMapping("/{foundId}")
-    public ApiResponse<FoundItemDetailResponse> getFoundItem(@PathVariable @Min(1) int foundId) {
-        FoundItemDetailResponse responseDTO = foundItemService.getFoundItemDetail(foundId);
+    public ApiResponse<FoundItemDocumentDetailResponse> getFoundItem(@PathVariable @Min(1) int foundId) {
+        FoundItemDocumentDetailResponse responseDTO = foundItemService.getFoundItemDetail(foundId);
         return ApiResponse.ok(responseDTO);
     }
 
-    @PutMapping("/{foundId}")
-    public ApiResponse<?> updateFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                          @PathVariable @Min(1) int foundId,
-                                          @ModelAttribute @Valid FoundItemUpdateRequest updateRequest) throws IOException {
-        FoundItemUpdateResponse response = foundItemService.updateFoundItem(userDetails.getUserId(), foundId, updateRequest);
-        return ApiResponse.ok(response);
-    }
-
-    @DeleteMapping("/{foundId}")
-    public ApiResponse<?> deleteFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                          @PathVariable @Min(1) int foundId) {
-        foundItemService.deleteFoundItem(userDetails.getUserId(), foundId);
-        return ApiResponse.noContent();
-    }
+//    @PutMapping("/{foundId}")
+//    public ApiResponse<?> updateFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+//                                          @PathVariable @Min(1) int foundId,
+//                                          @ModelAttribute @Valid FoundItemUpdateRequest updateRequest) throws IOException {
+//        FoundItemUpdateResponse response = foundItemService.updateFoundItem(userDetails.getUserId(), foundId, updateRequest);
+//        return ApiResponse.ok(response);
+//    }
+//
+//    @DeleteMapping("/{foundId}")
+//    public ApiResponse<?> deleteFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+//                                          @PathVariable @Min(1) int foundId) {
+//        foundItemService.deleteFoundItem(userDetails.getUserId(), foundId);
+//        return ApiResponse.noContent();
+//    }
 
     @PutMapping("/{foundId}/status")
-    public ApiResponse<FoundItemStatusUpdateResponse> updateFoundItemStatus(@AuthenticationPrincipal CustomUserDetails userDetails,
+    public ApiResponse<FoundItemDocumentDetailResponse> updateFoundItemStatus(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                                             @PathVariable @Min(1) int foundId,
                                                                             @Valid @RequestBody FoundItemStatusUpdateRequest request) {
-        FoundItemStatusUpdateResponse response = foundItemService.updateFoundItemStatus(userDetails.getUserId(), foundId, request);
+        FoundItemDocumentDetailResponse response = foundItemService.updateFoundItemStatus(userDetails.getUserId(), foundId, request);
         return ApiResponse.ok(response);
     }
 
     @GetMapping("/my-items")
-    public ApiResponse<List<FoundItemDetailResponse>> getMyFoundItems(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<FoundItemDetailResponse> response = foundItemService.getMyFoundItems(userDetails.getUserId());
+    public ApiResponse<Page<FoundItemDetailResponse>> getMyFoundItems(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                                      @RequestParam(defaultValue = "0") int page,
+                                                                      @RequestParam(defaultValue = "10") int size,
+                                                                      @RequestParam(defaultValue = "createdAt") String sortBy,
+                                                                      @RequestParam(defaultValue = "desc") String sortDirection) {
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ?
+                Sort.Direction.ASC : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Page<FoundItemDetailResponse> response = foundItemService.getMyFoundItems(userDetails.getUserId(), pageable);
         return ApiResponse.ok(response);
     }
 
@@ -107,10 +120,10 @@ public class FoundItemController {
         List<FoundItemBookmarkResponse> response = foundItemBookmarkService.getBookmarksByUser(userDetails.getUserId());
         return ApiResponse.ok(response);
     }
-
-    @GetMapping("/test")
-    public ApiResponse<FoundItemTestResponse> getTest() {
-        FoundItemTestResponse response = foundItemService.test();
-        return ApiResponse.ok(response);
-    }
+//
+//    @GetMapping("/test")
+//    public ApiResponse<FoundItemTestResponse> getTest() {
+//        FoundItemTestResponse response = foundItemService.test();
+//        return ApiResponse.ok(response);
+//    }
 }

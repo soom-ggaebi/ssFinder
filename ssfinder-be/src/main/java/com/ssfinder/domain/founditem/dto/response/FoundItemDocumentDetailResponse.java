@@ -59,6 +59,6 @@ public class FoundItemDocumentDetailResponse {
 
     private Double longitude;
 
-    private String managementId;
+    private Boolean type;
 
 }

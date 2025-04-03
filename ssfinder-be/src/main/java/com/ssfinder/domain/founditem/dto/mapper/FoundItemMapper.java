@@ -28,43 +28,43 @@ import org.mapstruct.ReportingPolicy;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.WARN)
 public interface FoundItemMapper {
 
-    @Mapping(target = "image", ignore = true)
-    FoundItem toEntity(FoundItemRegisterRequest request);
-
-    @Mapping(source = "user.id", target = "userId")
-    @Mapping(source = "itemCategory.id", target = "itemCategoryId")
-    @Mapping(target = "latitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getY() : null)")
-    @Mapping(target = "longitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getX() : null)")
-    FoundItemRegisterResponse toResponse(FoundItem foundItem);
-
-    @Mapping(source = "itemCategory.id", target = "itemCategoryId")
-    @Mapping(target = "latitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getY() : null)")
-    @Mapping(target = "longitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getX() : null)")
-    FoundItemDetailResponse toDetailResponse(FoundItem foundItem);
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "user", ignore = true)
-    @Mapping(target = "itemCategory", expression = "java(createItemCategory(request.getItemCategoryId()))")
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "managementId", ignore = true)
-    @Mapping(target = "image", ignore = true)
-    void updateFoundItemFromRequest(FoundItemUpdateRequest request, @MappingTarget FoundItem foundItem);
-
-    @Mapping(source = "itemCategory.id", target = "itemCategoryId")
-    @Mapping(target = "image", ignore = true)
-    @Mapping(target = "latitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getY() : null)")
-    @Mapping(target = "longitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getX() : null)")
-    FoundItemUpdateResponse toUpdateResponse(FoundItem foundItem);
-
-    @Mapping(source = "id", target = "id")
-    @Mapping(target = "status", expression = "java(foundItem.getStatus().name())")
-    @Mapping(source = "updatedAt", target = "updatedAt")
-    FoundItemStatusUpdateResponse toStatusUpdateResponse(FoundItem foundItem);
-
-    default ItemCategory createItemCategory(Integer id) {
-        ItemCategory itemCategory = new ItemCategory();
-        itemCategory.setId(id);
-        return itemCategory;
-    }
+//    @Mapping(target = "image", ignore = true)
+//    FoundItem toEntity(FoundItemRegisterRequest request);
+//
+//    @Mapping(source = "user.id", target = "userId")
+//    @Mapping(source = "itemCategory.id", target = "itemCategoryId")
+//    @Mapping(target = "latitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getY() : null)")
+//    @Mapping(target = "longitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getX() : null)")
+//    FoundItemRegisterResponse toResponse(FoundItem foundItem);
+//
+//    @Mapping(source = "itemCategory.id", target = "itemCategoryId")
+//    @Mapping(target = "latitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getY() : null)")
+//    @Mapping(target = "longitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getX() : null)")
+//    FoundItemDetailResponse toDetailResponse(FoundItem foundItem);
+//
+//    @Mapping(target = "id", ignore = true)
+//    @Mapping(target = "user", ignore = true)
+//    @Mapping(target = "itemCategory", expression = "java(createItemCategory(request.getItemCategoryId()))")
+//    @Mapping(target = "createdAt", ignore = true)
+//    @Mapping(target = "updatedAt", ignore = true)
+//    @Mapping(target = "managementId", ignore = true)
+//    @Mapping(target = "image", ignore = true)
+//    void updateFoundItemFromRequest(FoundItemUpdateRequest request, @MappingTarget FoundItem foundItem);
+//
+//    @Mapping(source = "itemCategory.id", target = "itemCategoryId")
+//    @Mapping(target = "image", ignore = true)
+//    @Mapping(target = "latitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getY() : null)")
+//    @Mapping(target = "longitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getX() : null)")
+//    FoundItemUpdateResponse toUpdateResponse(FoundItem foundItem);
+//
+//    @Mapping(source = "id", target = "id")
+//    @Mapping(target = "status", expression = "java(foundItem.getStatus().name())")
+//    @Mapping(source = "updatedAt", target = "updatedAt")
+//    FoundItemStatusUpdateResponse toStatusUpdateResponse(FoundItem foundItem);
+//
+//    default ItemCategory createItemCategory(Integer id) {
+//        ItemCategory itemCategory = new ItemCategory();
+//        itemCategory.setId(id);
+//        return itemCategory;
+//    }
 }

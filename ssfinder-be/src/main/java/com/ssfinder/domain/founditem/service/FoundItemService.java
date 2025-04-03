@@ -10,6 +10,7 @@ import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
+import com.ssfinder.domain.founditem.repository.FoundItemDocumentRepository;
 import com.ssfinder.domain.founditem.repository.FoundItemRepository;
 import com.ssfinder.domain.item.entity.ItemCategory;
 import com.ssfinder.domain.item.repository.ItemCategoryRepository;
@@ -26,6 +27,9 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +45,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -65,6 +70,7 @@ import java.util.stream.Collectors;
 public class FoundItemService {
 
     private final FoundItemRepository foundItemRepository;
+    private final FoundItemDocumentRepository foundItemDocumentRepository;
     private final FoundItemMapper foundItemMapper;
     private final UserService userService;
     private final ItemCategoryRepository itemCategoryRepository;
@@ -77,16 +83,21 @@ public class FoundItemService {
     private final FoundItemDocumentMapper foundItemDocumentMapper;
 
     @Transactional
-    public FoundItemRegisterResponse registerFoundItem(int userId, FoundItemRegisterRequest requestDTO) {
-
-        FoundItem foundItem = foundItemMapper.toEntity(requestDTO);
+    public FoundItemDocument registerFoundItem(int userId, FoundItemRegisterRequest requestDTO) {
 
         User user = userService.findUserById(userId);
-        foundItem.setUser(user);
 
         ItemCategory itemCategory = itemCategoryRepository.findById(requestDTO.getItemCategoryId())
                 .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        FoundItem foundItem = new FoundItem();
+        foundItem.setUser(user);
         foundItem.setItemCategory(itemCategory);
+        foundItem.setName(requestDTO.getName());
+        foundItem.setFoundAt(requestDTO.getFoundAt());
+        foundItem.setLocation(requestDTO.getLocation());
+        foundItem.setColor(requestDTO.getColor());
+        foundItem.setStoredAt(requestDTO.getStoredAt());
 
         if (Objects.nonNull(requestDTO.getStatus())) {
             foundItem.setStatus(FoundItemStatus.valueOf(requestDTO.getStatus()));
@@ -181,98 +192,132 @@ public class FoundItemService {
         // MySQL DB에 저장
         FoundItem savedItem = foundItemRepository.save(foundItem);
 
-        try {
-            // HDFS에 JPG 이미지 저장
-            if (processedImageBytes != null) {
-                try {
-                    hdfsImagePath = hadoopService.getFoundImagePath(savedItem.getId().toString());
-                    boolean success = hadoopService.saveImage(hdfsImagePath, processedImageBytes);
-                    log.info("HDFS 이미지 저장 결과: {}, 경로: {}", success, hdfsImagePath);
+        FoundItemDocument document = FoundItemDocument.builder()
+                .mysqlId(String.valueOf(savedItem.getId()))
+                .userId(savedItem.getUser() != null ? String.valueOf(savedItem.getUser().getId()) : null)
+                // 아이템 카테고리 매핑: 부모 카테고리가 있으면 major는 부모, minor는 현재 카테고리, 없으면 major만 설정
+                .categoryMajor(savedItem.getItemCategory() != null
+                        ? (savedItem.getItemCategory().getItemCategory() != null
+                        ? savedItem.getItemCategory().getItemCategory().getName()
+                        : savedItem.getItemCategory().getName())
+                        : null)
+                .categoryMinor(savedItem.getItemCategory() != null
+                        ? (savedItem.getItemCategory().getItemCategory() != null
+                        ? savedItem.getItemCategory().getName()
+                        : null)
+                        : null)
+                .name(savedItem.getName())
+                .foundAt(savedItem.getFoundAt() != null ? savedItem.getFoundAt().toString() : null)
+                .color(savedItem.getColor())
+                .status(savedItem.getStatus() != null ? savedItem.getStatus().toString() : null)
+                .location(savedItem.getLocation())
+                .phone(savedItem.getPhone())
+                .detail(savedItem.getDetail())
+                .image(savedItem.getImage())
+                .storedAt(savedItem.getStoredAt())
+                .managementId(savedItem.getManagementId())
+                .latitude(savedItem.getCoordinates() != null ? savedItem.getCoordinates().getY() : null)
+                .longitude(savedItem.getCoordinates() != null ? savedItem.getCoordinates().getX() : null)
+                .locationGeo(savedItem.getCoordinates() != null
+                        ? new org.springframework.data.elasticsearch.core.geo.GeoPoint(
+                        savedItem.getCoordinates().getY(),
+                        savedItem.getCoordinates().getX())
+                        : null)
+                .build();
+        foundItemDocumentRepository.save(document);
 
-                    if (!success) {
-                        log.error("HDFS에 이미지 저장 실패");
-                    }
-                } catch (Exception e) {
-                    log.error("HDFS 이미지 저장 중 오류 발생: {}", e.getMessage());
-                }
-            } else {
-                log.info("저장할 이미지가 없습니다.");
-            }
-        } catch (Exception e) {
-            log.error("HDFS 이미지 저장 시도 중 예상치 못한 오류: {}", e.getMessage());
-        }
-
-        try {
-            // Elasticsearch에 문서 인덱싱 (HDFS 이미지 경로 포함)
-//            elasticsearchService.indexFoundItem(savedItem, hdfsImagePath);
-            log.info("Elasticsearch에 문서 인덱싱 요청 완료");
-        } catch (Exception e) {
-            log.error("Elasticsearch 인덱싱 중 오류 발생: {}", e.getMessage());
-        }
-
-        return foundItemMapper.toResponse(savedItem);
+        return document;
     }
 
 
     @Transactional(readOnly = true)
-    public FoundItemDetailResponse getFoundItemDetail(int foundId) {
-        FoundItem foundItem = foundItemRepository.findById(foundId)
-                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
-        return foundItemMapper.toDetailResponse(foundItem);
+    public FoundItemDocumentDetailResponse getFoundItemDetail(int foundId) {
+//        FoundItem foundItem = foundItemRepository.findById(foundId)
+//                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
+        FoundItemDocument itemRes = foundItemDocumentRepository.findById(String.valueOf(foundId)).get();
+
+        FoundItemDocumentDetailResponse response = new FoundItemDocumentDetailResponse();
+        response.setId(itemRes.getId());
+        if (Objects.nonNull(itemRes.getUserId())){
+            response.setUserId(itemRes.getUserId());
+        }
+
+        boolean type = true;
+        if (Objects.nonNull(itemRes.getManagementId())) {
+            type = false;
+        }
+
+        response.setName(itemRes.getName());
+        response.setFoundAt(LocalDateTime.parse(itemRes.getFoundAt(), DateTimeFormatter.ISO_LOCAL_DATE_TIME).toLocalDate());
+        response.setColor(itemRes.getColor());
+        response.setLocation(itemRes.getLocation());
+        response.setStatus(itemRes.getStatus().toString());
+        response.setDetail(itemRes.getDetail());
+        response.setImage(itemRes.getImage());
+        response.setStoredAt(itemRes.getStoredAt());
+        response.setLatitude(itemRes.getLatitude());
+        response.setLongitude(itemRes.getLongitude());
+        response.setPhone(itemRes.getPhone());
+
+        response.setMajorCategory(itemRes.getCategoryMajor());
+        response.setMinorCategory(itemRes.getCategoryMinor());
+        response.setType(type);
+
+        return response;
     }
 
+//    @Transactional
+//    public FoundItemUpdateResponse updateFoundItem(int userId, int foundId, FoundItemUpdateRequest updateRequest) throws IOException {
+//
+//        FoundItem foundItem = foundItemRepository.findById(foundId)
+//                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
+//
+//        if (!foundItem.getUser().getId().equals(userId)) {
+//            throw new CustomException(ErrorCode.FOUND_ITEM_ACCESS_DENIED);
+//        }
+//
+//        foundItemMapper.updateFoundItemFromRequest(updateRequest, foundItem);
+//
+//        if(Objects.nonNull(updateRequest.getLatitude()) && Objects.nonNull(updateRequest.getLongitude())) {
+//            Point coordinates = geometryFactory.createPoint(new Coordinate(updateRequest.getLongitude(), updateRequest.getLatitude()));
+//            foundItem.setCoordinates(coordinates);
+//        }  else {
+//            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+//        }
+//
+//        String imageUrl = foundItem.getImage();
+//        if(Objects.nonNull(updateRequest.getImage()) && !updateRequest.getImage().isEmpty()){
+//            if (Objects.nonNull(imageUrl)){
+//                imageUrl = s3Service.updateFile(imageUrl, updateRequest.getImage());
+//            } else {
+//                imageUrl = s3Service.uploadFile(updateRequest.getImage(), "found");
+//            }
+//        }
+//
+//        foundItem.setImage(imageUrl);
+//
+//        foundItem.setUpdatedAt(LocalDateTime.now());
+//
+//        return foundItemMapper.toUpdateResponse(foundItem);
+//    }
+
+//    @Transactional
+//    public void deleteFoundItem(int userId, int foundId) {
+//
+//        FoundItem foundItem = foundItemRepository.findById(foundId)
+//                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
+//
+//        if(foundItem.getUser().getId()!=userId) {
+//            throw new CustomException(ErrorCode.FOUND_ITEM_ACCESS_DENIED);
+//        }
+//        if (Objects.nonNull(foundItem.getImage())) {
+//            s3Service.deleteFile(foundItem.getImage());
+//        }
+//        foundItemRepository.delete(foundItem);
+//    }
+
     @Transactional
-    public FoundItemUpdateResponse updateFoundItem(int userId, int foundId, FoundItemUpdateRequest updateRequest) throws IOException {
-
-        FoundItem foundItem = foundItemRepository.findById(foundId)
-                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
-
-        if (!foundItem.getUser().getId().equals(userId)) {
-            throw new CustomException(ErrorCode.FOUND_ITEM_ACCESS_DENIED);
-        }
-
-        foundItemMapper.updateFoundItemFromRequest(updateRequest, foundItem);
-
-        if(Objects.nonNull(updateRequest.getLatitude()) && Objects.nonNull(updateRequest.getLongitude())) {
-            Point coordinates = geometryFactory.createPoint(new Coordinate(updateRequest.getLongitude(), updateRequest.getLatitude()));
-            foundItem.setCoordinates(coordinates);
-        }  else {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        String imageUrl = foundItem.getImage();
-        if(Objects.nonNull(updateRequest.getImage()) && !updateRequest.getImage().isEmpty()){
-            if (Objects.nonNull(imageUrl)){
-                imageUrl = s3Service.updateFile(imageUrl, updateRequest.getImage());
-            } else {
-                imageUrl = s3Service.uploadFile(updateRequest.getImage(), "found");
-            }
-        }
-
-        foundItem.setImage(imageUrl);
-
-        foundItem.setUpdatedAt(LocalDateTime.now());
-
-        return foundItemMapper.toUpdateResponse(foundItem);
-    }
-
-    @Transactional
-    public void deleteFoundItem(int userId, int foundId) {
-
-        FoundItem foundItem = foundItemRepository.findById(foundId)
-                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
-
-        if(foundItem.getUser().getId()!=userId) {
-            throw new CustomException(ErrorCode.FOUND_ITEM_ACCESS_DENIED);
-        }
-        if (Objects.nonNull(foundItem.getImage())) {
-            s3Service.deleteFile(foundItem.getImage());
-        }
-        foundItemRepository.delete(foundItem);
-    }
-
-    @Transactional
-    public FoundItemStatusUpdateResponse updateFoundItemStatus(int userId, int foundId, FoundItemStatusUpdateRequest request) {
+    public FoundItemDocumentDetailResponse updateFoundItemStatus(int userId, int foundId, FoundItemStatusUpdateRequest request) {
 
         FoundItem foundItem = foundItemRepository.findById(foundId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
@@ -284,34 +329,63 @@ public class FoundItemService {
         foundItem.setStatus(FoundItemStatus.valueOf(request.getStatus()));
         foundItem.setUpdatedAt(LocalDateTime.now());
 
+        FoundItemDocument document = foundItemDocumentRepository.findById(String.valueOf(foundItem.getId())).get();
+        document.setStatus(String.valueOf(FoundItemStatus.valueOf(request.getStatus())));
+        foundItemDocumentRepository.save(document);
 
-        return foundItemMapper.toStatusUpdateResponse(foundItem);
+        boolean type = true;
+        if (Objects.nonNull(document.getManagementId())) {
+            type = false;
+        }
+
+        FoundItemDocumentDetailResponse response = new FoundItemDocumentDetailResponse();
+        response.setId(document.getId());
+        response.setUserId(document.getId());
+        response.setMajorCategory(document.getCategoryMajor());
+        response.setMinorCategory(document.getCategoryMinor());
+        response.setName(document.getName());
+        response.setFoundAt(LocalDate.parse(document.getFoundAt()));
+        response.setLocation(document.getLocation());
+        response.setColor(document.getColor());
+        response.setStatus(String.valueOf(FoundItemStatus.valueOf(request.getStatus())));
+        response.setDetail(document.getDetail());
+        response.setImage(document.getImage());
+        response.setStoredAt(document.getStoredAt());
+        response.setCreatedAt(foundItem.getCreatedAt());
+        response.setUpdatedAt(foundItem.getUpdatedAt());
+        response.setLatitude(document.getLatitude());
+        response.setLongitude(document.getLongitude());
+        response.setPhone(document.getPhone());
+        response.setType(type);
+
+        return response;
     }
 
     @Transactional(readOnly = true)
-    public List<FoundItemDetailResponse> getMyFoundItems(int userId) {
-        List<FoundItem> foundItems = foundItemRepository.findAllByUserId(userId);
+    public Page<FoundItemDetailResponse> getMyFoundItems(int userId, Pageable pageable) {
+        String userIdStr = String.valueOf(userId);
 
-        return foundItems.stream()
-                .map(foundItemMapper::toDetailResponse)
-                .collect(Collectors.toList());
+        try {
+            Criteria criteria = new Criteria("user_id").exists().is(userIdStr);
+
+            CriteriaQuery query = new CriteriaQuery(criteria).setPageable(pageable);
+
+            SearchHits<FoundItemDocument> searchHits = elasticsearchOperations.search(
+                    query, FoundItemDocument.class);
+
+            List<FoundItemDetailResponse> content = searchHits.getSearchHits().stream()
+                    .map(SearchHit::getContent)
+                    .map(this::convertToDetailResponse)
+                    .collect(Collectors.toList());
+
+            return new PageImpl<>(content, pageable, searchHits.getTotalHits());
+        } catch (Exception e) {
+            System.err.println("Elasticsearch 검색 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
     }
 
-    // mysql 조회
-//    @Transactional(readOnly = true)
-//    public List<FoundItemDetailResponse> getFoundItemsByViewport(FoundItemViewportRequest viewportRequest) {
-//        List<FoundItem> foundItems = foundItemRepository.findByCoordinatesWithin(
-//                viewportRequest.getMinLatitude(),
-//                viewportRequest.getMinLongitude(),
-//                viewportRequest.getMaxLatitude(),
-//                viewportRequest.getMaxLongitude());
-//
-//        return foundItems.stream()
-//                .map(foundItemMapper::toDetailResponse)
-//                .collect(Collectors.toList());
-//    }
-
-    // elasticsearch 조회
     @Transactional(readOnly = true)
     public List<FoundItemDocumentDetailResponse> getFoundItemsByViewport(FoundItemViewportRequest viewportRequest) {
         // latitude 범위 조건 (예: minLatitude ~ maxLatitude)
@@ -333,6 +407,11 @@ public class FoundItemService {
             FoundItemDocument doc = hit.getContent();
             FoundItemDocumentDetailResponse response = new FoundItemDocumentDetailResponse();
 
+            boolean type = true;
+            if (Objects.nonNull(doc.getManagementId())) {
+                type = false;
+            }
+
             response.setId(doc.getMysqlId());
             response.setUserId(doc.getUserId());
             response.setMajorCategory(doc.getCategoryMajor());
@@ -347,7 +426,7 @@ public class FoundItemService {
             response.setStoredAt(doc.getStoredAt());
             response.setLatitude(doc.getLatitude());
             response.setLongitude(doc.getLongitude());
-            response.setManagementId(doc.getManagementId());
+            response.setType(type);
 
             // foundAt 문자열의 처음 10자를 LocalDate로 파싱
             if (doc.getFoundAt() != null && doc.getFoundAt().length() >= 10) {
@@ -372,36 +451,40 @@ public class FoundItemService {
         return foundItemRepository.findByFoundAtAndStatus(LocalDate.now().minusDays(daysAgo), FoundItemStatus.STORED);
     }
 
-    public FoundItemTestResponse test() {
-        FoundItem item = foundItemRepository.findById(1).get();
+    private FoundItemDetailResponse convertToDetailResponse(FoundItemDocument document) {
+        FoundItemDetailResponse response = new FoundItemDetailResponse();
 
-        FoundItemTestResponse response = new FoundItemTestResponse();
-        response.setId(item.getId());
-        response.setName(item.getName());
-        response.setFoundAt(item.getFoundAt());
-        response.setColor(item.getColor());
-        response.setStatus(item.getStatus().toString());
-        response.setImage(null);
-        response.setStoredAt(item.getStoredAt());
-        response.setCreatedAt(item.getCreatedAt());
-        response.setUpdatedAt(item.getUpdatedAt());
-        response.setLatitude(item.getCoordinates().getX());
-        response.setLongitude(item.getCoordinates().getY());
+        // id는 mysql_id 값을 사용 (Integer로 변환)
+        response.setId(document.getMysqlId() != null ? Integer.valueOf(document.getMysqlId()) : null);
 
-        // 카테고리 처리: 부모가 있으면 부모는 major, 현재 카테고리는 minor, 없으면 major만 설정
-        if (item.getItemCategory() != null) {
-            if (item.getItemCategory().getItemCategory() != null) {
-                // 부모 카테고리가 있는 경우
-                response.setMajorCategory(item.getItemCategory().getItemCategory().getName());
-                response.setMinorCategory(item.getItemCategory().getName());
-            } else {
-                // 부모 카테고리가 없는 경우: 현재 카테고리가 major로 간주
-                response.setMajorCategory(item.getItemCategory().getName());
-                response.setMinorCategory(null);
-            }
-        }
+        // userId도 Integer로 변환
+        response.setUserId(document.getUserId() != null ? Integer.valueOf(document.getUserId()) : null);
+
+        response.setMajorCategory(document.getCategoryMajor());
+        response.setMinorCategory(document.getCategoryMinor());
+        response.setName(document.getName());
+
+        // foundAt을 LocalDateTime으로 파싱 후 LocalDate로 변환
+        response.setFoundAt(document.getFoundAt() != null
+                ? LocalDateTime.parse(document.getFoundAt(), DateTimeFormatter.ISO_LOCAL_DATE_TIME).toLocalDate()
+                : null);
+
+        response.setLocation(document.getLocation());
+        response.setColor(document.getColor());
+        response.setStatus(document.getStatus());
+        response.setDetail(document.getDetail());
+        response.setImage(document.getImage());
+        response.setStoredAt(document.getStoredAt());
+
+        // 생성일/수정일 정보가 Document에 없어 현재는 임시로 현 시점으로 설정
+        response.setCreatedAt(LocalDateTime.now());
+        response.setUpdatedAt(LocalDateTime.now());
+
+        response.setLatitude(document.getLatitude());
+        response.setLongitude(document.getLongitude());
 
         return response;
     }
+
 }
 

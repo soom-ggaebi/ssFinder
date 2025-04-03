@@ -27,7 +27,11 @@ import java.time.LocalDateTime;
 public class FoundItemDetailResponse {
     private Integer id;
 
-    private Integer itemCategoryId;
+    private Integer userId;
+
+    private String majorCategory;
+
+    private String minorCategory;
 
     private String name;
 
