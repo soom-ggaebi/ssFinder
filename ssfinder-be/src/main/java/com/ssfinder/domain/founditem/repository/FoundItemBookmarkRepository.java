@@ -23,4 +23,8 @@ public interface FoundItemBookmarkRepository extends JpaRepository<FoundItemBook
     List<FoundItemBookmark> findByUserId(Integer userId);
 
     Optional<FoundItemBookmark> findByUserIdAndFoundItemId(Integer userId, Integer foundItemId);
+
+    boolean existsByUserIdAndFoundItemId(Integer userId, Integer foundItemId);
+
+    void deleteByFoundItemId(Integer foundItemId);
 }

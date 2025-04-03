@@ -44,7 +44,19 @@ public enum ErrorCode {
     BOOKMARK_ACCESS_DENIED("BOOKMARK-003", HttpStatus.FORBIDDEN, "본인만 접근 가능한 항목입니다."),
 
     LOST_ITEM_NOT_FOUND("LOST-001", HttpStatus.NOT_FOUND, "존재하지 않는 분실물입니다."),
-    LOST_ITEM_ACCESS_DENIED("LOST-002", HttpStatus.FORBIDDEN, "본인만 접근 가능한 항목입니다.");
+    LOST_ITEM_ACCESS_DENIED("LOST-002", HttpStatus.FORBIDDEN, "본인만 접근 가능한 항목입니다."),
+
+    IMAGE_PROCESS_FAIL("IMAGE-001", HttpStatus.INTERNAL_SERVER_ERROR, "이미지 전처리 실패"),
+    IMAGE_FILE_NOT_PROVIDED("IMAGE-002", HttpStatus.BAD_REQUEST, "처리할 이미지 파일이 없습니다."),
+    UNSUPPORTED_IMAGE_FORMAT("IMAGE-003", HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식입니다."),
+    IMAGE_SIZE_TOO_LARGE("IMAGE-004", HttpStatus.BAD_REQUEST, "이미지 크기가 너무 큽니다. 최대 10MB까지 허용됩니다."),
+    IMAGE_DATA_EMPTY("IMAGE-005", HttpStatus.BAD_REQUEST, "처리할 이미지 데이터가 없습니다."),
+    UNSUPPORTED_IMAGE_FILE_FORMAT("IMAGE-006", HttpStatus.INTERNAL_SERVER_ERROR, "이미지 포맷이 지원되지 않습니다."),
+    IMAGE_URL_NOT_PROVIDED("IMAGE-007", HttpStatus.BAD_REQUEST, "처리할 이미지 URL이 없습니다."),
+    UNSUPPORTED_URL_PROTOCOL("IMAGE-008", HttpStatus.BAD_REQUEST, "허용되지 않는 프로토콜입니다."),
+    UNSUPPORTED_URL_DOMAIN("IMAGE-009", HttpStatus.BAD_REQUEST, "허용되지 않는 도메인입니다."),
+    MALFORMED_URL("IMAGE-010", HttpStatus.BAD_REQUEST, "잘못된 URL 형식입니다."),
+    IMAGE_URL_PROCESS_FAIL("IMAGE-011", HttpStatus.INTERNAL_SERVER_ERROR, "이미지 URL에서 다운로드 또는 처리 중 오류가 발생했습니다");
 
     private final String code;
     private final HttpStatus httpStatus;

@@ -2,7 +2,6 @@ package com.ssfinder.domain.founditem.controller;
 
 import com.ssfinder.domain.founditem.dto.request.FoundItemRegisterRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemStatusUpdateRequest;
-import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
 import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
@@ -20,7 +19,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -52,14 +50,17 @@ public class FoundItemController {
 
     @PostMapping
     public ApiResponse<?> RegisterFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                            @ModelAttribute @Valid FoundItemRegisterRequest requestDTO){
-        FoundItemDocument responseDTO = foundItemService.registerFoundItem(userDetails.getUserId(), requestDTO);
-        return ApiResponse.created(responseDTO);
+                                            @ModelAttribute @Valid FoundItemRegisterRequest request){
+        FoundItemDocument response = foundItemService.registerFoundItem(userDetails.getUserId(), request);
+        return ApiResponse.created(response);
     }
 
     @GetMapping("/{foundId}")
-    public ApiResponse<FoundItemDocumentDetailResponse> getFoundItem(@PathVariable @Min(1) int foundId) {
-        FoundItemDocumentDetailResponse responseDTO = foundItemService.getFoundItemDetail(foundId);
+    public ApiResponse<FoundItemDocumentDetailResponse> getFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                                     @PathVariable @Min(1) int foundId) {
+        Integer userId = (userDetails != null) ? userDetails.getUserId() : null;
+
+        FoundItemDocumentDetailResponse responseDTO = foundItemService.getFoundItemDetail(userId, foundId);
         return ApiResponse.ok(responseDTO);
     }
 
@@ -70,13 +71,13 @@ public class FoundItemController {
 //        FoundItemUpdateResponse response = foundItemService.updateFoundItem(userDetails.getUserId(), foundId, updateRequest);
 //        return ApiResponse.ok(response);
 //    }
-//
-//    @DeleteMapping("/{foundId}")
-//    public ApiResponse<?> deleteFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
-//                                          @PathVariable @Min(1) int foundId) {
-//        foundItemService.deleteFoundItem(userDetails.getUserId(), foundId);
-//        return ApiResponse.noContent();
-//    }
+
+    @DeleteMapping("/{foundId}")
+    public ApiResponse<?> deleteFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                          @PathVariable @Min(1) int foundId) {
+        foundItemService.deleteFoundItem(userDetails.getUserId(), foundId);
+        return ApiResponse.noContent();
+    }
 
     @PutMapping("/{foundId}/status")
     public ApiResponse<FoundItemDocumentDetailResponse> updateFoundItemStatus(@AuthenticationPrincipal CustomUserDetails userDetails,
@@ -120,10 +121,4 @@ public class FoundItemController {
         List<FoundItemBookmarkResponse> response = foundItemBookmarkService.getBookmarksByUser(userDetails.getUserId());
         return ApiResponse.ok(response);
     }
-//
-//    @GetMapping("/test")
-//    public ApiResponse<FoundItemTestResponse> getTest() {
-//        FoundItemTestResponse response = foundItemService.test();
-//        return ApiResponse.ok(response);
-//    }
 }

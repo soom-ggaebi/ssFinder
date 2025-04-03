@@ -61,4 +61,6 @@ public class FoundItemDocumentDetailResponse {
 
     private Boolean type;
 
+    private Boolean hasBookmark;
+
 }
