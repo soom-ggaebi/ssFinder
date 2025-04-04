@@ -51,7 +51,7 @@ public class ProducerConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, KafkaChatMessage> kafkaTemplate() {
+    public KafkaTemplate<String, KafkaChatMessage> chatMessagekafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
 }

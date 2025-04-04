@@ -17,6 +17,8 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 /**
  * packageName    : com.ssfinder.global.config<br>
  * fileName       : StompHandler.java<br>
@@ -43,6 +45,7 @@ public class StompHandler implements ChannelInterceptor {
 
         if(StompCommand.CONNECT.equals(accessor.getCommand())) {
             validateJwt(accessor);
+            validateChatRoomId(accessor);
         }
 
         return message;
@@ -65,5 +68,11 @@ public class StompHandler implements ChannelInterceptor {
 
         Authentication auth = jwtUtil.getAuthentication(token);
         accessor.setUser(auth);
+    }
+
+    private void validateChatRoomId(final StompHeaderAccessor accessor) {
+        if(Objects.isNull(accessor.getFirstNativeHeader("chat_room_id"))) {
+            throw new CustomException(ErrorCode.CHAT_ROOM_ID_IS_NULL);
+        }
     }
 }
