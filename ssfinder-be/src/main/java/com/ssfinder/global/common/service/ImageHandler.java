@@ -10,6 +10,18 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+/**
+ * packageName    : com.ssfinder.global.common.service<br>
+ * fileName       : ImageHandler.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-04-04<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-04-04          leeyj           최초생성<br>
+ * <br>
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

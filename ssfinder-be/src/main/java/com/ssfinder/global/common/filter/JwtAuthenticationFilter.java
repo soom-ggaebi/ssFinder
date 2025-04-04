@@ -31,7 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     private static final String[] AllowUrls = new String[]{
-            "/api/auth/", "/ws/", "/app/"
+            "/api/auth/", "/ws/", "/app/", "/api/found-items/cluster/detail", "/api/found-items/filter"
     };
 
     @Override
@@ -45,12 +45,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
 
-        if (uri.equals("/api/found-items/view") && HttpMethod.GET.matches(method)) {
+        if (uri.equals("/api/found-items/viewport/coordinates") && HttpMethod.GET.matches(method)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         if (uri.matches("/api/found-items/\\d+") && HttpMethod.GET.matches(method)) {
+            String authHeader = request.getHeader("Authorization");
+
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                if (jwtUtil.validateToken(token)) {
+                    processValidAccessToken(token);
+                } else {
+                    writeErrorResponse(response, ErrorCode.INVALID_TOKEN);
+                    return;
+                }
+            }
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (uri.matches("/api/found-items/viewport") && HttpMethod.GET.matches(method)) {
             String authHeader = request.getHeader("Authorization");
 
             if (authHeader != null && authHeader.startsWith("Bearer ")) {

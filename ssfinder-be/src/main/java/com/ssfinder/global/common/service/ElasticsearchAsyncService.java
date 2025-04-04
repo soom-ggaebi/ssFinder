@@ -16,6 +16,18 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * packageName    : com.ssfinder.global.common.service<br>
+ * fileName       : ElasticsearchAsyncService.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-04-04<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-04-04          leeyj           최초생성<br>
+ * <br>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -31,33 +43,19 @@ public class ElasticsearchAsyncService {
     private static final long[] RETRY_DELAYS = {1, 5, 15}; // 초 단위로 점진적 증가
     private static final String INDEX_NAME = "found-items";
 
-    /**
-     * 비동기로 Elasticsearch에 FoundItem 정보를 저장합니다.
-     *
-     * @param foundItem MySQL에 저장된 FoundItem 엔티티
-     */
+    // 비동기로 Elasticsearch에 FoundItem 정보를 저장합니다.
     @Async("elasticsearchExecutor")
     public void saveFoundItemToElasticsearch(FoundItem foundItem) {
         saveFoundItemToElasticsearchWithRetry(foundItem, 0);
     }
 
-    /**
-     * 비동기로 Elasticsearch에서 FoundItem 문서를 삭제합니다.
-     *
-     * @param documentId 삭제할 문서 ID (MySQL ID와 동일)
-     */
+    // 비동기로 Elasticsearch에서 FoundItem 문서를 삭제합니다.
     @Async("elasticsearchExecutor")
     public void deleteFoundItemFromElasticsearch(String documentId) {
         deleteFoundItemFromElasticsearchWithRetry(documentId, 0);
     }
 
-    /**
-     * 재시도 로직이 포함된 Elasticsearch 저장 메서드
-     * MySQL ID를 Elasticsearch _id로 사용합니다.
-     *
-     * @param foundItem MySQL에 저장된 FoundItem 엔티티
-     * @param retryCount 현재 재시도 횟수
-     */
+    // MySQL ID를 Elasticsearch _id로 사용합니다.
     private void saveFoundItemToElasticsearchWithRetry(FoundItem foundItem, int retryCount) {
         try {
             log.info("Elasticsearch에 Found Item 저장 시작(시도 {}): MySQL ID={}",
@@ -82,12 +80,7 @@ public class ElasticsearchAsyncService {
         }
     }
 
-    /**
-     * 재시도 로직이 포함된 Elasticsearch 삭제 메서드
-     *
-     * @param documentId 삭제할 문서 ID
-     * @param retryCount 현재 재시도 횟수
-     */
+    // 재시도 로직이 포함된 Elasticsearch 삭제 메서드
     private void deleteFoundItemFromElasticsearchWithRetry(String documentId, int retryCount) {
         try {
             log.info("Elasticsearch에서 문서 삭제 시작(시도 {}): ID={}",

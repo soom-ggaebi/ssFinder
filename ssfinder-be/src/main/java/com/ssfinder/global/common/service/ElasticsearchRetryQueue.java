@@ -15,6 +15,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * packageName    : com.ssfinder.global.common.service<br>
+ * fileName       : ElasticsearchRetryQueue.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-04-04<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-04-04          leeyj           최초생성<br>
+ * <br>
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

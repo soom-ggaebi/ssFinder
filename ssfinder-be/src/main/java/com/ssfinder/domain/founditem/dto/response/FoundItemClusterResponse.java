@@ -1,35 +1,30 @@
 package com.ssfinder.domain.founditem.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 /**
  * packageName    : com.ssfinder.domain.found.dto.response<br>
- * fileName       : FoundItemStatusUpdateResponse.java<br>
- * author         : joker901010<br>
- * date           : 2025-03-26<br>
+ * fileName       : FoundItemClusterResponse.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-04-04<br>
  * description    :  <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
- * 2025-03-26          joker901010           최초생성<br>
+ * 2025-04-04          leeyj           최초생성<br>
  * <br>
  */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @Getter
 @Setter
-public class FoundItemStatusUpdateResponse {
+public class FoundItemClusterResponse {
 
     private Integer id;
 
-    private Integer userId;
+    private Double latitude;
 
-    private String status;
-
-    private LocalDateTime updatedAt;
+    private Double longitude;
 }

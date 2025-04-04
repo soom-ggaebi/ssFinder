@@ -26,6 +26,18 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * packageName    : com.ssfinder.global.common.service<br>
+ * fileName       : ImageProcessingService.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-04-04<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-04-04          leeyj           최초생성<br>
+ * <br>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -60,14 +72,7 @@ public class ImageProcessingService {
     private static final long HIGH_RES_PIXEL_THRESHOLD = 4000L * 4000;
     private static final long LOW_RES_PIXEL_THRESHOLD = 1000L * 1000;
 
-    /**
-     * 이미지 파일을 처리하여 바이트 배열로 반환합니다.
-     *
-     * @param file 처리할 이미지 파일
-     * @return 처리된 이미지의 바이트 배열
-     * @throws IOException 이미지 처리 중 오류가 발생할 경우
-     * @throws IllegalArgumentException 유효하지 않은 입력인 경우
-     */
+    // 이미지 파일을 처리하여 바이트 배열로 반환합니다.
     public byte[] processImage(MultipartFile file) throws IOException, IllegalArgumentException {
         validateImage(file);
 
@@ -84,12 +89,7 @@ public class ImageProcessingService {
         }
     }
 
-    /**
-     * 입력된 이미지 파일의 유효성을 검증합니다.
-     *
-     * @param file 검증할 이미지 파일
-     * @throws IllegalArgumentException 유효하지 않은 이미지인 경우
-     */
+    //  입력된 이미지 파일의 유효성을 검증합니다.
     private void validateImage(MultipartFile file) throws IllegalArgumentException {
         if (file == null || file.isEmpty()) {
             throw new CustomException(ErrorCode.IMAGE_FILE_NOT_PROVIDED);
@@ -105,13 +105,7 @@ public class ImageProcessingService {
         }
     }
 
-    /**
-     * 이미지 바이트 배열을 처리하여 반환합니다.
-     *
-     * @param imageBytes 처리할 이미지 바이트 배열
-     * @return 처리된 이미지의 바이트 배열
-     * @throws IOException 이미지 처리 중 오류가 발생할 경우
-     */
+    // 이미지 바이트 배열을 처리하여 반환합니다.
     public byte[] processImageBytes(byte[] imageBytes) throws IOException {
         if (imageBytes == null || imageBytes.length == 0) {
             throw new CustomException(ErrorCode.IMAGE_FILE_NOT_PROVIDED);
@@ -167,13 +161,7 @@ public class ImageProcessingService {
         }
     }
 
-    /**
-     * 이미지 밝기를 최적화된 방식으로 조정합니다.
-     *
-     * @param image 원본 이미지
-     * @param factor 밝기 조정 인자 (1.0은 원본, 그보다 작으면 어둡게, 크면 밝게)
-     * @return 밝기가 조정된 이미지
-     */
+    // 이미지 밝기를 최적화된 방식으로 조정합니다.
     private BufferedImage adjustBrightnessOptimized(BufferedImage image, float factor) {
         if ((long) image.getWidth() * image.getHeight() > LOW_RES_PIXEL_THRESHOLD) {
             // 대용량 이미지: LookupOp를 사용하여 빠른 밝기 조정
@@ -204,14 +192,7 @@ public class ImageProcessingService {
         }
     }
 
-    /**
-     * 이미지 URL에서 이미지를 다운로드하여 처리 후 바이트 배열로 반환합니다.
-     *
-     * @param imageUrl 다운로드할 이미지 URL
-     * @return 처리된 이미지의 바이트 배열
-     * @throws IOException 이미지 다운로드 또는 처리 중 오류가 발생할 경우
-     * @throws IllegalArgumentException URL이 유효하지 않은 경우
-     */
+    // 이미지 URL에서 이미지를 다운로드하여 처리 후 바이트 배열로 반환합니다.
     public byte[] processImageFromUrl(String imageUrl) throws IOException, IllegalArgumentException {
         validateImageUrl(imageUrl);
 
@@ -235,12 +216,7 @@ public class ImageProcessingService {
         }
     }
 
-    /**
-     * 이미지 URL의 유효성을 검증합니다.
-     *
-     * @param imageUrl 검증할 이미지 URL
-     * @throws IllegalArgumentException URL이 유효하지 않은 경우
-     */
+    // 이미지 URL의 유효성을 검증합니다.
     private void validateImageUrl(String imageUrl) throws IllegalArgumentException {
         if (imageUrl == null || imageUrl.isEmpty()) {
             throw new CustomException(ErrorCode.IMAGE_URL_NOT_PROVIDED);
@@ -262,12 +238,7 @@ public class ImageProcessingService {
         }
     }
 
-    /**
-     * 이미지에 선명화 필터를 적용합니다.
-     *
-     * @param image 원본 이미지
-     * @return 선명화된 이미지
-     */
+    // 이미지에 선명화 필터를 적용합니다.
     private BufferedImage applySharpening(BufferedImage image) {
         float[] sharpenKernel = {
                 0.0f, -0.2f,  0.0f,

@@ -5,6 +5,18 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.*;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 
+/**
+ * packageName    : com.ssfinder.domain.found.entity<br>
+ * fileName       : FoundItemDocument.java<br>
+ * author         : joker901010<br>
+ * date           : 2025-04-04<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-04-04          joker901010           최초생성<br>
+ * <br>
+ */
 @Document(indexName = "found-items")
 @Getter
 @Setter

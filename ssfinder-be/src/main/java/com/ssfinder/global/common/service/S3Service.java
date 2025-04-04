@@ -20,6 +20,18 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.UUID;
 
+/**
+ * packageName    : com.ssfinder.global.common.service<br>
+ * fileName       : S3Service.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-04-04<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-04-04          leeyj           최초생성<br>
+ * <br>
+ */
 @Service
 @RequiredArgsConstructor
 public class S3Service {

@@ -1,9 +1,6 @@
 package com.ssfinder.domain.founditem.controller;
 
-import com.ssfinder.domain.founditem.dto.request.FoundItemRegisterRequest;
-import com.ssfinder.domain.founditem.dto.request.FoundItemStatusUpdateRequest;
-import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
-import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
+import com.ssfinder.domain.founditem.dto.request.*;
 import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.service.FoundItemBookmarkService;
@@ -21,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * packageName    : com.ssfinder.domain.found.controller<br>
@@ -44,8 +42,14 @@ public class FoundItemController {
     private final FoundItemBookmarkService foundItemBookmarkService;
 
     @GetMapping("/view")
-    public ApiResponse<List<FoundItemDocumentDetailResponse>> getFoundAll(@Valid @RequestBody FoundItemViewportRequest viewportRequest) {
-        List<FoundItemDocumentDetailResponse> response = foundItemService.getFoundItemsByViewport(viewportRequest);
+    public ApiResponse<SearchAfterPageResponse<FoundItemDocumentDetailResponse>> getFoundAll(
+            @Valid @RequestBody FoundItemViewportRequest viewportRequest,
+            @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+            @RequestParam(value = "searchAfter", required = false) List<Object> searchAfterList) {
+
+        Object[] searchAfter = (searchAfterList != null) ? searchAfterList.toArray() : null;
+        SearchAfterPageResponse<FoundItemDocumentDetailResponse> response =
+                foundItemService.getFoundItemsByViewport(viewportRequest, searchAfter, pageSize);
         return ApiResponse.ok(response);
     }
 
@@ -103,9 +107,10 @@ public class FoundItemController {
     }
 
     @GetMapping("/viewport/coordinates")
-    public ApiResponse<?> findViewportCoordinatesForClustering() {
-
-        return null;
+    public CompletableFuture<ApiResponse<List<FoundItemClusterResponse>>> findViewportCoordinatesForClustering(
+            @Valid @RequestBody FoundItemViewportRequest request) {
+        return foundItemService.getCoordinatesInViewportForClusteringAsync(request)
+                .thenApply(ApiResponse::ok);
     }
 
     @GetMapping("/viewport")
@@ -114,12 +119,18 @@ public class FoundItemController {
         return null;
     }
 
+    @GetMapping("/filter")
+    public CompletableFuture<ApiResponse<List<FoundItemClusterResponse>>> getFilteredFoundItems(
+            @Valid @RequestBody FoundItemFilterRequest request) {
+        return foundItemService.getFilteredFoundItemsAsync(request)
+                .thenApply(ApiResponse::ok);
+    }
+
     @GetMapping("/cluster/detail")
     public ApiResponse<?> getClusterDetailInfo() {
 
         return null;
     }
-
 
     @PostMapping("/{foundId}/bookmark")
     public ApiResponse<?> registerBookmark(@AuthenticationPrincipal CustomUserDetails userDetails,
