@@ -5,8 +5,10 @@ import com.ssfinder.domain.chat.dto.mapper.ChatMessageMapper;
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
 import com.ssfinder.domain.chat.entity.ChatMessage;
 import com.ssfinder.domain.chat.entity.ChatMessageStatus;
+import com.ssfinder.domain.chat.entity.ChatRoom;
 import com.ssfinder.domain.chat.kafka.producer.ChatMessageProducer;
 import com.ssfinder.domain.chat.repository.ChatMessageRepository;
+import com.ssfinder.domain.chat.repository.ChatRoomParticipantRepository;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
@@ -40,6 +42,7 @@ public class ChatService {
     private final ChatMessageProducer chatMessageProducer;
     private final ChatMessageMapper chatMessageMapper;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final RedisTemplate<String, String> redisTemplate;
 
     @Value("${kafka.topic.chat-message-sent}")
@@ -51,12 +54,13 @@ public class ChatService {
         preCheckBeforeSend(userId, chatRoomId);
 
         User user = userService.findUserById(userId);
+        User opponentUser = getOpponentUser(userId, chatRoomId);
 
         ChatMessage chatMessage = ChatMessage.builder()
                 .chatRoomId(chatRoomId)
                 .senderId(user.getId())
                 .content(request.content())
-                .status(checkStatus(userId, chatRoomId))
+                .status(checkStatus(opponentUser.getId(), chatRoomId))
                 .type(request.type())
                 .build();
 
@@ -67,6 +71,12 @@ public class ChatService {
         chatMessageProducer.publish(KAFKA_TOPIC_MESSAGE_SENT, kafkaChatMessage);
     }
 
+    public User getOpponentUser(Integer userId, Integer chatRoomId) {
+        ChatRoom chatRoom = chatRoomService.findById(chatRoomId);
+        User user = userService.findUserById(userId);
+        return chatRoomParticipantRepository.getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user).getUser();
+    }
+
     private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {
         if(!chatRoomService.isInChatRoom(chatRoomId, userId)) {
             throw new CustomException(ErrorCode.CHAT_ROOM_ACCESS_DENIED);
@@ -75,7 +85,7 @@ public class ChatService {
 
     private ChatMessageStatus checkStatus(Integer userId, Integer chatRoomId) {
         boolean isViewing = Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(REDIS_CHAT_USERS_KEY + chatRoomId, userId.toString()));
-        log.info("isViewing: {}", isViewing);
+        log.info("userId {} isViewing: {}", userId, isViewing);
         return isViewing ? ChatMessageStatus.READ : ChatMessageStatus.UNREAD;
     }
 }
