@@ -25,7 +25,10 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class FoundItemUpdateResponse {
+
     private Integer id;
+
+    private Integer userId;
 
     private Integer itemCategoryId;
 
@@ -33,9 +36,9 @@ public class FoundItemUpdateResponse {
 
     private LocalDate foundAt;
 
-    private String location;
-
     private String color;
+
+    private String status;
 
     private String detail;
 

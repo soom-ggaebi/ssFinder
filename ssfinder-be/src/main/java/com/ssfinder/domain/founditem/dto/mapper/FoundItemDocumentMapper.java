@@ -25,7 +25,7 @@ public interface FoundItemDocumentMapper {
 
     @Mapping(target = "foundAt", expression = "java(parseFoundAt(document.getFoundAt()))")
     @Mapping(target = "type", expression = "java(document.getManagementId() == null)")
-    @Mapping(target = "hasBookmark", ignore = true) // 서비스에서 별도 설정
+    @Mapping(target = "hasBookmark", ignore = true)
     FoundItemDocumentDetailResponse documentToDetailResponse(FoundItemDocument document);
 
     default LocalDate parseFoundAt(String dateStr) {

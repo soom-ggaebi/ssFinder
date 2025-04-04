@@ -11,11 +11,17 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
     @Value("${spring.elasticsearch.uris}")
     private String[] esHost;
 
+    @Value("${spring.elasticsearch.username}")
+    private String username;
+
+    @Value("${spring.elasticsearch.password}")
+    private String password;
+
     @Override
     public ClientConfiguration clientConfiguration() {
         return ClientConfiguration.builder()
                 .connectedTo(esHost)
-//                .withBasicAuth(username, password) // 인증 필요 없으면 안해도 됨.
+                .withBasicAuth(username, password)
                 .build();
     }
 }

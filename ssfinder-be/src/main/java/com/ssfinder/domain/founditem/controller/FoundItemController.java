@@ -2,6 +2,7 @@ package com.ssfinder.domain.founditem.controller;
 
 import com.ssfinder.domain.founditem.dto.request.FoundItemRegisterRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemStatusUpdateRequest;
+import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
 import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
@@ -64,13 +65,13 @@ public class FoundItemController {
         return ApiResponse.ok(responseDTO);
     }
 
-//    @PutMapping("/{foundId}")
-//    public ApiResponse<?> updateFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
-//                                          @PathVariable @Min(1) int foundId,
-//                                          @ModelAttribute @Valid FoundItemUpdateRequest updateRequest) throws IOException {
-//        FoundItemUpdateResponse response = foundItemService.updateFoundItem(userDetails.getUserId(), foundId, updateRequest);
-//        return ApiResponse.ok(response);
-//    }
+    @PutMapping("/{foundId}")
+    public ApiResponse<?> updateFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                          @PathVariable @Min(1) int foundId,
+                                          @ModelAttribute @Valid FoundItemUpdateRequest updateRequest) {
+        FoundItemUpdateResponse response = foundItemService.updateFoundItem(userDetails.getUserId(), foundId, updateRequest);
+        return ApiResponse.ok(response);
+    }
 
     @DeleteMapping("/{foundId}")
     public ApiResponse<?> deleteFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
@@ -99,6 +100,24 @@ public class FoundItemController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         Page<FoundItemDetailResponse> response = foundItemService.getMyFoundItems(userDetails.getUserId(), pageable);
         return ApiResponse.ok(response);
+    }
+
+    @GetMapping("/viewport/coordinates")
+    public ApiResponse<?> findViewportCoordinatesForClustering() {
+
+        return null;
+    }
+
+    @GetMapping("/viewport")
+    public ApiResponse<?> findPagedFoundItemsInViewport() {
+
+        return null;
+    }
+
+    @GetMapping("/cluster/detail")
+    public ApiResponse<?> getClusterDetailInfo() {
+
+        return null;
     }
 
 

@@ -4,6 +4,7 @@ import com.ssfinder.domain.founditem.dto.mapper.FoundItemDocumentMapper;
 import com.ssfinder.domain.founditem.dto.mapper.FoundItemMapper;
 import com.ssfinder.domain.founditem.dto.request.FoundItemRegisterRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemStatusUpdateRequest;
+import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
 import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.entity.FoundItem;
@@ -73,6 +74,7 @@ public class FoundItemService {
     private final FoundItemDocumentMapper foundItemDocumentMapper;
     private final S3Service s3Service;
 
+    // 습득물 데이터 저장
     @Transactional
     public FoundItemDocument registerFoundItem(int userId, FoundItemRegisterRequest request) {
 
@@ -96,6 +98,7 @@ public class FoundItemService {
     }
 
 
+    // 상세조회
     @Transactional(readOnly = true)
     public FoundItemDocumentDetailResponse getFoundItemDetail(Integer userId ,int foundId) {
 
@@ -114,41 +117,46 @@ public class FoundItemService {
         return response;
     }
 
-//    @Transactional
-//    public FoundItemUpdateResponse updateFoundItem(int userId, int foundId, FoundItemUpdateRequest updateRequest) throws IOException {
-//
-//        FoundItem foundItem = foundItemRepository.findById(foundId)
-//                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
-//
-//        if (!foundItem.getUser().getId().equals(userId)) {
-//            throw new CustomException(ErrorCode.FOUND_ITEM_ACCESS_DENIED);
-//        }
-//
-//        foundItemMapper.updateFoundItemFromRequest(updateRequest, foundItem);
-//
-//        if(Objects.nonNull(updateRequest.getLatitude()) && Objects.nonNull(updateRequest.getLongitude())) {
-//            Point coordinates = geometryFactory.createPoint(new Coordinate(updateRequest.getLongitude(), updateRequest.getLatitude()));
-//            foundItem.setCoordinates(coordinates);
-//        }  else {
-//            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
-//        }
-//
-//        String imageUrl = foundItem.getImage();
-//        if(Objects.nonNull(updateRequest.getImage()) && !updateRequest.getImage().isEmpty()){
-//            if (Objects.nonNull(imageUrl)){
-//                imageUrl = s3Service.updateFile(imageUrl, updateRequest.getImage());
-//            } else {
-//                imageUrl = s3Service.uploadFile(updateRequest.getImage(), "found");
-//            }
-//        }
-//
-//        foundItem.setImage(imageUrl);
-//
-//        foundItem.setUpdatedAt(LocalDateTime.now());
-//
-//        return foundItemMapper.toUpdateResponse(foundItem);
-//    }
+    // 습득물 수정
+    @Transactional
+    public FoundItemUpdateResponse updateFoundItem(int userId, int foundId, FoundItemUpdateRequest request){
 
+        FoundItem foundItem = foundItemRepository.findById(foundId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
+
+        if (!foundItem.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.FOUND_ITEM_ACCESS_DENIED);
+        }
+
+        ItemCategory itemCategory = itemCategoryRepository.findById(request.getItemCategoryId())
+                .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        if (request.getImage() != null && !request.getImage().isEmpty()) {
+            if (foundItem.getImage() != null && !foundItem.getImage().isEmpty()) {
+                s3Service.deleteFile(foundItem.getImage());
+            }
+
+            String imageUrl = imageHandler.processAndUploadImage(request.getImage(), "found");
+            foundItem.setImage(imageUrl);
+        }
+
+        if (request.getLatitude() != null && request.getLongitude() != null) {
+            GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+            Point coordinates = geometryFactory.createPoint(
+                    new Coordinate(request.getLongitude(), request.getLatitude())
+            );
+            foundItem.setCoordinates(coordinates);
+        }
+
+        foundItemMapper.updateEntityFromRequest(request, foundItem, itemCategory);
+
+        FoundItem updatedFoundItem = foundItemRepository.save(foundItem);
+        elasticsearchAsyncService.saveFoundItemToElasticsearch(updatedFoundItem);
+
+        return foundItemMapper.entityToUpdateResponse(updatedFoundItem);
+    }
+
+    // 습득물 삭제
     @Transactional
     public void deleteFoundItem(int userId, int foundId) {
 
@@ -182,6 +190,7 @@ public class FoundItemService {
         elasticsearchAsyncService.deleteFoundItemFromElasticsearch(esDocumentId);
     }
 
+    // 습득물 상태 수정
     @Transactional
     public FoundItemDocumentDetailResponse updateFoundItemStatus(int userId, int foundId, FoundItemStatusUpdateRequest request) {
 
@@ -203,6 +212,7 @@ public class FoundItemService {
         return foundItemDocumentMapper.documentToDetailResponse(response);
     }
 
+    // 내 습득물 조회
     @Transactional(readOnly = true)
     public Page<FoundItemDetailResponse> getMyFoundItems(int userId, Pageable pageable) {
         String userIdStr = String.valueOf(userId);
@@ -227,6 +237,7 @@ public class FoundItemService {
         }
     }
 
+    // 뷰포트 기준 전체 조회
     @Transactional(readOnly = true)
     public List<FoundItemDocumentDetailResponse> getFoundItemsByViewport(FoundItemViewportRequest viewportRequest) {
 

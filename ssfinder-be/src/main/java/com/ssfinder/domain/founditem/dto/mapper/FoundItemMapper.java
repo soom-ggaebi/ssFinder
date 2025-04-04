@@ -1,6 +1,8 @@
 package com.ssfinder.domain.founditem.dto.mapper;
 
 import com.ssfinder.domain.founditem.dto.request.FoundItemRegisterRequest;
+import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
+import com.ssfinder.domain.founditem.dto.response.FoundItemUpdateResponse;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
@@ -9,6 +11,7 @@ import com.ssfinder.domain.user.entity.User;
 import org.locationtech.jts.geom.Point;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 
@@ -65,6 +68,31 @@ public interface FoundItemMapper {
     @Mapping(target = "locationGeo", expression = "java(mapGeoPoint(foundItem.getCoordinates()))")
     @Mapping(target = "imageHdfs", ignore = true)
     FoundItemDocument entityToDocument(FoundItem foundItem);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "user", ignore = true)
+    @Mapping(target = "itemCategory", source = "itemCategory")
+    @Mapping(target = "name", source = "request.name")
+    @Mapping(target = "foundAt", source = "request.foundAt")
+    @Mapping(target = "location", source = "request.location")
+    @Mapping(target = "color", source = "request.color")
+    @Mapping(target = "detail", source = "request.detail")
+    @Mapping(target = "storedAt", source = "request.storedAt")
+    @Mapping(target = "updatedAt", expression = "java(java.time.LocalDateTime.now())")
+    @Mapping(target = "image", ignore = true)
+    @Mapping(target = "coordinates", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "phone", ignore = true)
+    @Mapping(target = "managementId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    void updateEntityFromRequest(FoundItemUpdateRequest request, @MappingTarget FoundItem foundItem, ItemCategory itemCategory);
+
+    @Mapping(target = "userId", expression = "java(foundItem.getUser().getId())")
+    @Mapping(target = "itemCategoryId", expression = "java(foundItem.getItemCategory().getId())")
+    @Mapping(target = "status", expression = "java(foundItem.getStatus().toString())")
+    @Mapping(target = "latitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getY() : null)")
+    @Mapping(target = "longitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getX() : null)")
+    FoundItemUpdateResponse entityToUpdateResponse(FoundItem foundItem);
 
     default FoundItemStatus mapStatus(String status) {
         if (status == null) {

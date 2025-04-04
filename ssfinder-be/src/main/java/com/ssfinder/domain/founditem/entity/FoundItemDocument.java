@@ -2,10 +2,7 @@ package com.ssfinder.domain.founditem.entity;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.elasticsearch.annotations.Document;
-import org.springframework.data.elasticsearch.annotations.Field;
-import org.springframework.data.elasticsearch.annotations.FieldType;
-import org.springframework.data.elasticsearch.annotations.GeoPointField;
+import org.springframework.data.elasticsearch.annotations.*;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 
 @Document(indexName = "found-items")
@@ -74,4 +71,10 @@ public class FoundItemDocument {
     @GeoPointField
     @Field(name = "location_geo")
     private GeoPoint locationGeo;
+
+    @Field(name = "created_at", type = FieldType.Date, format = DateFormat.date_optional_time)
+    private String createdAt;
+
+    @Field(name = "updated_at", type = FieldType.Date, format = DateFormat.date_optional_time)
+    private String updatedAt;
 }
