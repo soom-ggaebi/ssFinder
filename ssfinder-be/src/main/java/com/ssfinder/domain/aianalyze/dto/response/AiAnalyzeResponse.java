@@ -32,7 +32,7 @@ public class AiAnalyzeResponse implements Serializable {
     private String material;
     private String brand;
     private String description;
-    private String distinctive_features;
+    private String distinctiveFeatures;
 
     // FastAPI 응답 포맷에 맞춰 중첩 클래스로 정의
     @Getter
