@@ -42,7 +42,7 @@ pip install -r requirements.txt
 2. 서버 실행:
 ```bash
 # 프로젝트 루트 디렉토리에서 실행
-uvicorn main:app --reload
+uvicorn main:app --reload --port 5001
 ```
 
 또는
