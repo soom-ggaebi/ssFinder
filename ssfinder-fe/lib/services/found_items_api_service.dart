@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../models/found_item_model.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sumsumfinder/config/environment_config.dart';
 import 'dart:io';
@@ -12,7 +13,7 @@ class FoundItemsApiService {
   }
 
   // 습득물 목록 조회
-  Future<Map<String, dynamic>> getFoundItems({
+  Future<List<FoundItemListModel>> getFoundItems({
     required double minLatitude,
     required double minLongitude,
     required double maxLatitude,
@@ -26,14 +27,22 @@ class FoundItemsApiService {
         "max_longitude": maxLongitude.toString(),
       };
 
+      final token = await _getAccessToken();
+
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
       final response = await _dio.post(
         '${EnvironmentConfig.baseUrl}/api/found-items/view',
-        options: Options(headers: {'Content-Type': 'application/json'}),
+        options: Options(headers: headers),
         data: requestBody,
       );
 
       if (response.statusCode == 200) {
-        return response.data as Map<String, dynamic>;
+        final data = response.data as List<dynamic>;
+        return data.map((json) => FoundItemListModel.fromJson(json)).toList();
       } else if (response.statusCode == 404) {
         throw Exception('습득물 목록을 찾을 수 없습니다.');
       } else {
@@ -113,9 +122,16 @@ class FoundItemsApiService {
     required int foundId,
   }) async {
     try {
+      final token = await _getAccessToken();
+
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
       final response = await _dio.get(
         '${EnvironmentConfig.baseUrl}/api/found-items/$foundId',
-        options: Options(headers: {'Content-Type': 'application/json'}),
+        options: Options(headers: headers),
         queryParameters: {'foundId': foundId.toString()},
       );
 

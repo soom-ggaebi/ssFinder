@@ -1,30 +1,56 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/models/found_item_model.dart';
+import 'package:sumsumfinder/models/found_item_model.dart'; // FoundItemListModel이 정의된 파일
 
 class FoundItemCard extends StatelessWidget {
-  final FoundItemModel item;
+  final FoundItemListModel item;
 
   const FoundItemCard({Key? key, required this.item}) : super(key: key);
 
   String extractLocation(String location) {
     List<String> parts = location.split(" ");
-    return parts.sublist(2, 4).join(" ");
+    if (parts.length >= 4) {
+      return parts.sublist(2, 4).join(" ");
+    }
+    return location;
   }
 
   @override
   Widget build(BuildContext context) {
-    String extractedLocation = extractLocation(item.foundLocation);
+    String displayLocation;
+
+    if (item.type == "경찰청") {
+      displayLocation =
+          (item.storageLocation != null &&
+                  item.storageLocation!.trim().isNotEmpty)
+              ? item.storageLocation!
+              : item.foundLocation;
+    } else {
+      displayLocation = extractLocation(item.foundLocation);
+    }
 
     return Row(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(8.0),
-          child: Image.asset(
-            item.photo,
-            width: 100,
-            height: 100,
-            fit: BoxFit.cover,
-          ),
+          child:
+              item.image != null
+                  ? Image.file(
+                    item.image!,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  )
+                  : Container(
+                    width: 100,
+                    height: 100,
+                    color: Colors.grey[300],
+                    child: const Icon(
+                      Icons.image,
+                      size: 50,
+                      color: Colors.white,
+                    ),
+                  ),
         ),
         const SizedBox(width: 20),
         Expanded(
@@ -32,22 +58,25 @@ class FoundItemCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                item.category,
+                "${item.majorCategory} > ${item.minorCategory}",
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               Text(
-                item.itemName,
+                item.name,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                   color: Colors.black,
                 ),
               ),
-              Text(item.source),
+              Text(
+                item.type,
+                style: const TextStyle(fontSize: 14, color: Colors.black),
+              ),
               Row(
                 children: [
                   Text(
-                    extractedLocation,
+                    displayLocation,
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                   const Text(

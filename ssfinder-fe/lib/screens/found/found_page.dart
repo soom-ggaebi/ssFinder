@@ -20,7 +20,7 @@ class _FoundPageState extends State<FoundPage> {
   String _searchQuery = "";
 
   // 추가: API에서 가져온 데이터와 로딩 상태 변수
-  List<FoundItemModel> foundItems = [];
+  List<FoundItemCoordinatesModel> foundItems = [];
   bool isLoading = true;
 
   @override
@@ -74,7 +74,8 @@ class _FoundPageState extends State<FoundPage> {
   /// API를 호출하여 습득물 데이터를 가져오는 함수
   Future<void> _loadFoundItems() async {
     try {
-      List<FoundItemModel> items = await FoundItemsListApiService.getApiData();
+      List<FoundItemCoordinatesModel> items =
+          await FoundItemsListApiService.getApiData();
       setState(() {
         foundItems = items;
         isLoading = false;
