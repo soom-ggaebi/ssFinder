@@ -31,7 +31,7 @@ public class FcmMessageService {
         this.fcmTokenService = fcmTokenService;
     }
 
-    public void sendNotificationToUser(String token, String title, String body, Map<String, String> data) {
+    public boolean sendNotificationToDevice(String token, String title, String body, Map<String, String> data) {
         Message message = Message.builder()
                 .setNotification(Notification
                         .builder()
@@ -45,6 +45,7 @@ public class FcmMessageService {
         try {
             String response = FirebaseMessaging.getInstance().send(message);
             log.info("알림 전송 성공: {}", response);
+            return true;
         } catch (FirebaseMessagingException e) {
             MessagingErrorCode errorCode = e.getMessagingErrorCode();
             if (errorCode.equals(MessagingErrorCode.UNREGISTERED) || errorCode.equals(MessagingErrorCode.INVALID_ARGUMENT)) {
@@ -54,16 +55,21 @@ public class FcmMessageService {
             else if (errorCode.equals(MessagingErrorCode.INTERNAL) || errorCode.equals(MessagingErrorCode.UNAVAILABLE)) {
                 log.info("알림 전송 실패: FCM 서버 에러 - {}", e.getMessage());
             }
+            return false;
         }
     }
 
-    public void sendNotificationToUsers(List<String> tokens, String title, String body, Map<String, String> data) {
+    public boolean sendNotificationToDevices(List<String> tokens, String title, String body, Map<String, String> data) {
         if (Objects.isNull(tokens) || tokens.isEmpty()) {
-            return;
+            return false;
         }
 
+        boolean anySuccess = false;
         for (String token : tokens) {
-            sendNotificationToUser(token, title, body, data);
+            if (sendNotificationToDevice(token, title, body, data)) {
+                anySuccess = true;
+            }
         }
+        return anySuccess;
     }
 }
