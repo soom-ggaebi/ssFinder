@@ -1,11 +1,14 @@
 package com.ssfinder.domain.notification.controller;
 
 import com.ssfinder.domain.notification.dto.request.FcmTokenRequest;
+import com.ssfinder.domain.notification.dto.request.NotificationHistoryGetRequest;
 import com.ssfinder.domain.notification.dto.request.NotificationRequest;
 import com.ssfinder.domain.notification.dto.request.SettingUpdateRequest;
+import com.ssfinder.domain.notification.dto.response.NotificationSliceResponse;
 import com.ssfinder.domain.notification.dto.response.SettingsGetResponse;
 import com.ssfinder.domain.notification.entity.NotificationType;
 import com.ssfinder.domain.notification.service.FcmTokenService;
+import com.ssfinder.domain.notification.service.NotificationHistoryService;
 import com.ssfinder.domain.notification.service.NotificationService;
 import com.ssfinder.domain.notification.service.UserNotificationSettingService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
@@ -37,6 +40,7 @@ public class NotificationController {
     private final FcmTokenService fcmTokenService;
     private final UserNotificationSettingService userNotificationSettingService;
     private final NotificationService notificationService;
+    private final NotificationHistoryService notificationHistoryService;
 
     @PostMapping("/token")
     public ApiResponse<?> registerFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody FcmTokenRequest fcmTokenRequest) {
@@ -74,4 +78,31 @@ public class NotificationController {
         return ApiResponse.noContent();
     }
 
+    @GetMapping
+    public ApiResponse<NotificationSliceResponse> getNotificationHistory(
+            @Valid @ModelAttribute NotificationHistoryGetRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        NotificationSliceResponse notificationHistorySlice = notificationHistoryService.getNotificationHistory
+                (userDetails.getUserId(), request.type(), request.page(), request.size(), request.lastId());
+
+        return ApiResponse.ok(notificationHistorySlice);
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<?> deleteNotificationHistory(
+            @PathVariable("id") Integer notificationHistoryId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        notificationHistoryService.deleteNotificationHistory(userDetails.getUserId(), notificationHistoryId);
+
+        return ApiResponse.noContent();
+    }
+
+    @DeleteMapping
+    public ApiResponse<?> deleteAllNotificationHistory(
+            @RequestParam("type") NotificationType notificationType,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        notificationHistoryService.deleteNotificationHistoryAllByType(userDetails.getUserId(), notificationType);
+
+        return ApiResponse.noContent();
+    }
 }

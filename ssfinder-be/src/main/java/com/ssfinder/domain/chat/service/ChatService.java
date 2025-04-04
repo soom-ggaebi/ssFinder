@@ -1,10 +1,11 @@
 package com.ssfinder.domain.chat.service;
 
+import com.ssfinder.domain.chat.dto.KafkaChatMessage;
 import com.ssfinder.domain.chat.dto.mapper.ChatMessageMapper;
-import com.ssfinder.domain.chat.dto.response.MessageSendResponse;
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
 import com.ssfinder.domain.chat.entity.ChatMessage;
 import com.ssfinder.domain.chat.entity.ChatMessageStatus;
+import com.ssfinder.domain.chat.kafka.producer.ChatMessageProducer;
 import com.ssfinder.domain.chat.repository.ChatMessageRepository;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
@@ -13,7 +14,7 @@ import com.ssfinder.global.common.exception.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -35,9 +36,12 @@ import org.springframework.stereotype.Service;
 public class ChatService {
     private final UserService userService;
     private final ChatRoomService chatRoomService;
+    private final ChatMessageProducer chatMessageProducer;
     private final ChatMessageMapper chatMessageMapper;
     private final ChatMessageRepository chatMessageRepository;
-    private final SimpMessagingTemplate messagingTemplate;
+
+    @Value("${kafka.topic.chat-message-sent}")
+    private String KAFKA_TOPIC_MESSAGE_SENT;
 
     public void send(Integer userId, Integer chatRoomId, MessageSendRequest request) {
         preCheckBeforeSend(userId, chatRoomId);
@@ -54,13 +58,13 @@ public class ChatService {
 
         ChatMessage message = chatMessageRepository.save(chatMessage);
 
-        MessageSendResponse response = chatMessageMapper.mapToMessageSendResponse(message, user.getNickname());
+        KafkaChatMessage kafkaChatMessage = chatMessageMapper.mapToMessageSendResponse(message, user.getNickname());
 
-        messagingTemplate.convertAndSend("/sub/chat-room/" + chatRoomId, response);
+        chatMessageProducer.publish(KAFKA_TOPIC_MESSAGE_SENT, kafkaChatMessage);
     }
 
     private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {
-        if(!chatRoomService.isInChatRoom(userId, chatRoomId)) {
+        if(!chatRoomService.isInChatRoom(chatRoomId, userId)) {
             throw new CustomException(ErrorCode.CHAT_ROOM_ACCESS_DENIED);
         }
     }

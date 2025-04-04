@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -98,4 +99,10 @@ public class GlobalExceptionHandler {
         return ApiResponse.fail(new CustomException(ErrorCode.INVALID_INPUT_VALUE), errorMessages);
     }
 
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ApiResponse<?> handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
+        String name = ex.getParameterName();
+        String message = String.format("필수 요청 파라미터 '%s'가 누락되었습니다.", name);
+        return ApiResponse.fail(new CustomException(ErrorCode.INVALID_INPUT_VALUE), message);
+    }
 }
