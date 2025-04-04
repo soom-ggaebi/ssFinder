@@ -7,6 +7,7 @@ import 'package:sumsumfinder/services/notification_api_service.dart';
 import 'package:sumsumfinder/models/noti_model.dart';
 import 'package:sumsumfinder/utils/noti_state.dart';
 import 'package:sumsumfinder/widgets/main/noti_item_widget.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({Key? key}) : super(key: key);
@@ -380,7 +381,9 @@ class _NotificationPageState extends State<NotificationPage>
           Center(
             child: SizedBox(
               child: IconButton(
-                icon: const Icon(Icons.delete_sweep, size: 24),
+                icon: SvgPicture.asset(
+                  'assets/images/common/appBar/delete_button.svg',
+                ),
                 onPressed: _showDeleteAllConfirmation,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),

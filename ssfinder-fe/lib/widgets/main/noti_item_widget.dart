@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sumsumfinder/models/noti_model.dart';
+import 'package:sumsumfinder/utils/time_formatter.dart';
 
 class NotificationItemWidget extends StatelessWidget {
   final NotificationItem notification;
@@ -112,7 +113,7 @@ class NotificationItemWidget extends StatelessWidget {
                   const SizedBox(height: 4),
 
                   Text(
-                    notification.getFormattedDate(),
+                    TimeFormatter.getFormattedDate(notification.sendAt),
                     style: const TextStyle(fontSize: 11, color: Colors.grey),
                   ),
                 ],

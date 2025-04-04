@@ -385,6 +385,10 @@ class KakaoLoginService {
           responseData['data']['expires_in'],
         );
 
+        // 추가 디버그: 저장 직후 토큰 확인
+        final storedToken = await _storage.read(key: 'access_token');
+        print('저장 후 access_token: $storedToken');
+
         // 사용자 닉네임 SharedPreferences에 저장
         final prefs = await SharedPreferences.getInstance();
         final nickname = user?.kakaoAccount?.profile?.nickname ?? "";
@@ -419,6 +423,7 @@ class KakaoLoginService {
     String accountId = user!.id.toString(); // 카카오 계정 ID
 
     try {
+      // 계정별 토큰 저장
       await _storage.write(key: 'access_token_$accountId', value: accessToken);
       await _storage.write(
         key: 'refresh_token_$accountId',
@@ -426,6 +431,14 @@ class KakaoLoginService {
       );
       await _storage.write(
         key: 'token_expiry_$accountId',
+        value: (DateTime.now().millisecondsSinceEpoch + expiresIn).toString(),
+      );
+
+      // 통합 키에도 토큰 저장 (다른 서비스에서 사용하기 위함)
+      await _storage.write(key: 'access_token', value: accessToken);
+      await _storage.write(key: 'refresh_token', value: refreshToken);
+      await _storage.write(
+        key: 'token_expiry',
         value: (DateTime.now().millisecondsSinceEpoch + expiresIn).toString(),
       );
 

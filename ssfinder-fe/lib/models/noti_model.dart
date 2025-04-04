@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 // 알림 유형 enum 정의
 enum NotificationType { TRANSFER, CHAT, AI_MATCH, ITEM_REMINDER, ALL }
 
@@ -152,37 +150,5 @@ class NotificationItem {
       isRead: json['is_read'],
       readAt: json['read_at'],
     );
-  }
-
-  // 날짜 포맷팅 헬퍼 메서드
-  String getFormattedDate() {
-    try {
-      final dateTime = DateTime.parse(sendAt);
-      final now = DateTime.now();
-
-      // 날짜 차이 계산 (절대값 사용)
-      final difference = now.difference(dateTime);
-      final absoluteDifference = difference.abs(); // 절대값으로 변환
-
-      // 미래 날짜인 경우
-      if (dateTime.isAfter(now)) {
-        return '미래 메시지'; // 또는 그냥 날짜를 표시
-      }
-
-      if (absoluteDifference.inMinutes < 1) {
-        return '방금 전';
-      } else if (absoluteDifference.inHours < 1) {
-        return '${absoluteDifference.inMinutes}분 전';
-      } else if (absoluteDifference.inDays < 1) {
-        return '${absoluteDifference.inHours}시간 전';
-      } else if (absoluteDifference.inDays < 7) {
-        return '${absoluteDifference.inDays}일 전';
-      } else {
-        return '${dateTime.year}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.day.toString().padLeft(2, '0')}';
-      }
-    } catch (e) {
-      print('날짜 포맷팅 오류: $e');
-      return sendAt;
-    }
   }
 }

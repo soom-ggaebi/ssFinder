@@ -5,6 +5,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/environment_config.dart';
 import 'package:sumsumfinder/models/noti_model.dart';
 
+class AppStorage {
+  static final FlutterSecureStorage secureStorage =
+      const FlutterSecureStorage();
+}
+
 class NotificationApiService {
   static final baseUrl = EnvironmentConfig.baseUrl;
   static const _secureStorage = FlutterSecureStorage();
