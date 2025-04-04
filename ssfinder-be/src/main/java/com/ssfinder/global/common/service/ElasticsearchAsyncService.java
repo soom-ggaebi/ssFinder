@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class ElasticsearchAsyncService {
 
-    private final FoundItemDocumentRepository foundItemDocumentRepository;
     private final FoundItemMapper foundItemMapper;
     private final ElasticsearchRetryQueue retryQueue;
     private final ElasticsearchOperations elasticsearchOperations;
