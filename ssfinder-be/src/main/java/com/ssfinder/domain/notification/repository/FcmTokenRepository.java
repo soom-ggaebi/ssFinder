@@ -18,10 +18,12 @@ import java.util.Optional;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-24          okeio           최초생성<br>
+ * 2025-04-04          okeio           토큰 조회 메서드 추가<br>
  * <br>
  */
 @Repository
 public interface FcmTokenRepository extends JpaRepository<FcmToken, Integer> {
     Optional<FcmToken> findByUserAndToken(User user, String token);
+    Optional<FcmToken> findByToken(String token);
     List<FcmToken> findAllByUser(User user);
 }
