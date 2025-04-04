@@ -85,7 +85,6 @@ public class ChatService {
 
     private ChatMessageStatus checkStatus(Integer userId, Integer chatRoomId) {
         boolean isViewing = Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(REDIS_CHAT_USERS_KEY + chatRoomId, userId.toString()));
-        log.info("userId {} isViewing: {}", userId, isViewing);
         return isViewing ? ChatMessageStatus.READ : ChatMessageStatus.UNREAD;
     }
 }
