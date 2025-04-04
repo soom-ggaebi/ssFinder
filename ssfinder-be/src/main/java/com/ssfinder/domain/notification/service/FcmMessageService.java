@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 
 /**
  * packageName    : com.ssfinder.domain.notification.service<br>
@@ -19,11 +18,18 @@ import java.util.concurrent.ExecutionException;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-25          okeio           최초생성<br>
+ * 2025-04-04          okeio           알림 요청 시, 유효하지 않은 토큰인 경우 토큰 삭제<br>
  * <br>
  */
 @Slf4j
 @Service
 public class FcmMessageService {
+
+    private final FcmTokenService fcmTokenService;
+
+    public FcmMessageService(FcmTokenService fcmTokenService) {
+        this.fcmTokenService = fcmTokenService;
+    }
 
     public void sendNotificationToUser(String token, String title, String body, Map<String, String> data) {
         Message message = Message.builder()
@@ -37,10 +43,17 @@ public class FcmMessageService {
                 .build();
 
         try {
-            String response = FirebaseMessaging.getInstance().sendAsync(message).get();
+            String response = FirebaseMessaging.getInstance().send(message);
             log.info("알림 전송 성공: {}", response);
-        } catch (InterruptedException | ExecutionException e) {
-            log.error("알림 전송 실패: {}", e.getMessage());
+        } catch (FirebaseMessagingException e) {
+            MessagingErrorCode errorCode = e.getMessagingErrorCode();
+            if (errorCode.equals(MessagingErrorCode.UNREGISTERED) || errorCode.equals(MessagingErrorCode.INVALID_ARGUMENT)) {
+                log.info("알림 전송 실패: 유효한 토큰이 아닙니다. - {}", e.getMessage());
+                fcmTokenService.deleteFcmToken(token);
+            }
+            else if (errorCode.equals(MessagingErrorCode.INTERNAL) || errorCode.equals(MessagingErrorCode.UNAVAILABLE)) {
+                log.info("알림 전송 실패: FCM 서버 에러 - {}", e.getMessage());
+            }
         }
     }
 
