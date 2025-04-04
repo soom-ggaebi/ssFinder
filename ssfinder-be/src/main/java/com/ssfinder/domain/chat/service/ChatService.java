@@ -15,6 +15,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -39,9 +40,12 @@ public class ChatService {
     private final ChatMessageProducer chatMessageProducer;
     private final ChatMessageMapper chatMessageMapper;
     private final ChatMessageRepository chatMessageRepository;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Value("${kafka.topic.chat-message-sent}")
     private String KAFKA_TOPIC_MESSAGE_SENT;
+    @Value("${redis.chat.users.key}")
+    private String REDIS_CHAT_USERS_KEY;
 
     public void send(Integer userId, Integer chatRoomId, MessageSendRequest request) {
         preCheckBeforeSend(userId, chatRoomId);
@@ -52,7 +56,7 @@ public class ChatService {
                 .chatRoomId(chatRoomId)
                 .senderId(user.getId())
                 .content(request.content())
-                .status(ChatMessageStatus.SENT)
+                .status(checkStatus(userId, chatRoomId))
                 .type(request.type())
                 .build();
 
@@ -67,5 +71,11 @@ public class ChatService {
         if(!chatRoomService.isInChatRoom(chatRoomId, userId)) {
             throw new CustomException(ErrorCode.CHAT_ROOM_ACCESS_DENIED);
         }
+    }
+
+    private ChatMessageStatus checkStatus(Integer userId, Integer chatRoomId) {
+        boolean isViewing = Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(REDIS_CHAT_USERS_KEY + chatRoomId, userId.toString()));
+        log.info("isViewing: {}", isViewing);
+        return isViewing ? ChatMessageStatus.READ : ChatMessageStatus.UNREAD;
     }
 }
