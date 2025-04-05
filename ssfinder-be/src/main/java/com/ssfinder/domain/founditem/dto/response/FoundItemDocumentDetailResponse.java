@@ -10,34 +10,40 @@ import java.time.LocalDateTime;
 
 /**
  * packageName    : com.ssfinder.domain.found.dto.response<br>
- * fileName       : FoundItemUpdateResponse.java<br>
+ * fileName       : FoundItemDocumentDetailResponse.java<br>
  * author         : joker901010<br>
- * date           : 2025-03-26<br>
+ * date           : 2025-04-02<br>
  * description    :  <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
- * 2025-03-26          joker901010           최초생성<br>
+ * 2025-04-02          joker901010           최초생성<br>
  * <br>
  */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @Getter
 @Setter
-public class FoundItemUpdateResponse {
+public class FoundItemDocumentDetailResponse {
 
-    private Integer id;
+    private String id;
 
-    private Integer userId;
+    private String userId;
 
-    private Integer itemCategoryId;
+    private String majorCategory;
+
+    private String minorCategory;
 
     private String name;
 
     private LocalDate foundAt;
 
+    private String location;
+
     private String color;
 
     private String status;
+
+    private String phone;
 
     private String detail;
 
@@ -52,4 +58,9 @@ public class FoundItemUpdateResponse {
     private Double latitude;
 
     private Double longitude;
+
+    private Boolean type;
+
+    private Boolean hasBookmark;
+
 }

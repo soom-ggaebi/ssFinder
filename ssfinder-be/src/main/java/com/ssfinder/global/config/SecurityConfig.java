@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -30,7 +31,10 @@ public class SecurityConfig {
     public static final String[] allowUrls = {
             "/", "/api/auth/**", "/swagger-ui/**", "/swagger-ui.html",
             "/v3/api-docs/**", "/swagger-resources/**", "/error",
-            "/agarang", "/ws/**", "/app/**", "/api/found-items/**"
+            "/agarang", "/ws/**", "/app/**", "/api/found-items/filter",
+            "/api/found-items/viewport/coordinates", "/api/found-items/viewport",
+            "/api/found-items/{foundId}", "/api/found-items/cluster/detail",
+            "/api/found-items/filter-items"
     };
 
     private final JwtUtil jwtUtil;

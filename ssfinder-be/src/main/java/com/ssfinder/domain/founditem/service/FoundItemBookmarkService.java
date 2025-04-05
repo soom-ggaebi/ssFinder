@@ -81,4 +81,25 @@ public class FoundItemBookmarkService {
         bookmarkRepository.delete(bookmark);
     }
 
+    @Transactional
+    public void deleteAllBookmarksByFoundItemId(Integer foundItemId) {
+        bookmarkRepository.deleteByFoundItemId(foundItemId);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isItemBookmarkedByUser(Integer userId, int foundId) {
+
+        if (userId == null) {
+            return false;
+        }
+
+        return bookmarkRepository.existsByUserIdAndFoundItemId(userId, foundId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Integer> getBookmarkedItemIdsByUser(Integer userId) {
+        List<Integer> bookmarkedItemIds = bookmarkRepository.findFoundItemIdsByUserId(userId);
+
+        return bookmarkedItemIds;
+    }
 }

@@ -28,7 +28,8 @@ public interface FoundItemRepository extends JpaRepository<FoundItem, Integer> {
     List<FoundItem> findAllByUserId(int userId);
 
     @Query(value = "SELECT * FROM found_item " +
-            "WHERE MBRContains(ST_MakeEnvelope(:minLon, :minLat, :maxLon, :maxLat), coordinates) = 1",
+            "WHERE ST_X(coordinates) BETWEEN :minLat AND :maxLat " +
+            "AND ST_Y(coordinates) BETWEEN :minLon AND :maxLon",
             nativeQuery = true)
     List<FoundItem> findByCoordinatesWithin(@Param("minLat") double minLat,
                                             @Param("minLon") double minLon,
