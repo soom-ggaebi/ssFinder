@@ -13,6 +13,9 @@ import 'services/location_service.dart';
 import 'services/kakao_login_service.dart';
 import 'app.dart';
 
+// 전역 NavigatorKey 선언
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 Future<void> main() async {
   // Flutter 엔진 초기화
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,9 +28,9 @@ Future<void> main() async {
   final locationService = LocationService();
   await locationService.initialize();
 
-  // 알림 서비스 초기화
+  // 알림 서비스 초기화 (NavigatorKey 추가)
   final notificationService = NotificationService();
-  await notificationService.initialize();
+  await notificationService.initialize(navigatorKey: navigatorKey);
 
   // Firebase 초기화
   await Firebase.initializeApp();
@@ -35,7 +38,6 @@ Future<void> main() async {
   await firebaseService.initialize();
 
   // 권한 요청
-
   await _requestPermissions();
 
   FirebaseMessaging messaging = FirebaseMessaging.instance;
@@ -75,7 +77,8 @@ Future<void> main() async {
     await locationService.stopLocationService();
   }
 
-  runApp(MyApp());
+  // navigatorKey를 MyApp에 전달
+  runApp(MyApp(navigatorKey: navigatorKey));
 }
 
 Future<void> _requestPermissions() async {

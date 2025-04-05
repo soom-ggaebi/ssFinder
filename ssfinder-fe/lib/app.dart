@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'screens/home_page.dart';
+import 'package:sumsumfinder/screens/main/noti_list_page.dart';
 
 class MyApp extends StatelessWidget {
+  final GlobalKey<NavigatorState> navigatorKey;
+
+  const MyApp({Key? key, required this.navigatorKey}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     const Color textColor = Color(0xFF3D3D3D);
     const Color backgroundColor = Color(0xFFF9FBFD);
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Sumsum Finder',
       theme: ThemeData(
         fontFamily: 'GmarketSans',
@@ -42,6 +48,7 @@ class MyApp extends StatelessWidget {
         highlightColor: Colors.transparent,
       ),
       home: const HomePage(),
+      routes: {'/notifications': (context) => const NotificationPage()},
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import './location_service.dart';
 import './weather_service.dart';
@@ -7,6 +8,8 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
+
+  GlobalKey<NavigatorState>? _navigatorKey;
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -18,7 +21,9 @@ class NotificationService {
     importance: Importance.high,
   );
 
-  Future<void> initialize() async {
+  Future<void> initialize({GlobalKey<NavigatorState>? navigatorKey}) async {
+    _navigatorKey = navigatorKey;
+
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('ic_notification');
     final InitializationSettings initializationSettings =
@@ -26,7 +31,8 @@ class NotificationService {
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // 알림을 탭했을 때 실행할 로직
+        // 알림을 탭했을 때 알림 페이지로 이동
+        _navigateToNotificationPage(response.payload);
       },
     );
 
@@ -35,6 +41,13 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.createNotificationChannel(channel);
+  }
+
+  // 알림 페이지로 이동하는 메서드
+  void _navigateToNotificationPage(String? payload) {
+    if (_navigatorKey?.currentState != null) {
+      _navigatorKey!.currentState!.pushNamed('/notifications');
+    }
   }
 
   Future<void> showNotification({
