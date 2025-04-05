@@ -1,7 +1,8 @@
 package com.ssfinder.global.config.kafka;
 
 import com.google.common.collect.ImmutableMap;
-import com.ssfinder.domain.chat.dto.KafkaChatMessage;
+import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
+import com.ssfinder.domain.chat.dto.kafka.KafkaChatReadMessage;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,11 +37,6 @@ public class ProducerConfig {
     private String bootstrapServers;
 
     @Bean
-    public ProducerFactory<String, KafkaChatMessage> producerFactory() {
-        return new DefaultKafkaProducerFactory<>(producerConfigurations());
-    }
-
-    @Bean
     public Map<String, Object> producerConfigurations() {
         return ImmutableMap.<String, Object>builder()
                 .put(org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
@@ -51,7 +47,22 @@ public class ProducerConfig {
     }
 
     @Bean
+    public ProducerFactory<String, KafkaChatMessage> chatSendMessageProducerFactory() {
+        return new DefaultKafkaProducerFactory<>(producerConfigurations());
+    }
+
+    @Bean
+    public ProducerFactory<String, KafkaChatReadMessage> chatReadMessageProducerFactory() {
+        return new DefaultKafkaProducerFactory<>(producerConfigurations());
+    }
+
+    @Bean
     public KafkaTemplate<String, KafkaChatMessage> chatMessagekafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
+        return new KafkaTemplate<>(chatSendMessageProducerFactory());
+    }
+
+    @Bean
+    public KafkaTemplate<String, KafkaChatReadMessage> chatReadMessagekafkaTemplate() {
+        return new KafkaTemplate<>(chatReadMessageProducerFactory());
     }
 }

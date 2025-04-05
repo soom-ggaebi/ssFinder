@@ -2,7 +2,8 @@ package com.ssfinder.global.config.kafka;
 
 import com.google.common.collect.ImmutableMap;
 
-import com.ssfinder.domain.chat.dto.KafkaChatMessage;
+import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
+import com.ssfinder.domain.chat.dto.kafka.KafkaChatReadMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,6 +58,28 @@ public class ListenerConfig {
                         .build();
 
         return new DefaultKafkaConsumerFactory<>(consumerConfigurations, new StringDeserializer(), deserializer);
+    }
 
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, KafkaChatReadMessage> chatMessageReadListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, KafkaChatReadMessage> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(chatReadMessageConsumerFactory());
+        return factory;
+    }
+
+    @Bean
+    public ConsumerFactory<String, KafkaChatReadMessage> chatReadMessageConsumerFactory() {
+        JsonDeserializer<KafkaChatReadMessage> deserializer = new JsonDeserializer<>();
+        deserializer.addTrustedPackages("*");
+
+        Map<String, Object> consumerConfigurations =
+                ImmutableMap.<String, Object>builder()
+                        .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+                        .put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class)
+                        .put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer)
+                        .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+                        .build();
+
+        return new DefaultKafkaConsumerFactory<>(consumerConfigurations, new StringDeserializer(), deserializer);
     }
 }
