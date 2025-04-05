@@ -4,6 +4,7 @@ import com.ssfinder.domain.founditem.dto.request.*;
 import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.service.FoundItemBookmarkService;
+import com.ssfinder.domain.founditem.service.FoundItemElasticsearchQueryService;
 import com.ssfinder.domain.founditem.service.FoundItemService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.global.common.response.ApiResponse;
@@ -40,18 +41,8 @@ public class FoundItemController {
 
     private final FoundItemService foundItemService;
     private final FoundItemBookmarkService foundItemBookmarkService;
+    private final FoundItemElasticsearchQueryService foundItemElasticsearchQueryService;
 
-    @GetMapping("/view")
-    public ApiResponse<SearchAfterPageResponse<FoundItemDocumentDetailResponse>> getFoundAll(
-            @Valid @RequestBody FoundItemViewportRequest viewportRequest,
-            @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
-            @RequestParam(value = "searchAfter", required = false) List<Object> searchAfterList) {
-
-        Object[] searchAfter = (searchAfterList != null) ? searchAfterList.toArray() : null;
-        SearchAfterPageResponse<FoundItemDocumentDetailResponse> response =
-                foundItemService.getFoundItemsByViewport(viewportRequest, searchAfter, pageSize);
-        return ApiResponse.ok(response);
-    }
 
     @PostMapping
     public ApiResponse<?> RegisterFoundItem(@AuthenticationPrincipal CustomUserDetails userDetails,
@@ -109,7 +100,7 @@ public class FoundItemController {
     @GetMapping("/viewport/coordinates")
     public CompletableFuture<ApiResponse<List<FoundItemClusterResponse>>> findViewportCoordinatesForClustering(
             @Valid @RequestBody FoundItemViewportRequest request) {
-        return foundItemService.getCoordinatesInViewportForClusteringAsync(request)
+        return foundItemElasticsearchQueryService.getCoordinatesInViewportForClusteringAsync(request)
                 .thenApply(ApiResponse::ok);
     }
 
@@ -123,13 +114,11 @@ public class FoundItemController {
             @RequestParam(defaultValue = "desc") String sortDirection) {
 
         Integer userId = (userDetails != null) ? userDetails.getUserId() : null;
-
         Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ?
                 Sort.Direction.ASC : Sort.Direction.DESC;
 
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, sortBy));
-
-        Page<FoundItemSummaryResponse> response = foundItemService.getPagedFoundItemsInViewport(userId, request, pageRequest);
+        Page<FoundItemSummaryResponse> response = foundItemElasticsearchQueryService.getPagedFoundItemsInViewport(userId, request, pageRequest);
 
         return ApiResponse.ok(response);
     }
@@ -137,7 +126,7 @@ public class FoundItemController {
     @GetMapping("/filter")
     public CompletableFuture<ApiResponse<List<FoundItemClusterResponse>>> getFilteredFoundItems(
             @Valid @RequestBody FoundItemFilterRequest request) {
-        return foundItemService.getFilteredFoundItemsAsync(request)
+        return foundItemElasticsearchQueryService.getFilteredFoundItemsAsync(request)
                 .thenApply(ApiResponse::ok);
     }
 
@@ -157,7 +146,7 @@ public class FoundItemController {
 
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        Page<FoundItemSummaryResponse> response = foundItemService.getClusterDetailItems(
+        Page<FoundItemSummaryResponse> response = foundItemElasticsearchQueryService.getClusterDetailItems(
                 userId, request.getIds(), pageRequest);
 
         return ApiResponse.ok(response);
@@ -175,7 +164,7 @@ public class FoundItemController {
         Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        Page<FoundItemSummaryResponse> response = foundItemService.getFilteredFoundItemsForDetail(userId, request, pageRequest);
+        Page<FoundItemSummaryResponse> response = foundItemElasticsearchQueryService.getFilteredFoundItemsForDetail(userId, request, pageRequest);
         return ApiResponse.ok(response);
     }
 
