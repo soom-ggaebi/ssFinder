@@ -1,6 +1,6 @@
 package com.ssfinder.domain.chat.service;
 
-import com.ssfinder.domain.chat.dto.KafkaChatMessage;
+import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
 import com.ssfinder.domain.chat.dto.mapper.ChatMessageMapper;
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
 import com.ssfinder.domain.chat.entity.ChatMessage;
@@ -17,6 +17,10 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -44,6 +48,7 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final RedisTemplate<String, String> redisTemplate;
+    private final MongoTemplate mongoTemplate;
 
     @Value("${kafka.topic.chat-message-sent}")
     private String KAFKA_TOPIC_MESSAGE_SENT;
@@ -75,6 +80,16 @@ public class ChatService {
         ChatRoom chatRoom = chatRoomService.findById(chatRoomId);
         User user = userService.findUserById(userId);
         return chatRoomParticipantRepository.getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user).getUser();
+    }
+
+    public void readAllMessages(Integer userId, Integer chatRoomId) {
+        User user = userService.findUserById(userId);
+
+        Update update = new Update().set("status", ChatMessageStatus.READ);
+        Query query = new Query(Criteria.where("chat_room_id").is(chatRoomId)
+                .and("sender_id").ne(user.getId()));
+
+        mongoTemplate.updateMulti(query, update, ChatMessage.class);
     }
 
     private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {

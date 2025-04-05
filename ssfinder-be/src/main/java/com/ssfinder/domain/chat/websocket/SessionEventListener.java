@@ -44,7 +44,7 @@ public class SessionEventListener {
         chatSessionService.saveSession(sessionId, chatRoomId, userId);
 
         // 읽지 않은 메세지 읽음처리
-//        chatService.readAllMessages(userId, chatRoomId);
+        chatService.readAllMessages(userId, chatRoomId);
     }
 
     @EventListener
