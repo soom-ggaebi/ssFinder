@@ -2,9 +2,11 @@ package com.ssfinder.domain.founditem.dto.request;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 /**
  * packageName    : com.ssfinder.domain.found.dto.request<br>
@@ -23,6 +25,6 @@ import lombok.Setter;
 @Setter
 public class FoundItemClusterRequest {
 
-    @NotNull
-    private Integer id;
+    @NotEmpty
+    private List<Integer> ids;
 }

@@ -493,10 +493,118 @@ public class FoundItemService {
         return CompletableFuture.completedFuture(allResponses);
     }
 
+    // 클러스트 기준 리스트 조회
+    @Transactional(readOnly = true)
+    public Page<FoundItemSummaryResponse> getClusterDetailItems(
+            Integer userId, List<Integer> ids, Pageable pageable) {
+
+        try {
+            int totalSize = ids.size();
+            int pageSize = pageable.getPageSize();
+            int pageNumber = pageable.getPageNumber();
+            int startIndex = pageNumber * pageSize;
+            int endIndex = Math.min(startIndex + pageSize, totalSize);
+
+            if (startIndex >= totalSize) {
+                return new PageImpl<>(Collections.emptyList(), pageable, totalSize);
+            }
+
+            List<Integer> pageIds = ids.subList(startIndex, endIndex);
+            List<String> idStrings = pageIds.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.toList());
+
+            Criteria criteria = new Criteria("mysql_id").in(idStrings);
+            CriteriaQuery query = new CriteriaQuery(criteria);
+
+            if (pageable.getSort().isSorted()) {
+                query.addSort(pageable.getSort());
+            }
+
+            query.setPageable(PageRequest.of(0, pageSize));
+
+            SearchHits<FoundItemDocument> searchHits = elasticsearchOperations.search(
+                    query, FoundItemDocument.class);
+
+            Map<String, FoundItemDocument> docMap = new HashMap<>();
+            for (SearchHit<FoundItemDocument> hit : searchHits.getSearchHits()) {
+                FoundItemDocument doc = hit.getContent();
+                if (doc.getMysqlId() != null) {
+                    docMap.put(doc.getMysqlId(), doc);
+                }
+            }
+
+            List<FoundItemSummaryResponse> content = new ArrayList<>();
+            for (String idString : idStrings) {
+                FoundItemDocument doc = docMap.get(idString);
+                if (doc != null) {
+                    FoundItemSummaryResponse response = convertToSummaryResponse(doc);
+                    content.add(response);
+                }
+            }
+
+            if (userId != null) {
+                setBookmarkInfo(userId, content);
+            } else {
+                content.forEach(item -> item.setBookmarked(false));
+            }
+
+            Page<FoundItemSummaryResponse> result = new PageImpl<>(
+                    content, pageable, totalSize);
+
+            log.info("클러스터 상세 정보 조회 완료 - 페이지 항목: {}/{}, 총 항목: {}",
+                    content.size(), pageSize, totalSize);
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("클러스터 상세 정보 조회 중 오류 발생: {}", e.getMessage(), e);
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
+    }
 
     public List<FoundItem> getStoredItemsFoundDaysAgo(int daysAgo) {
         return foundItemRepository.findByFoundAtAndStatus(LocalDate.now().minusDays(daysAgo), FoundItemStatus.STORED);
     }
+
+    // 뷰포트 기준 리스트 조회
+    @Transactional(readOnly = true)
+    public Page<FoundItemSummaryResponse> getPagedFoundItemsInViewport(
+            Integer userId, FoundItemViewportRequest request, Pageable pageable) {
+
+        Criteria latCriteria = new Criteria("location_geo.lat")
+                .between(request.getMinLatitude(), request.getMaxLatitude());
+        Criteria lonCriteria = new Criteria("location_geo.lon")
+                .between(request.getMinLongitude(), request.getMaxLongitude());
+        Criteria criteria = latCriteria.and(lonCriteria);
+
+        CriteriaQuery query = new CriteriaQuery(criteria);
+
+        if (pageable.getSort().isSorted()) {
+            query.addSort(pageable.getSort());
+        }
+
+        query.setPageable(pageable);
+
+        query.addSourceFilter(FetchSourceFilter.of(
+                new String[]{"mysql_id", "image", "category_major", "category_minor", "name", "location", "stored_at", "created_at", "management_id"},
+                null));
+
+        SearchHits<FoundItemDocument> searchHits = elasticsearchOperations.search(query, FoundItemDocument.class);
+
+        List<FoundItemSummaryResponse> content = searchHits.getSearchHits().stream()
+                .map(hit -> convertToSummaryResponse(hit.getContent()))
+                .collect(Collectors.toList());
+
+        if (userId != null) {
+            setBookmarkInfo(userId, content);
+        } else {
+            content.forEach(item -> item.setBookmarked(false));
+        }
+
+        return new PageImpl<>(content, pageable, searchHits.getTotalHits());
+    }
+
 
     private FoundItemDetailResponse convertToDetailResponse(FoundItemDocument document) {
         FoundItemDetailResponse response = new FoundItemDetailResponse();
@@ -546,6 +654,63 @@ public class FoundItemService {
         response.setLatitude(doc.getLatitude());
         response.setLongitude(doc.getLongitude());
         responses.add(response);
+    }
+
+    // 사용자 북마크 정보 조회
+    private void setBookmarkInfo(Integer userId, List<FoundItemSummaryResponse> items) {
+        List<Integer> itemIds = items.stream()
+                .map(FoundItemSummaryResponse::getId)
+                .collect(Collectors.toList());
+
+        if (itemIds.isEmpty()) {
+            return;
+        }
+
+        try {
+            List<Integer> bookmarkedIds = foundItemBookmarkService.getBookmarkedItemIdsByUser(userId);
+
+            for (FoundItemSummaryResponse item : items) {
+                boolean isBookmarked = bookmarkedIds.contains(item.getId());
+                item.setBookmarked(isBookmarked);
+            }
+
+        } catch (Exception e) {
+            log.error("북마크 정보 조회 중 오류: {}", e.getMessage());
+            items.forEach(item -> item.setBookmarked(false));
+        }
+    }
+
+    // FoundItemSummaryResponse 변환
+    private FoundItemSummaryResponse convertToSummaryResponse(FoundItemDocument doc) {
+        FoundItemSummaryResponse response = new FoundItemSummaryResponse();
+
+        response.setId(doc.getMysqlId() != null ? Integer.valueOf(doc.getMysqlId()) : null);
+
+        response.setImage(doc.getImage());
+        response.setMajorCategory(doc.getCategoryMajor());
+        response.setMinorCategory(doc.getCategoryMinor());
+        response.setName(doc.getName());
+        response.setLocation(doc.getLocation());
+
+        response.setType(doc.getManagementId() != null ? "경찰청" : "숨숨파인더");
+
+        if (doc.getStoredAt() != null) {
+            response.setStoredAt(doc.getStoredAt());
+        }
+
+        if (doc.getCreatedAt() != null) {
+            try {
+                response.setCreatedAt(LocalDateTime.parse(doc.getCreatedAt()));
+            } catch (Exception e) {
+                response.setCreatedAt(LocalDateTime.now());
+            }
+        } else {
+            response.setCreatedAt(LocalDateTime.now());
+        }
+
+        response.setBookmarked(false);
+
+        return response;
     }
 
 }

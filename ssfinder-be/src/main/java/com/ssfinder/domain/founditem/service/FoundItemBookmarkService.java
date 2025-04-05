@@ -95,4 +95,11 @@ public class FoundItemBookmarkService {
 
         return bookmarkRepository.existsByUserIdAndFoundItemId(userId, foundId);
     }
+
+    @Transactional(readOnly = true)
+    public List<Integer> getBookmarkedItemIdsByUser(Integer userId) {
+        List<Integer> bookmarkedItemIds = bookmarkRepository.findFoundItemIdsByUserId(userId);
+
+        return bookmarkedItemIds;
+    }
 }

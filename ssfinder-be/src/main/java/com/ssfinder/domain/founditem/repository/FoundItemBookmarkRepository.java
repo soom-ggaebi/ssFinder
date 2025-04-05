@@ -2,6 +2,7 @@ package com.ssfinder.domain.founditem.repository;
 
 import com.ssfinder.domain.founditem.entity.FoundItemBookmark;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,4 +28,7 @@ public interface FoundItemBookmarkRepository extends JpaRepository<FoundItemBook
     boolean existsByUserIdAndFoundItemId(Integer userId, Integer foundItemId);
 
     void deleteByFoundItemId(Integer foundItemId);
+
+    @Query("SELECT b.foundItem.id FROM FoundItemBookmark b WHERE b.user.id = :userId")
+    List<Integer> findFoundItemIdsByUserId(Integer userId);
 }

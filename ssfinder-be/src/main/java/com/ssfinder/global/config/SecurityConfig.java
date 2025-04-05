@@ -30,8 +30,8 @@ public class SecurityConfig {
     public static final String[] allowUrls = {
             "/", "/api/auth/**", "/swagger-ui/**", "/swagger-ui.html",
             "/v3/api-docs/**", "/swagger-resources/**", "/error",
-            "/agarang", "/ws/**", "/app/**", "/found-item/cluster/detail",
-            "/api/found-items/filter"
+            "/agarang", "/ws/**", "/app/**", "/api/found-items/filter",
+            "/api/found-items/viewport/coordinates"
     };
 
     private final JwtUtil jwtUtil;
@@ -57,8 +57,9 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(allowUrls).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/found-items/viewport/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/found-items/viewport").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/found-items/{foundId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/found-items/cluster/detail").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);

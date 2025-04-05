@@ -114,9 +114,24 @@ public class FoundItemController {
     }
 
     @GetMapping("/viewport")
-    public ApiResponse<?> findPagedFoundItemsInViewport() {
+    public ApiResponse<Page<FoundItemSummaryResponse>> findPagedFoundItemsInViewport(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody FoundItemViewportRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "created_at") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
 
-        return null;
+        Integer userId = (userDetails != null) ? userDetails.getUserId() : null;
+
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ?
+                Sort.Direction.ASC : Sort.Direction.DESC;
+
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        Page<FoundItemSummaryResponse> response = foundItemService.getPagedFoundItemsInViewport(userId, request, pageRequest);
+
+        return ApiResponse.ok(response);
     }
 
     @GetMapping("/filter")
@@ -127,9 +142,25 @@ public class FoundItemController {
     }
 
     @GetMapping("/cluster/detail")
-    public ApiResponse<?> getClusterDetailInfo() {
+    public ApiResponse<Page<FoundItemSummaryResponse>> getClusterDetailInfo(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody FoundItemClusterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "created_at") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
 
-        return null;
+        Integer userId = (userDetails != null) ? userDetails.getUserId() : null;
+
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ?
+                Sort.Direction.ASC : Sort.Direction.DESC;
+
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        Page<FoundItemSummaryResponse> response = foundItemService.getClusterDetailItems(
+                userId, request.getIds(), pageRequest);
+
+        return ApiResponse.ok(response);
     }
 
     @PostMapping("/{foundId}/bookmark")
