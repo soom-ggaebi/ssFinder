@@ -1,12 +1,15 @@
 package com.ssfinder.domain.chat.service;
 
+import com.ssfinder.domain.chat.dto.IdOnly;
 import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
+import com.ssfinder.domain.chat.dto.kafka.KafkaChatReadMessage;
 import com.ssfinder.domain.chat.dto.mapper.ChatMessageMapper;
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
 import com.ssfinder.domain.chat.entity.ChatMessage;
 import com.ssfinder.domain.chat.entity.ChatMessageStatus;
 import com.ssfinder.domain.chat.entity.ChatRoom;
 import com.ssfinder.domain.chat.kafka.producer.ChatMessageProducer;
+import com.ssfinder.domain.chat.kafka.producer.ChatMessageReadProducer;
 import com.ssfinder.domain.chat.repository.ChatMessageRepository;
 import com.ssfinder.domain.chat.repository.ChatRoomParticipantRepository;
 import com.ssfinder.domain.user.entity.User;
@@ -20,9 +23,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * packageName    : com.ssfinder.domain.user.service<br>
@@ -44,6 +48,7 @@ public class ChatService {
     private final UserService userService;
     private final ChatRoomService chatRoomService;
     private final ChatMessageProducer chatMessageProducer;
+    private final ChatMessageReadProducer chatMessageReadProducer;
     private final ChatMessageMapper chatMessageMapper;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
@@ -51,7 +56,9 @@ public class ChatService {
     private final MongoTemplate mongoTemplate;
 
     @Value("${kafka.topic.chat-message-sent}")
-    private String KAFKA_TOPIC_MESSAGE_SENT;
+    private String KAFKA_MESSAGE_SENT_TOPIC;
+    @Value("${kafka.topic.chat-read}")
+    private String KAFKA_CHAT_READ_TOPIC;
     @Value("${redis.chat.users.key}")
     private String REDIS_CHAT_USERS_KEY;
 
@@ -72,8 +79,8 @@ public class ChatService {
         ChatMessage message = chatMessageRepository.save(chatMessage);
 
         KafkaChatMessage kafkaChatMessage = chatMessageMapper.mapToMessageSendResponse(message, user.getNickname());
-
-        chatMessageProducer.publish(KAFKA_TOPIC_MESSAGE_SENT, kafkaChatMessage);
+        log.info("message sent: {}", kafkaChatMessage);
+        chatMessageProducer.publish(KAFKA_MESSAGE_SENT_TOPIC, kafkaChatMessage);
     }
 
     public User getOpponentUser(Integer userId, Integer chatRoomId) {
@@ -82,14 +89,25 @@ public class ChatService {
         return chatRoomParticipantRepository.getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user).getUser();
     }
 
-    public void readAllMessages(Integer userId, Integer chatRoomId) {
-        User user = userService.findUserById(userId);
-
-        Update update = new Update().set("status", ChatMessageStatus.READ);
+    public void handleConnect(Integer userId, Integer chatRoomId) {
         Query query = new Query(Criteria.where("chat_room_id").is(chatRoomId)
-                .and("sender_id").ne(user.getId()));
+                .and("sender_id").ne(userId)
+                .and("status").is(ChatMessageStatus.UNREAD));
 
-        mongoTemplate.updateMulti(query, update, ChatMessage.class);
+        query.fields().include("_id");
+
+        List<IdOnly> objectIds = mongoTemplate.find(query, IdOnly.class, "chat_message");
+        List<String> messageIds = objectIds.stream()
+                .map(idOnly -> idOnly.id().toHexString())
+                .toList();
+
+        KafkaChatReadMessage readMessage = KafkaChatReadMessage.builder()
+                .chatRoomId(chatRoomId)
+                .userId(userId)
+                .messageIds(messageIds)
+                .build();
+
+        chatMessageReadProducer.publish(KAFKA_CHAT_READ_TOPIC, readMessage);
     }
 
     private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {

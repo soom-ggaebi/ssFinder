@@ -4,7 +4,6 @@ import com.ssfinder.domain.chat.service.ChatService;
 import com.ssfinder.domain.chat.service.ChatSessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.Message;
@@ -44,7 +43,7 @@ public class SessionEventListener {
         chatSessionService.saveSession(sessionId, chatRoomId, userId);
 
         // 읽지 않은 메세지 읽음처리
-        chatService.readAllMessages(userId, chatRoomId);
+        chatService.handleConnect(userId, chatRoomId);
     }
 
     @EventListener
