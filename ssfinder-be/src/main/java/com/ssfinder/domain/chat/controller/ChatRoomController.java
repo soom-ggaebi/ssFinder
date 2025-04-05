@@ -38,7 +38,7 @@ public class ChatRoomController {
         return ApiResponse.ok(response);
     }
 
-    @GetMapping("/{chatRoomId}")
+    @GetMapping("/{chatRoomId}/detail")
     public ApiResponse<ChatRoomDetailResponse> getChatRoomDetail(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                                  @PathVariable Integer chatRoomId) {
         Integer userId = userDetails.getUserId();
