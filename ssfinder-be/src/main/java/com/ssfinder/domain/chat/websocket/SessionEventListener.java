@@ -1,5 +1,7 @@
 package com.ssfinder.domain.chat.websocket;
 
+import com.ssfinder.domain.chat.service.ChatService;
+import com.ssfinder.domain.chat.service.ChatSessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,10 +22,8 @@ import java.util.Objects;
 public class SessionEventListener {
 
     private final RedisTemplate<String, String> redisTemplate;
-    @Value("${redis.chat.session.key}")
-    private String REDIS_CHAT_SESSION_KEY;
-    @Value("${redis.chat.users.key}")
-    private String REDIS_CHAT_USERS_KEY;
+    private final ChatService chatService;
+    private final ChatSessionService chatSessionService;
 
     @EventListener
     public void handleSessionConnect(SessionConnectedEvent event) {
@@ -40,23 +40,19 @@ public class SessionEventListener {
 
         log.info("[WebSocket CONNECT] userId={}, chatRoomId={}, sessionId={}", userId, chatRoomId, sessionId);
 
-        redisTemplate.opsForValue().set(REDIS_CHAT_SESSION_KEY + sessionId, chatRoomId + ":" + userId);
-        redisTemplate.opsForSet().add(REDIS_CHAT_USERS_KEY + chatRoomId, userId.toString());
+        // redis에 접속 상태 저장
+        chatSessionService.saveSession(sessionId, chatRoomId, userId);
+
+        // 읽지 않은 메세지 읽음처리
+//        chatService.readAllMessages(userId, chatRoomId);
     }
 
     @EventListener
     public void handleSessionDisconnect(SessionDisconnectEvent event) {
         String sessionId = event.getSessionId();
-        String value = Objects.requireNonNull(redisTemplate.opsForValue().get(REDIS_CHAT_SESSION_KEY + sessionId));
 
-        String[] parts = value.split(":");
-        Integer chatRoomId = Integer.parseInt(parts[0]);
-        Integer userId = Integer.parseInt(parts[1]);
-
-        redisTemplate.delete(REDIS_CHAT_SESSION_KEY + sessionId);
-        redisTemplate.opsForSet().remove(REDIS_CHAT_USERS_KEY + chatRoomId, userId.toString());
-
-        log.info("[WebSocket DISCONNECT] userId={}, chatRoomId={}", userId, chatRoomId);
+        chatSessionService.deleteSession(sessionId);
+        log.info("[WebSocket DISCONNECT] sessionId={}", sessionId);
     }
 
 }
