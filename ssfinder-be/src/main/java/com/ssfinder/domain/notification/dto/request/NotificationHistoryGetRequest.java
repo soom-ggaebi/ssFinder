@@ -21,7 +21,7 @@ import java.util.Objects;
  */
 
 public record NotificationHistoryGetRequest(
-        @NotNull NotificationType type,
+        NotificationType type,
         @Min(value = 0) Integer page,
         @Min(value = 1) @Max(value = 100) Integer size,
         Integer lastId

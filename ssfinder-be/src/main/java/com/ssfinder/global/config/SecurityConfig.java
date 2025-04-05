@@ -5,6 +5,7 @@ import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.filter.JwtAuthenticationFilter;
 import com.ssfinder.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -42,10 +43,10 @@ public class SecurityConfig {
     }
 
     @Bean
-    protected SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
+    protected SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors
-                        .configurationSource(corsConfigurationSource)
+                        .configurationSource(corsConfigurationSource())
                 )
                 .csrf(CsrfConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
