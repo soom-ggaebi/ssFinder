@@ -572,18 +572,17 @@ public class FoundItemService {
     public Page<FoundItemSummaryResponse> getPagedFoundItemsInViewport(
             Integer userId, FoundItemViewportRequest request, Pageable pageable) {
 
-        Criteria latCriteria = new Criteria("location_geo.lat")
-                .between(request.getMinLatitude(), request.getMaxLatitude());
-        Criteria lonCriteria = new Criteria("location_geo.lon")
-                .between(request.getMinLongitude(), request.getMaxLongitude());
-        Criteria criteria = latCriteria.and(lonCriteria);
+        String finalQueryJson = String.format(
+                "{\"bool\": {\"filter\": {\"geo_bounding_box\": {\"location_geo\": {" +
+                        "\"top_left\": {\"lat\": %f, \"lon\": %f}, " +
+                        "\"bottom_right\": {\"lat\": %f, \"lon\": %f}" +
+                        "}}}}}",
+                request.getMaxLatitude(), request.getMinLongitude(),
+                request.getMinLatitude(), request.getMaxLongitude()
+        );
 
-        CriteriaQuery query = new CriteriaQuery(criteria);
 
-        if (pageable.getSort().isSorted()) {
-            query.addSort(pageable.getSort());
-        }
-
+        StringQuery query = new StringQuery(finalQueryJson);
         query.setPageable(pageable);
 
         query.addSourceFilter(FetchSourceFilter.of(
@@ -604,6 +603,81 @@ public class FoundItemService {
 
         return new PageImpl<>(content, pageable, searchHits.getTotalHits());
     }
+
+    // 필터링 된 리스트
+    @Transactional(readOnly = true)
+    public Page<FoundItemSummaryResponse> getFilteredFoundItemsForDetail(
+            Integer userId, FoundItemFilterRequest request, Pageable pageable) {
+
+        StringBuilder mustFilters = new StringBuilder();
+        mustFilters.append("[");
+
+        mustFilters.append(String.format(
+                "{\"geo_bounding_box\": {\"location_geo\": {\"top_left\": {\"lat\": %f, \"lon\": %f}, \"bottom_right\": {\"lat\": %f, \"lon\": %f}}}}",
+                request.getMaxLatitude(), request.getMinLongitude(),
+                request.getMinLatitude(), request.getMaxLongitude()
+        ));
+
+        if (request.getStatus() != null && !request.getStatus().equalsIgnoreCase("all")) {
+            mustFilters.append(",{\"term\": {\"status\": \"").append(request.getStatus()).append("\"}}");
+        }
+
+        if (request.getType() != null && !request.getType().equalsIgnoreCase("전체")) {
+            mustFilters.append(",");
+            if (request.getType().equals("숨숨파인더")) {
+                mustFilters.append("{\"bool\": {\"must_not\": {\"exists\": {\"field\": \"management_id\"}}}}");
+            } else if (request.getType().equals("경찰")) {
+                mustFilters.append("{\"exists\": {\"field\": \"management_id\"}}");
+            }
+        }
+
+        if (request.getStoredAt() != null && !request.getStoredAt().isEmpty()) {
+            mustFilters.append(",{\"term\": {\"stored_at\": \"").append(request.getStoredAt()).append("\"}}");
+        }
+
+        if (request.getFoundAt() != null) {
+            mustFilters.append(",{\"term\": {\"found_at\": \"").append(request.getFoundAt().toString()).append("\"}}");
+        }
+
+        if (request.getMajorCategory() != null && !request.getMajorCategory().isEmpty()) {
+            mustFilters.append(",{\"term\": {\"category_major\": \"").append(request.getMajorCategory()).append("\"}}");
+        }
+
+        if (request.getMinorCategory() != null && !request.getMinorCategory().isEmpty()) {
+            mustFilters.append(",{\"term\": {\"category_minor\": \"").append(request.getMinorCategory()).append("\"}}");
+        }
+
+        if (request.getColor() != null && !request.getColor().isEmpty()) {
+            mustFilters.append(",{\"term\": {\"color\": \"").append(request.getColor()).append("\"}}");
+        }
+        mustFilters.append("]");
+
+        String finalQueryJson = String.format(
+                "{\"bool\": {\"must\": %s}}",
+                mustFilters.toString()
+        );
+
+        StringQuery query = new StringQuery(finalQueryJson);
+        query.setPageable(pageable);
+        query.addSourceFilter(FetchSourceFilter.of(
+                new String[]{"mysql_id", "image", "category_major", "category_minor", "name", "location", "stored_at", "created_at", "management_id"},
+                null));
+
+        SearchHits<FoundItemDocument> searchHits = elasticsearchOperations.search(query, FoundItemDocument.class);
+
+        List<FoundItemSummaryResponse> content = searchHits.getSearchHits().stream()
+                .map(hit -> convertToSummaryResponse(hit.getContent()))
+                .collect(Collectors.toList());
+
+        if (userId != null) {
+            setBookmarkInfo(userId, content);
+        } else {
+            content.forEach(item -> item.setBookmarked(false));
+        }
+
+        return new PageImpl<>(content, pageable, searchHits.getTotalHits());
+    }
+
 
 
     private FoundItemDetailResponse convertToDetailResponse(FoundItemDocument document) {

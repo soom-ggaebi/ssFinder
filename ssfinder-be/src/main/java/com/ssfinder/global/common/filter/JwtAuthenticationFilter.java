@@ -84,7 +84,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (uri.startsWith("/api/found-items/cluster/detail") && HttpMethod.GET.name().equals(method)) {
+        if (uri.matches("/api/found-items/cluster/detail") && HttpMethod.GET.matches(method)) {
+            String authHeader = request.getHeader("Authorization");
+
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                if (jwtUtil.validateToken(token)) {
+                    processValidAccessToken(token);
+                } else {
+                    writeErrorResponse(response, ErrorCode.INVALID_TOKEN);
+                    return;
+                }
+            }
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (uri.startsWith("/api/found-items/filter-items") && HttpMethod.GET.name().equals(method)) {
             String authHeader = request.getHeader("Authorization");
 
             if (authHeader != null && authHeader.startsWith("Bearer ")) {

@@ -163,6 +163,22 @@ public class FoundItemController {
         return ApiResponse.ok(response);
     }
 
+    @GetMapping("/filter-items")
+    public ApiResponse<Page<FoundItemSummaryResponse>> getFilterDetailInfo(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody FoundItemFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "created_at") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        Integer userId = (userDetails != null) ? userDetails.getUserId() : null;
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        Page<FoundItemSummaryResponse> response = foundItemService.getFilteredFoundItemsForDetail(userId, request, pageRequest);
+        return ApiResponse.ok(response);
+    }
+
     @PostMapping("/{foundId}/bookmark")
     public ApiResponse<?> registerBookmark(@AuthenticationPrincipal CustomUserDetails userDetails,
                                            @PathVariable @Min(1) int foundId) {
