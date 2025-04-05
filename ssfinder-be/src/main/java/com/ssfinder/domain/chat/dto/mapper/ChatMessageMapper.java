@@ -1,6 +1,6 @@
 package com.ssfinder.domain.chat.dto.mapper;
 
-import com.ssfinder.domain.chat.dto.KafkaChatMessage;
+import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
 import com.ssfinder.domain.chat.entity.ChatMessage;
 import org.mapstruct.*;
 

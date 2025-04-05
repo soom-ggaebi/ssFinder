@@ -1,6 +1,6 @@
 package com.ssfinder.domain.chat.kafka.listener;
 
-import com.ssfinder.domain.chat.dto.KafkaChatMessage;
+import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
