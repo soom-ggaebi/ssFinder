@@ -1,18 +1,17 @@
 package com.ssfinder.domain.founditem.dto.mapper;
 
+import com.ssfinder.domain.chat.dto.ChatRoomFoundItem;
 import com.ssfinder.domain.founditem.dto.request.FoundItemRegisterRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemUpdateRequest;
 import com.ssfinder.domain.founditem.dto.response.FoundItemUpdateResponse;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
+import com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo;
 import com.ssfinder.domain.itemcategory.entity.ItemCategory;
 import com.ssfinder.domain.user.entity.User;
 import org.locationtech.jts.geom.Point;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.ReportingPolicy;
+import org.mapstruct.*;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 
 /**
@@ -93,6 +92,14 @@ public interface FoundItemMapper {
     @Mapping(target = "latitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getY() : null)")
     @Mapping(target = "longitude", expression = "java(foundItem.getCoordinates() != null ? foundItem.getCoordinates().getX() : null)")
     FoundItemUpdateResponse entityToUpdateResponse(FoundItem foundItem);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mappings({
+            @Mapping(source = "foundItem.id", target = "id"),
+            @Mapping(source = "itemCategoryInfo", target = "category"),
+            @Mapping(source = "foundItem.name", target = "name")
+    })
+    ChatRoomFoundItem mapToChatRoomFoundItem(FoundItem foundItem, ItemCategoryInfo itemCategoryInfo);
 
     default FoundItemStatus mapStatus(String status) {
         if (status == null) {
