@@ -17,6 +17,8 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 /**
  * packageName    : com.ssfinder.global.config<br>
  * fileName       : StompHandler.java<br>
@@ -42,24 +44,35 @@ public class StompHandler implements ChannelInterceptor {
         final StompHeaderAccessor accessor = StompHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if(StompCommand.CONNECT.equals(accessor.getCommand())) {
-            final String authorization = extractJwt(accessor);
-
-            String token = authorization.substring(7);
-            boolean isValid = jwtUtil.validateToken(token);
-
-            if(!isValid) {
-                logger.error("Invalid JWT");
-                throw new CustomException(ErrorCode.INVALID_TOKEN);
-            }
-
-            Authentication auth = jwtUtil.getAuthentication(token);
-            accessor.setUser(auth);
+            validateJwt(accessor);
+            validateChatRoomId(accessor);
         }
 
         return message;
     }
 
-    public String extractJwt(final StompHeaderAccessor accessor) {
+    private String extractJwt(final StompHeaderAccessor accessor) {
         return accessor.getFirstNativeHeader("Authorization");
+    }
+
+    private void validateJwt(final StompHeaderAccessor accessor) {
+        final String authorization = extractJwt(accessor);
+
+        String token = authorization.substring(7);
+        boolean isValid = jwtUtil.validateToken(token);
+
+        if(!isValid) {
+            logger.error("Invalid JWT");
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+
+        Authentication auth = jwtUtil.getAuthentication(token);
+        accessor.setUser(auth);
+    }
+
+    private void validateChatRoomId(final StompHeaderAccessor accessor) {
+        if(Objects.isNull(accessor.getFirstNativeHeader("chat_room_id"))) {
+            throw new CustomException(ErrorCode.CHAT_ROOM_ID_IS_NULL);
+        }
     }
 }
