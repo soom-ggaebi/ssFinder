@@ -4,8 +4,12 @@ import com.ssfinder.domain.notification.dto.request.SettingUpdateRequest;
 import com.ssfinder.domain.notification.dto.response.NotificationSetting;
 import com.ssfinder.domain.notification.dto.response.SettingsGetResponse;
 import com.ssfinder.domain.notification.entity.NotificationType;
-import com.ssfinder.domain.notification.entity.UserNotificationSettings;
+import com.ssfinder.domain.notification.entity.UserNotificationSetting;
 import com.ssfinder.domain.notification.repository.UserNotificationSettingRepository;
+import com.ssfinder.domain.user.entity.User;
+import com.ssfinder.domain.user.service.UserService;
+import com.ssfinder.global.common.exception.CustomException;
+import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,14 +19,15 @@ import java.util.List;
 
 /**
  * packageName    : com.ssfinder.domain.notification.service<br>
- * fileName       : *.java<br>
+ * fileName       : UserNotificationSettingService.java<br>
  * author         : okeio<br>
  * date           : 2025-03-25<br>
- * description    :  <br>
+ * description    : UserNotificationSetting Entity 와 관련된 Service 클래스입니다. <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-25          okeio           최초생성<br>
+ * 2025-04-03          okeio           알림 ALL 타입 추가<br>
  * <br>
  */
 @Slf4j
@@ -31,16 +36,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserNotificationSettingService {
     private final UserNotificationSettingRepository userNotificationSettingRepository;
+    private final UserService userService;
 
     public SettingsGetResponse getUserNotificationSettings(Integer userId) {
-        UserNotificationSettings settings = userNotificationSettingRepository.findByUserId(userId)
-                .orElseGet(() -> {
-                    // 설정이 없으면 새로 생성
-                    UserNotificationSettings newSettings = new UserNotificationSettings();
-                    newSettings.setUserId(userId);
-                    return newSettings;
-                });
-        userNotificationSettingRepository.save(settings);
+        UserNotificationSetting settings = getOrCreateSettings(userId);
 
         NotificationSetting transferNotificationSetting = new NotificationSetting(NotificationType.TRANSFER, settings.isTransferNotificationEnabled());
         NotificationSetting chatNotificationSetting = new NotificationSetting(NotificationType.CHAT, settings.isChatNotificationEnabled());
@@ -51,8 +50,8 @@ public class UserNotificationSettingService {
     }
 
     public void updateUserNotificationSettings(Integer userId, SettingUpdateRequest settingUpdateRequest) {
-        UserNotificationSettings settings = userNotificationSettingRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("User notification settings not found"));
+        UserNotificationSetting settings = userNotificationSettingRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOTIFICATION_SETTINGS_NOT_FOUND));
 
         switch(settingUpdateRequest.notificationType()) {
             case TRANSFER:
@@ -67,6 +66,45 @@ public class UserNotificationSettingService {
             case ITEM_REMINDER:
                 settings.setItemReminderEnabled(settingUpdateRequest.enabled());
                 break;
+            case ALL:
+                settings.setTransferNotificationEnabled(settingUpdateRequest.enabled());
+                settings.setChatNotificationEnabled(settingUpdateRequest.enabled());
+                settings.setAiMatchNotificationEnabled(settingUpdateRequest.enabled());
+                settings.setItemReminderEnabled(settingUpdateRequest.enabled());
+                break;
         }
+    }
+
+    public boolean isNotificationEnabledFor(Integer userId, NotificationType notificationType) {
+        try {
+            UserNotificationSetting settings = getOrCreateSettings(userId);
+
+            return switch (notificationType) {
+                case TRANSFER -> settings.isTransferNotificationEnabled();
+                case CHAT -> settings.isChatNotificationEnabled();
+                case AI_MATCH -> settings.isAiMatchNotificationEnabled();
+                case ITEM_REMINDER -> settings.isItemReminderEnabled();
+
+                default -> throw new CustomException(ErrorCode.INVALID_NOTIFICATION_TYPE);
+            };
+        } catch (CustomException e) {
+            if (e.getErrorCode() == ErrorCode.USER_NOT_FOUND) {
+                log.warn("알림 설정 확인 중 사용자를 찾을 수 없음: userId={}", userId);
+                return true; // 사용자가 없으면 알림 비활성화로 간주
+            }
+            throw e;
+        }
+    }
+
+    private UserNotificationSetting getOrCreateSettings(Integer userId) {
+        // userId가 존재하는지 확인
+        User user = userService.findUserById(userId);
+
+        return userNotificationSettingRepository.findByUserId(user.getId())
+                .orElseGet(() -> {
+                    UserNotificationSetting newSettings = new UserNotificationSetting();
+                    newSettings.setUserId(userId);
+                    return userNotificationSettingRepository.save(newSettings);
+                });
     }
 }

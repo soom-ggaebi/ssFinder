@@ -1,6 +1,6 @@
 package com.ssfinder.domain.founditem.entity;
 
-import com.ssfinder.domain.item.entity.ItemCategory;
+import com.ssfinder.domain.itemcategory.entity.ItemCategory;
 import com.ssfinder.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;

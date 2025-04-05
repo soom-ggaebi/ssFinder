@@ -9,8 +9,8 @@ import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
 import com.ssfinder.domain.founditem.repository.FoundItemDocumentRepository;
 import com.ssfinder.domain.founditem.repository.FoundItemRepository;
-import com.ssfinder.domain.item.entity.ItemCategory;
-import com.ssfinder.domain.item.repository.ItemCategoryRepository;
+import com.ssfinder.domain.itemcategory.entity.ItemCategory;
+import com.ssfinder.domain.itemcategory.repository.ItemCategoryRepository;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
@@ -53,6 +53,7 @@ import java.util.stream.Collectors;
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
  * 2025-03-27          joker901010           코드리뷰 수정<br>
+ * 2025-03-31          nature1216            findFoundItemById 메소드 추가<br>
  * 2025-04-04          leeyj                 일라스틱서치로 crud 변경<br>
  * <br>
  */
@@ -785,6 +786,12 @@ public class FoundItemService {
         response.setBookmarked(false);
 
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public FoundItem findFoundItemById(Integer foundItemId) {
+        return foundItemRepository.findById(foundItemId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FOUND_ITEM_NOT_FOUND));
     }
 
 }

@@ -7,13 +7,15 @@ import com.ssfinder.domain.user.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * packageName    : com.ssfinder.domain.auth.dto.request<br>
- * fileName       : *.java<br>
+ * fileName       : KakaoLoginRequest.java<br>
  * author         : okeio<br>
  * date           : 2025-03-19<br>
  * description    :  <br>
@@ -21,35 +23,51 @@ import java.time.LocalDateTime;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-19          okeio           최초생성<br>
+ * 2025-04-01          okeio           nullable 가능한 필드 처리<br>
  * <br>
  */
 
+@Slf4j
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record KakaoLoginRequest (
-        @NotBlank String name,
+        String name,
         @NotBlank String profileNickname,
         @NotBlank @Email String email,
-        @Pattern(regexp = "\\d{4}") String birthyear,
-        @Pattern(regexp = "\\d{4}") String birthday,
+        @Pattern(regexp = "^$|\\d{4}") String birthyear,
+        @Pattern(regexp = "^$|\\d{4}") String birthday,
         String gender,
         @NotBlank String phoneNumber,
         @NotBlank String providerId,
         @NotBlank String fcmToken
 ){
     public User toUserEntity() {
-        return User.builder()
-                .name(name)
+        User.UserBuilder builder = User.builder()
                 .nickname(profileNickname)
                 .email(email)
-                .birth(LocalDate.of(
+                .providerId(providerId)
+                .phone(phoneNumber)
+                .gender(Gender.from(gender))
+                .createdAt(LocalDateTime.now());
+
+        if (Objects.nonNull(name) && !name.isBlank()) {
+            builder.name(name);
+        }
+
+        if (Objects.nonNull(birthyear) && !birthyear.isBlank()
+                && Objects.nonNull(birthday) && !birthday.isBlank()) {
+
+            try {
+                LocalDate birthDate = LocalDate.of(
                         Integer.parseInt(birthyear),
                         Integer.parseInt(birthday.substring(0, 2)),
                         Integer.parseInt(birthday.substring(2))
-                ))
-                .gender(Gender.from(gender))
-                .providerId(providerId)
-                .phone(phoneNumber)
-                .createdAt(LocalDateTime.now())
-                .build();
+                );
+                builder.birth(birthDate);
+            } catch (NumberFormatException | IndexOutOfBoundsException e) {
+                log.warn("[로그인] 부적절한 생일 필드 요청");
+            }
+        }
+
+        return builder.build();
     }
 }

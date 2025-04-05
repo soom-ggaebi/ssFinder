@@ -6,7 +6,7 @@ import com.ssfinder.domain.founditem.dto.response.FoundItemUpdateResponse;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
-import com.ssfinder.domain.item.entity.ItemCategory;
+import com.ssfinder.domain.itemcategory.entity.ItemCategory;
 import com.ssfinder.domain.user.entity.User;
 import org.locationtech.jts.geom.Point;
 import org.mapstruct.Mapper;

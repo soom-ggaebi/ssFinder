@@ -31,7 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     private static final String[] AllowUrls = new String[]{
-            "/api/auth/", "/ws/", "/app/", "/api/found-items/filter"
+            "/api/auth/", "/ws/", "/app", "/api/found-items/filter"
     };
 
     @Override

@@ -179,6 +179,7 @@ public class FoundItemController {
         return ApiResponse.ok(response);
     }
 
+
     @PostMapping("/{foundId}/bookmark")
     public ApiResponse<?> registerBookmark(@AuthenticationPrincipal CustomUserDetails userDetails,
                                            @PathVariable @Min(1) int foundId) {

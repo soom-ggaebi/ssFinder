@@ -1,20 +1,23 @@
 package com.ssfinder.domain.notification.controller;
 
 import com.ssfinder.domain.notification.dto.request.FcmTokenRequest;
+import com.ssfinder.domain.notification.dto.request.NotificationHistoryGetRequest;
+import com.ssfinder.domain.notification.dto.request.NotificationRequest;
 import com.ssfinder.domain.notification.dto.request.SettingUpdateRequest;
-import com.ssfinder.domain.notification.dto.request.TokenTestRequest;
+import com.ssfinder.domain.notification.dto.response.NotificationSliceResponse;
 import com.ssfinder.domain.notification.dto.response.SettingsGetResponse;
-import com.ssfinder.domain.notification.service.FcmMessageService;
+import com.ssfinder.domain.notification.entity.NotificationType;
 import com.ssfinder.domain.notification.service.FcmTokenService;
+import com.ssfinder.domain.notification.service.NotificationHistoryService;
+import com.ssfinder.domain.notification.service.NotificationService;
 import com.ssfinder.domain.notification.service.UserNotificationSettingService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.global.common.response.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -29,22 +32,24 @@ import java.util.Map;
  * 2025-03-24          okeio            최초생성<br>
  * <br>
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
     private final FcmTokenService fcmTokenService;
-    private final FcmMessageService fcmMessageService;
     private final UserNotificationSettingService userNotificationSettingService;
+    private final NotificationService notificationService;
+    private final NotificationHistoryService notificationHistoryService;
 
     @PostMapping("/token")
-    public ApiResponse<?> registerFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody FcmTokenRequest fcmTokenRequest) {
+    public ApiResponse<?> registerFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody FcmTokenRequest fcmTokenRequest) {
         fcmTokenService.registerOrUpdateFcmToken(userDetails.getUserId(), fcmTokenRequest);
         return ApiResponse.created(null);
     }
 
     @DeleteMapping("/token")
-    public ApiResponse<?> deleteFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody FcmTokenRequest fcmTokenRequest) {
+    public ApiResponse<?> deleteFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody FcmTokenRequest fcmTokenRequest) {
         fcmTokenService.deleteFcmToken(userDetails.getUserId(), fcmTokenRequest);
         return ApiResponse.noContent();
     }
@@ -56,19 +61,48 @@ public class NotificationController {
     }
 
     @PatchMapping("/settings")
-    public ApiResponse<?> updateNotificationSettings(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody SettingUpdateRequest settingUpdateRequest) {
+    public ApiResponse<?> updateNotificationSettings(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                     @Valid @RequestBody SettingUpdateRequest settingUpdateRequest) {
         userNotificationSettingService.updateUserNotificationSettings(userDetails.getUserId(), settingUpdateRequest);
         return ApiResponse.noContent();
     }
 
-    // token 테스트 용도
-    @PostMapping("/test")
-    public ApiResponse<?> testFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody TokenTestRequest tokenTestRequest) {
-        List<String> tokens = fcmTokenService.getFcmTokens(userDetails.getUserId());
-
-        fcmMessageService.sendNotificationToUser(tokens.get(0), "테스트다", tokenTestRequest.message(), Map.of("type", "TEST"));
+    @PostMapping
+    public ApiResponse<?> sendItemReminderNotification(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                       @Valid @RequestBody NotificationRequest notificationRequest) {
+        if (NotificationType.ITEM_REMINDER.equals(notificationRequest.type())) {
+            log.info("[소지품 알림 발송] userId: {}, weather: {}", userDetails.getUserId(), notificationRequest.weather());
+            notificationService.sendItemReminderNotification(userDetails.getUserId(), notificationRequest.weather());
+        }
 
         return ApiResponse.noContent();
     }
 
+    @GetMapping
+    public ApiResponse<NotificationSliceResponse> getNotificationHistory(
+            @Valid @ModelAttribute NotificationHistoryGetRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        NotificationSliceResponse notificationHistorySlice = notificationHistoryService.getNotificationHistory
+                (userDetails.getUserId(), request.type(), request.page(), request.size(), request.lastId());
+
+        return ApiResponse.ok(notificationHistorySlice);
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<?> deleteNotificationHistory(
+            @PathVariable("id") Integer notificationHistoryId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        notificationHistoryService.deleteNotificationHistory(userDetails.getUserId(), notificationHistoryId);
+
+        return ApiResponse.noContent();
+    }
+
+    @DeleteMapping
+    public ApiResponse<?> deleteAllNotificationHistory(
+            @RequestParam("type") NotificationType notificationType,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        notificationHistoryService.deleteNotificationHistoryAllByType(userDetails.getUserId(), notificationType);
+
+        return ApiResponse.noContent();
+    }
 }

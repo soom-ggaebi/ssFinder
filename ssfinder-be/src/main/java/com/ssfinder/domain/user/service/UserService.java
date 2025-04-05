@@ -75,4 +75,8 @@ public class UserService implements UserDetailsService {
 
         tokenService.deleteRefreshToken(userId);
     }
+
+    public User getReferenceById(int userId) {
+        return userRepository.getReferenceById(userId);
+    }
 }
