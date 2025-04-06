@@ -55,9 +55,6 @@ public class FoundItemRegisterRequest {
     @NotBlank
     private String detail;
 
-    @Column(length = 20)
-    private String phone;
-
     @DecimalMin(value = "-90.0", inclusive = true)
     @DecimalMax(value = "90.0", inclusive = true)
     private Double latitude;

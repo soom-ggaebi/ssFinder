@@ -31,7 +31,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     private static final String[] AllowUrls = new String[]{
-            "/api/auth/", "/ws/", "/app", "/api/found-items/filter"
+            "/api/auth/", "/ws/", "/app", "/api/found-items/filter", "/api/category",
+            "/api/found-items/viewport/coordinates"
     };
 
     @Override
@@ -40,12 +41,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String method = request.getMethod();
         // JWT 검증 제외
         if (Arrays.stream(AllowUrls).anyMatch(uri::startsWith) && !request.getRequestURI().equals("/api/auth/logout")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-
-        if (uri.equals("/api/found-items/viewport/coordinates") && HttpMethod.GET.matches(method)) {
             filterChain.doFilter(request, response);
             return;
         }

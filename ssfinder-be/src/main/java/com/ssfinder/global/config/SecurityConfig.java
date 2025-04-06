@@ -34,7 +34,7 @@ public class SecurityConfig {
             "/agarang", "/ws/**", "/app/**", "/api/found-items/filter",
             "/api/found-items/viewport/coordinates", "/api/found-items/viewport",
             "/api/found-items/{foundId}", "/api/found-items/cluster/detail",
-            "/api/found-items/filter-items"
+            "/api/found-items/filter-items", "/api/category"
     };
 
     private final JwtUtil jwtUtil;

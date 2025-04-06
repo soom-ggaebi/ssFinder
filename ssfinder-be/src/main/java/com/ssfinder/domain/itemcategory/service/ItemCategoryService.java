@@ -1,12 +1,16 @@
 package com.ssfinder.domain.itemcategory.service;
 
 import com.ssfinder.domain.itemcategory.dto.ItemCategoryInfo;
+import com.ssfinder.domain.itemcategory.entity.ItemCategory;
 import com.ssfinder.domain.itemcategory.repository.ItemCategoryRepository;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * packageName    : com.ssfinder.domain.itemcategory.service<br>
@@ -31,4 +35,20 @@ public class ItemCategoryService {
                 .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
     }
 
+    public List<ItemCategoryInfo> getItemCategory() {
+        List<ItemCategory> categories = itemCategoryRepository.findAll();
+        System.out.print("카테고리: "+ categories.toString());
+        return categories.stream().map(category -> {
+            ItemCategory parentCategory = category.getItemCategory();
+            Integer parentId = (parentCategory != null) ? parentCategory.getId() : null;
+            String parentName = (parentCategory != null) ? parentCategory.getName() : null;
+
+            return new ItemCategoryInfo(
+                    category.getId(),
+                    category.getName(),
+                    parentId,
+                    parentName
+            );
+        }).collect(Collectors.toList());
+    }
 }
