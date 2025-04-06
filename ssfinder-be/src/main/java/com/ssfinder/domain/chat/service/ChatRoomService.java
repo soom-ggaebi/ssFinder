@@ -121,6 +121,12 @@ public class ChatRoomService {
         participant.setStatus(ChatRoomStatus.INACTIVE);
     }
 
+    private void activate(ChatRoomParticipant participant) {
+        participant.setLeftAt(null);
+        participant.setRejoinedAt(LocalDateTime.now());
+        participant.setStatus(ChatRoomStatus.ACTIVE);
+    }
+
     private ChatRoom createChatRoom(User user, FoundItem foundItem) {
         ChatRoom chatRoom = ChatRoom.builder()
                 .foundItem(foundItem)
