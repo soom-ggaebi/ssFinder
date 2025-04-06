@@ -47,14 +47,19 @@ public class S3Service {
     @Value("${aws.s3.prefix.lost}")
     private String prefixLost;
 
+    @Value("${aws.s3.prefix.chat}")
+    private String prefixChat;
+
     private String filePrefixFound;
     private String filePrefixLost;
+    private String filePrefixChat;
 
     @PostConstruct
     public void init() {
         // S3의 public URL 형식 (리전과 버킷 이름에 따라 조정)
         filePrefixFound = "https://" + bucketName + ".s3.ap-northeast-2.amazonaws.com/" + prefixFound;
         filePrefixLost  = "https://" + bucketName + ".s3.ap-northeast-2.amazonaws.com/" + prefixLost;
+        filePrefixChat = "https://" + bucketName + ".s3.ap-northeast-2.amazonaws.com/" + prefixChat;
     }
 
     // UUID + 타임스탬프를 이용한 파일명 생성
@@ -109,12 +114,36 @@ public class S3Service {
         }
     }
 
+    // chat 이미지 업로드
+    public String uploadChatFile(MultipartFile file) {
+        String fileName = generateFileName(file);
+        String key = prefixChat + fileName;
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(file.getContentType())
+                .build();
+        try (InputStream inputStream = file.getInputStream()) {
+            PutObjectResponse response = s3Client.putObject(putObjectRequest,
+                    software.amazon.awssdk.core.sync.RequestBody.fromInputStream(inputStream, file.getSize()));
+            if (response.sdkHttpResponse().isSuccessful()) {
+                return filePrefixChat + fileName;
+            } else {
+                throw new RuntimeException("파일 업로드 실패");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("파일 IO 에러", e);
+        }
+    }
+
     // 파일 업로드: type 매개변수를 통해 "found" 또는 "lost"에 따라 분기
     public String uploadFile(MultipartFile file, String type) {
         if ("found".equalsIgnoreCase(type)) {
             return uploadFoundFile(file);
         } else if ("lost".equalsIgnoreCase(type)) {
             return uploadLostFile(file);
+        } else if("chat".equalsIgnoreCase(type)) {
+            return uploadChatFile(file);
         } else {
             throw new IllegalArgumentException("Unknown file type: " + type);
         }
