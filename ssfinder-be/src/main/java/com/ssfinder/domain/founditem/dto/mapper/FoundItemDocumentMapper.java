@@ -28,6 +28,7 @@ public interface FoundItemDocumentMapper {
     @Mapping(target = "hasBookmark", ignore = true)
     @Mapping(target = "majorCategory", source = "categoryMajor")
     @Mapping(target = "minorCategory", source = "categoryMinor")
+    @Mapping(target = "detail", expression = "java(removePrefixContent(document.getDetail()))")
     FoundItemDocumentDetailResponse documentToDetailResponse(FoundItemDocument document);
 
     default LocalDate parseFoundAt(String dateStr) {
@@ -42,5 +43,14 @@ public interface FoundItemDocumentMapper {
                 return null;
             }
         }
+    }
+
+    default String removePrefixContent(String detail) {
+        if (detail == null) return null;
+        String trimmed = detail.trim();
+        if (trimmed.startsWith("내용")) {
+            return trimmed.substring("내용".length()).trim();
+        }
+        return detail;
     }
 }
