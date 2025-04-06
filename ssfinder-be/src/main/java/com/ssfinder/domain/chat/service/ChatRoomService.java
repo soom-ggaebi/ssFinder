@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -107,6 +108,13 @@ public class ChatRoomService {
                 .opponentNickname(opponentUser.getNickname())
                 .foundItem(chatRoomFoundItem)
                 .build();
+    }
+
+    public void leave(Integer userId, Integer chatRoomId) {
+        ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
+
+        chatRoomParticipant.setLeftAt(LocalDateTime.now());
+        chatRoomParticipant.setStatus(ChatRoomStatus.INACTIVE);
     }
 
     private ChatRoom createChatRoom(User user, FoundItem foundItem) {
