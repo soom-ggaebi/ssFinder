@@ -63,10 +63,10 @@ public class ChatService {
     private String REDIS_CHAT_USERS_KEY;
 
     public void send(Integer userId, Integer chatRoomId, MessageSendRequest request) {
+        preCheckBeforeSend(userId, chatRoomId);
+
         User user = userService.findUserById(userId);
         User opponentUser = getOpponentUser(userId, chatRoomId);
-
-        preCheckBeforeSend(userId, opponentUser.getId(), chatRoomId);
 
         ChatMessage chatMessage = ChatMessage.builder()
                 .chatRoomId(chatRoomId)
@@ -84,10 +84,10 @@ public class ChatService {
     }
 
     public KafkaChatMessage sendFile(Integer userId, Integer chatRoomId, MultipartFile image) {
+        preCheckBeforeSend(userId, chatRoomId);
+
         User user = userService.findUserById(userId);
         User opponentUser = getOpponentUser(userId, chatRoomId);
-
-        preCheckBeforeSend(userId, opponentUser.getId(), chatRoomId);
 
         String newImage = s3Service.uploadChatFile(image);
 
@@ -135,9 +135,9 @@ public class ChatService {
         chatMessageReadProducer.publish(KAFKA_CHAT_READ_TOPIC, readMessage);
     }
 
-    private void preCheckBeforeSend(Integer userId, Integer opponentId, Integer chatRoomId) {
+    private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {
         chatRoomService.getChatRoomParticipant(chatRoomId, userId);
-        ChatRoomParticipant opponentChatRoomParticipant = chatRoomService.getChatRoomParticipant(chatRoomId, opponentId);
+        ChatRoomParticipant opponentChatRoomParticipant = chatRoomService.getChatRoomParticipant(chatRoomId, getOpponentUser(userId, chatRoomId).getId());
 
         if(opponentChatRoomParticipant.getStatus() == ChatRoomStatus.INACTIVE) {
             chatRoomService.activate(opponentChatRoomParticipant);
