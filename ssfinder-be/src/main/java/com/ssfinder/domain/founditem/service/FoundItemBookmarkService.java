@@ -2,6 +2,7 @@ package com.ssfinder.domain.founditem.service;
 
 import com.ssfinder.domain.founditem.dto.mapper.FoundItemBookmarkMapper;
 import com.ssfinder.domain.founditem.dto.response.FoundItemBookmarkResponse;
+import com.ssfinder.domain.founditem.dto.response.FoundItemSummaryResponse;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.entity.FoundItemBookmark;
 import com.ssfinder.domain.founditem.repository.FoundItemBookmarkRepository;
@@ -97,9 +98,25 @@ public class FoundItemBookmarkService {
     }
 
     @Transactional(readOnly = true)
-    public List<Integer> getBookmarkedItemIdsByUser(Integer userId) {
-        List<Integer> bookmarkedItemIds = bookmarkRepository.findFoundItemIdsByUserId(userId);
+    public void applyBookmarkInfoToItems(Integer userId, List<FoundItemSummaryResponse> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
 
-        return bookmarkedItemIds;
+        try {
+            List<Integer> bookmarkedIds = getBookmarkedItemIdsByUser(userId);
+            for (FoundItemSummaryResponse item : items) {
+                boolean isBookmarked = bookmarkedIds.contains(item.getId());
+                item.setBookmarked(isBookmarked);
+            }
+        } catch (Exception e) {
+            log.error("북마크 정보 조회 중 오류: {}", e.getMessage());
+            items.forEach(item -> item.setBookmarked(false));
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<Integer> getBookmarkedItemIdsByUser(Integer userId) {
+        return bookmarkRepository.findFoundItemIdsByUserId(userId);
     }
 }
