@@ -113,8 +113,12 @@ public class ChatRoomService {
     public void leave(Integer userId, Integer chatRoomId) {
         ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
 
-        chatRoomParticipant.setLeftAt(LocalDateTime.now());
-        chatRoomParticipant.setStatus(ChatRoomStatus.INACTIVE);
+        deactivate(chatRoomParticipant);
+    }
+
+    private void deactivate(ChatRoomParticipant participant) {
+        participant.setLeftAt(LocalDateTime.now());
+        participant.setStatus(ChatRoomStatus.INACTIVE);
     }
 
     private ChatRoom createChatRoom(User user, FoundItem foundItem) {
