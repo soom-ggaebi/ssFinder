@@ -24,7 +24,7 @@ import java.time.format.DateTimeFormatter;
 public interface FoundItemDocumentMapper {
 
     @Mapping(target = "foundAt", expression = "java(parseFoundAt(document.getFoundAt()))")
-    @Mapping(target = "type", expression = "java(document.getManagementId() == null)")
+    @Mapping(target = "type", expression = "java(document.getManagementId() == null ? \"숨숨파인더\" : \"경찰청\")")
     @Mapping(target = "hasBookmark", ignore = true)
     @Mapping(target = "majorCategory", source = "categoryMajor")
     @Mapping(target = "minorCategory", source = "categoryMinor")
