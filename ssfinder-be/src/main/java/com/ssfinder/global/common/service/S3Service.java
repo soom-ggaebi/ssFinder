@@ -20,19 +20,31 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.UUID;
 
+/**
+ * packageName    : com.ssfinder.global.common.service<br>
+ * fileName       : S3Service.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-04-04<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-04-04          leeyj           최초생성<br>
+ * <br>
+ */
 @Service
 @RequiredArgsConstructor
 public class S3Service {
 
     private final S3Client s3Client;
 
-    @Value("${AWS_S3_BUCKET}")
+    @Value("${aws.s3.bucket}")
     private String bucketName;
 
-    @Value("${AWS_S3_PREFIX_FOUND}")
+    @Value("${aws.s3.prefix.found}")
     private String prefixFound;
 
-    @Value("${AWS_S3_PREFIX_LOST}")
+    @Value("${aws.s3.prefix.lost}")
     private String prefixLost;
 
     private String filePrefixFound;

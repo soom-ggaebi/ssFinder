@@ -13,5 +13,5 @@ package com.ssfinder.domain.chat.entity;
  * <br>
  */
 public enum ChatMessageStatus {
-    SENT, DELIVERED, READ;
+    READ, UNREAD;
 }

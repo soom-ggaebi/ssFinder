@@ -6,6 +6,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 
+/**
+ * packageName    : com.ssfinder.global.util<br>
+ * fileName       : CustomMultipartFile.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-03-20<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-03-20          leeyj           최초생성<br>
+ * <br>
+ */
 public class CustomMultipartFile implements MultipartFile {
     private final byte[] fileContent;
     private final String fileName;

@@ -1,6 +1,5 @@
 package com.ssfinder.domain.founditem.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Getter;
@@ -10,7 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * packageName    : com.ssfinder.domain.found.dto.request<br>
+ * packageName    : com.ssfinder.domain.found.dto.response<br>
  * fileName       : FoundItemRegisterRequest.java<br>
  * author         : joker901010<br>
  * date           : 2025-03-23<br>

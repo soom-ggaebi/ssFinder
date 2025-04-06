@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * packageName    : com.ssfinder.domain.found.dto.request<br>
+ * packageName    : com.ssfinder.domain.found.dto.response<br>
  * fileName       : FoundItemBookmarkResponse.java<br>
  * author         : joker901010<br>
  * date           : 2025-03-26<br>
