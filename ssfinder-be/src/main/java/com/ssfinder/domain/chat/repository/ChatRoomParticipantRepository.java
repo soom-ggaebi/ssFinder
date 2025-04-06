@@ -25,7 +25,7 @@ import java.util.Optional;
  * <br>
  */
 public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomParticipant, Integer> {
-    List<ChatRoomParticipant> findChatRoomParticipantByChatRoomAndUser(ChatRoom chatRoom, User user);
+    Optional<ChatRoomParticipant> findChatRoomParticipantByChatRoomAndUser(ChatRoom chatRoom, User user);
 
     ChatRoomParticipant getChatRoomParticipantByChatRoomAndUserIsNot(ChatRoom chatRoom, User user);
 }

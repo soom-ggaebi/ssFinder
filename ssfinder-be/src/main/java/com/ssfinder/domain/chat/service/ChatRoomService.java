@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -43,6 +42,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ChatRoomService {
     private final UserService userService;
+    private final ChatRoomParticipantService chatRoomParticipantService;
     private final FoundItemService foundItemService;
     private final ItemCategoryService itemCategoryService;
     private final FoundItemMapper foundItemMapper;
@@ -52,15 +52,6 @@ public class ChatRoomService {
     public ChatRoom findById(Integer id) {
         return chatRoomRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_NOT_FOUND));
-    }
-
-    public boolean isInChatRoom(Integer chatRoomId, Integer UserId) {
-        User user = userService.findUserById(UserId);
-        ChatRoom chatRoom = findById(chatRoomId);
-        List<ChatRoomParticipant> participants = chatRoomParticipantRepository
-                .findChatRoomParticipantByChatRoomAndUser(chatRoom, user);
-
-        return !participants.isEmpty();
     }
 
     public ChatRoomEntryResponse getOrCreateChatRoom(Integer userId, Integer foundItemId) {
@@ -89,17 +80,17 @@ public class ChatRoomService {
     public ChatRoomDetailResponse getChatRoomDetail(Integer userId, Integer chatRoomId) {
         ChatRoom chatRoom = findById(chatRoomId);
         FoundItem foundItem = chatRoom.getFoundItem();
-        User user = userService.findUserById(userId);
 
-        if(!isInChatRoom(chatRoomId, userId)) {
-            throw new CustomException(ErrorCode.CHAT_ROOM_ACCESS_DENIED);
-        }
+        ChatRoomParticipant chatRoomParticipant = chatRoomParticipantService
+                .getChatRoomParticipant(chatRoomId, userId);
 
-        ChatRoomParticipant chatRoomParticipant = chatRoomParticipantRepository.getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user);
-        ItemCategoryInfo itemCategoryInfo = itemCategoryService.findWithParentById(foundItem.getItemCategory().getId());
+        ItemCategoryInfo itemCategoryInfo = itemCategoryService
+                .findWithParentById(foundItem.getItemCategory().getId());
 
         User opponentUser = chatRoomParticipant.getUser();
-        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper.mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
+
+        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper
+                .mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
 
         return ChatRoomDetailResponse.builder()
                 .chatRoomId(chatRoomId)
