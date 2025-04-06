@@ -37,6 +37,7 @@ public interface FoundItemMapper {
     @Mapping(target = "location", source = "request.location")
     @Mapping(target = "color", source = "request.color")
     @Mapping(target = "detail", source = "request.detail")
+    @Mapping(target = "phone", source = "request.phone")
     @Mapping(target = "status", expression = "java(mapStatus(request.getStatus()))")
     @Mapping(target = "createdAt", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "updatedAt", expression = "java(java.time.LocalDateTime.now())")
