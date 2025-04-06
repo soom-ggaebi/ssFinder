@@ -31,7 +31,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     private static final String[] AllowUrls = new String[]{
-            "/api/auth/", "/ws/", "/app", "/api/found-items/filter"
+            "/api/auth/", "/ws/", "/app", "/api/found-items/filter", "/api/category",
+            "/api/found-items/viewport/coordinates"
     };
 
     @Override
@@ -44,76 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        if ( (uri.matches("/api/found-items/\\d+") && HttpMethod.GET.matches(method))
+                || (uri.startsWith("/api/found-items/viewport") && HttpMethod.GET.matches(method))
+                || (uri.matches("/api/found-items/cluster/detail") && HttpMethod.GET.matches(method))
+                || (uri.startsWith("/api/found-items/filter-items") && HttpMethod.GET.matches(method)) ) {
 
-        if (uri.equals("/api/found-items/viewport/coordinates") && HttpMethod.GET.matches(method)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        if (uri.matches("/api/found-items/\\d+") && HttpMethod.GET.matches(method)) {
-            String authHeader = request.getHeader("Authorization");
-
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                if (jwtUtil.validateToken(token)) {
-                    processValidAccessToken(token);
-                } else {
-                    writeErrorResponse(response, ErrorCode.INVALID_TOKEN);
-                    return;
-                }
+            if (!tryProcessToken(request, response)) {
+                return;
             }
-
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        if (uri.startsWith("/api/found-items/viewport") && HttpMethod.GET.name().equals(method)) {
-            String authHeader = request.getHeader("Authorization");
-
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                if (jwtUtil.validateToken(token)) {
-                    processValidAccessToken(token);
-                } else {
-                    writeErrorResponse(response, ErrorCode.INVALID_TOKEN);
-                    return;
-                }
-            }
-
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        if (uri.matches("/api/found-items/cluster/detail") && HttpMethod.GET.matches(method)) {
-            String authHeader = request.getHeader("Authorization");
-
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                if (jwtUtil.validateToken(token)) {
-                    processValidAccessToken(token);
-                } else {
-                    writeErrorResponse(response, ErrorCode.INVALID_TOKEN);
-                    return;
-                }
-            }
-
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        if (uri.startsWith("/api/found-items/filter-items") && HttpMethod.GET.name().equals(method)) {
-            String authHeader = request.getHeader("Authorization");
-
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                if (jwtUtil.validateToken(token)) {
-                    processValidAccessToken(token);
-                } else {
-                    writeErrorResponse(response, ErrorCode.INVALID_TOKEN);
-                    return;
-                }
-            }
-
             filterChain.doFilter(request, response);
             return;
         }
@@ -133,6 +72,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean tryProcessToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            if (jwtUtil.validateToken(token)) {
+                processValidAccessToken(token);
+            } else {
+                writeErrorResponse(response, ErrorCode.INVALID_TOKEN);
+                return false;
+            }
+        }
+        return true;
     }
 
     private void processValidAccessToken(String accessToken) {

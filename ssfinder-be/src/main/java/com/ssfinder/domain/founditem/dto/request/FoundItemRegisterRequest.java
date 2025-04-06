@@ -2,7 +2,6 @@ package com.ssfinder.domain.founditem.dto.request;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -54,9 +53,6 @@ public class FoundItemRegisterRequest {
     @Size(max = 5000)
     @NotBlank
     private String detail;
-
-    @Column(length = 20)
-    private String phone;
 
     @DecimalMin(value = "-90.0", inclusive = true)
     @DecimalMax(value = "90.0", inclusive = true)
