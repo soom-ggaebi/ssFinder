@@ -42,16 +42,26 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ChatRoomService {
     private final UserService userService;
-    private final ChatRoomParticipantService chatRoomParticipantService;
     private final FoundItemService foundItemService;
     private final ItemCategoryService itemCategoryService;
     private final FoundItemMapper foundItemMapper;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
 
+    @Transactional(readOnly = true)
     public ChatRoom findById(Integer id) {
         return chatRoomRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public ChatRoomParticipant getChatRoomParticipant(Integer chatRoomId, Integer UserId) {
+        User user = userService.findUserById(UserId);
+        ChatRoom chatRoom = findById(chatRoomId);
+
+        return chatRoomParticipantRepository
+                .findChatRoomParticipantByChatRoomAndUser(chatRoom, user)
+                .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_PARTICIPANT_NOT_FOUND));
     }
 
     public ChatRoomEntryResponse getOrCreateChatRoom(Integer userId, Integer foundItemId) {
@@ -81,8 +91,7 @@ public class ChatRoomService {
         ChatRoom chatRoom = findById(chatRoomId);
         FoundItem foundItem = chatRoom.getFoundItem();
 
-        ChatRoomParticipant chatRoomParticipant = chatRoomParticipantService
-                .getChatRoomParticipant(chatRoomId, userId);
+        ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
 
         ItemCategoryInfo itemCategoryInfo = itemCategoryService
                 .findWithParentById(foundItem.getItemCategory().getId());

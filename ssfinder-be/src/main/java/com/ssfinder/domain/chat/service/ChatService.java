@@ -51,7 +51,6 @@ import java.util.Objects;
 public class ChatService {
     private final UserService userService;
     private final ChatRoomService chatRoomService;
-    private final ChatRoomParticipantService chatRoomParticipantService;
     private final S3Service s3Service;
     private final ChatMessageProducer chatMessageProducer;
     private final ChatMessageReadProducer chatMessageReadProducer;
@@ -142,7 +141,7 @@ public class ChatService {
     }
 
     private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {
-        chatRoomParticipantService.getChatRoomParticipant(chatRoomId, userId);
+        chatRoomService.getChatRoomParticipant(chatRoomId, userId);
     }
 
     private ChatMessageStatus checkStatus(Integer userId, Integer chatRoomId) {
