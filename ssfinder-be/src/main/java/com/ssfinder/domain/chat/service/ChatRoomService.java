@@ -83,6 +83,12 @@ public class ChatRoomService {
                         () -> createChatRoom(user, foundItem)
                 );
 
+        ChatRoomParticipant participant = getChatRoomParticipant(chatRoom.getId(), userId);
+
+        if(participant.getStatus() == ChatRoomStatus.INACTIVE) {
+            activate(participant);
+        }
+
         return ChatRoomEntryResponse.builder()
                 .chatRoomId(chatRoom.getId())
                 .build();
@@ -116,15 +122,15 @@ public class ChatRoomService {
         deactivate(chatRoomParticipant);
     }
 
-    private void deactivate(ChatRoomParticipant participant) {
-        participant.setLeftAt(LocalDateTime.now());
-        participant.setStatus(ChatRoomStatus.INACTIVE);
-    }
-
-    private void activate(ChatRoomParticipant participant) {
+    public void activate(ChatRoomParticipant participant) {
         participant.setLeftAt(null);
         participant.setRejoinedAt(LocalDateTime.now());
         participant.setStatus(ChatRoomStatus.ACTIVE);
+    }
+
+    private void deactivate(ChatRoomParticipant participant) {
+        participant.setLeftAt(LocalDateTime.now());
+        participant.setStatus(ChatRoomStatus.INACTIVE);
     }
 
     private ChatRoom createChatRoom(User user, FoundItem foundItem) {
