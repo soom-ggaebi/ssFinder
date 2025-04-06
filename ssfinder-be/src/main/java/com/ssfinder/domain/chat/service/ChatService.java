@@ -8,6 +8,7 @@ import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
 import com.ssfinder.domain.chat.entity.ChatMessage;
 import com.ssfinder.domain.chat.entity.ChatMessageStatus;
 import com.ssfinder.domain.chat.entity.ChatRoom;
+import com.ssfinder.domain.chat.entity.MessageType;
 import com.ssfinder.domain.chat.kafka.producer.ChatMessageProducer;
 import com.ssfinder.domain.chat.kafka.producer.ChatMessageReadProducer;
 import com.ssfinder.domain.chat.repository.ChatMessageRepository;
@@ -16,6 +17,7 @@ import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
+import com.ssfinder.global.common.service.S3Service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +27,10 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * packageName    : com.ssfinder.domain.user.service<br>
@@ -47,6 +51,7 @@ import java.util.List;
 public class ChatService {
     private final UserService userService;
     private final ChatRoomService chatRoomService;
+    private final S3Service s3Service;
     private final ChatMessageProducer chatMessageProducer;
     private final ChatMessageReadProducer chatMessageReadProducer;
     private final ChatMessageMapper chatMessageMapper;
@@ -81,6 +86,31 @@ public class ChatService {
         KafkaChatMessage kafkaChatMessage = chatMessageMapper.mapToMessageSendResponse(message, user.getNickname());
         log.info("message sent: {}", kafkaChatMessage);
         chatMessageProducer.publish(KAFKA_MESSAGE_SENT_TOPIC, kafkaChatMessage);
+    }
+
+    public KafkaChatMessage sendFile(Integer userId, Integer chatRoomId, MultipartFile image) {
+        preCheckBeforeSend(userId, chatRoomId);
+
+        User user = userService.findUserById(userId);
+        User opponentUser = getOpponentUser(userId, chatRoomId);
+
+        String newImage = s3Service.uploadChatFile(image);
+
+        ChatMessage chatMessage = ChatMessage.builder()
+                .chatRoomId(chatRoomId)
+                .senderId(user.getId())
+                .content(newImage)
+                .status(checkStatus(opponentUser.getId(), chatRoomId))
+                .type(MessageType.IMAGE)
+                .build();
+
+        ChatMessage message = chatMessageRepository.save(chatMessage);
+
+        KafkaChatMessage kafkaChatMessage = chatMessageMapper.mapToMessageSendResponse(message, user.getNickname());
+        log.info("message sent: {}", kafkaChatMessage);
+        chatMessageProducer.publish(KAFKA_MESSAGE_SENT_TOPIC, kafkaChatMessage);
+
+        return kafkaChatMessage;
     }
 
     public User getOpponentUser(Integer userId, Integer chatRoomId) {
