@@ -66,7 +66,7 @@ public class FcmMessageService {
 
         boolean anySuccess = false;
         for (String token : tokens) {
-            if (sendNotificationToDevice(token, title, body, data)) {
+            if (Objects.nonNull(token) && !token.isBlank() && sendNotificationToDevice(token, title, body, data)) {
                 anySuccess = true;
             }
         }
