@@ -37,7 +37,6 @@ public class ItemCategoryService {
 
     public List<ItemCategoryInfo> getItemCategory() {
         List<ItemCategory> categories = itemCategoryRepository.findAll();
-        System.out.print("카테고리: "+ categories.toString());
         return categories.stream().map(category -> {
             ItemCategory parentCategory = category.getItemCategory();
             Integer parentId = (parentCategory != null) ? parentCategory.getId() : null;
