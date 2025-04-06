@@ -71,21 +71,25 @@ public class NotificationService {
             String notificationContent = String.format(messageTemplate, item.getName());
 
             List<String> tokens = fcmTokenService.getFcmTokens(userId);
+            boolean notificationSent = false;
+
             if (!tokens.isEmpty()) {
                 Map<String, String> data = new HashMap<>();
                 data.put("type", NotificationType.TRANSFER.name());
                 data.put("itemId", item.getId().toString());
 
-                fcmMessageService.sendNotificationToUsers(
+                notificationSent = fcmMessageService.sendNotificationToDevices(
                         tokens,
                         NOTIFICATION_TITLE,
                         notificationContent,
                         data
                 );
 
-                eventPublisher.publishEvent(new NotificationHistoryEvent(
-                        this, userId, NOTIFICATION_TITLE, notificationContent, NotificationType.TRANSFER
-                ));
+                if (notificationSent) {
+                    eventPublisher.publishEvent(new NotificationHistoryEvent(
+                            this, userId, NOTIFICATION_TITLE, notificationContent, NotificationType.TRANSFER
+                    ));
+                }
             }
         }
     }
@@ -103,7 +107,7 @@ public class NotificationService {
             data.put("type", NotificationType.CHAT.name());
             data.put("senderName", senderName);
 
-            fcmMessageService.sendNotificationToUsers(
+            fcmMessageService.sendNotificationToDevices(
                     tokens,
                     senderName + "님의 메시지",
                     message,
@@ -140,11 +144,13 @@ public class NotificationService {
             return;
 
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
+        boolean notificationSent = false;
+
         if (!tokens.isEmpty()) {
             Map<String, String> data = new HashMap<>();
             data.put("type", NotificationType.ITEM_REMINDER.name());
 
-            fcmMessageService.sendNotificationToUsers(
+            notificationSent = fcmMessageService.sendNotificationToDevices(
                     tokens,
                     NOTIFICATION_TITLE,
                     weatherCondition.getNotificationContent(),
@@ -152,8 +158,10 @@ public class NotificationService {
             );
         }
 
-        eventPublisher.publishEvent(
-                new NotificationHistoryEvent(this, userId, NOTIFICATION_TITLE,
-                        weatherCondition.getNotificationContent(), NotificationType.ITEM_REMINDER));
+        if (notificationSent) {
+            eventPublisher.publishEvent(
+                    new NotificationHistoryEvent(this, userId, NOTIFICATION_TITLE,
+                            weatherCondition.getNotificationContent(), NotificationType.ITEM_REMINDER));
+        }
     }
 }

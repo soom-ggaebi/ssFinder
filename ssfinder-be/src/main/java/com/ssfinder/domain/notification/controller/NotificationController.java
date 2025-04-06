@@ -50,7 +50,7 @@ public class NotificationController {
 
     @DeleteMapping("/token")
     public ApiResponse<?> deleteFcmToken(@AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody FcmTokenRequest fcmTokenRequest) {
-        fcmTokenService.deleteFcmToken(userDetails.getUserId(), fcmTokenRequest);
+        fcmTokenService.deleteFcmTokenByUser(userDetails.getUserId(), fcmTokenRequest);
         return ApiResponse.noContent();
     }
 
