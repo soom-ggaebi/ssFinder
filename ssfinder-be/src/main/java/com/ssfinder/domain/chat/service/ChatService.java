@@ -5,18 +5,13 @@ import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
 import com.ssfinder.domain.chat.dto.kafka.KafkaChatReadMessage;
 import com.ssfinder.domain.chat.dto.mapper.ChatMessageMapper;
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
-import com.ssfinder.domain.chat.entity.ChatMessage;
-import com.ssfinder.domain.chat.entity.ChatMessageStatus;
-import com.ssfinder.domain.chat.entity.ChatRoom;
-import com.ssfinder.domain.chat.entity.MessageType;
+import com.ssfinder.domain.chat.entity.*;
 import com.ssfinder.domain.chat.kafka.producer.ChatMessageProducer;
 import com.ssfinder.domain.chat.kafka.producer.ChatMessageReadProducer;
 import com.ssfinder.domain.chat.repository.ChatMessageRepository;
 import com.ssfinder.domain.chat.repository.ChatRoomParticipantRepository;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
-import com.ssfinder.global.common.exception.CustomException;
-import com.ssfinder.global.common.exception.ErrorCode;
 import com.ssfinder.global.common.service.S3Service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -141,8 +136,11 @@ public class ChatService {
     }
 
     private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {
-        if(!chatRoomService.isInChatRoom(chatRoomId, userId)) {
-            throw new CustomException(ErrorCode.CHAT_ROOM_ACCESS_DENIED);
+        chatRoomService.getChatRoomParticipant(chatRoomId, userId);
+        ChatRoomParticipant opponentChatRoomParticipant = chatRoomService.getChatRoomParticipant(chatRoomId, getOpponentUser(userId, chatRoomId).getId());
+
+        if(opponentChatRoomParticipant.getStatus() == ChatRoomStatus.INACTIVE) {
+            chatRoomService.activate(opponentChatRoomParticipant);
         }
     }
 
