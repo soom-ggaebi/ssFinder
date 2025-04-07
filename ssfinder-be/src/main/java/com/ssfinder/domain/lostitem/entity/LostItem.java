@@ -77,7 +77,7 @@ public class LostItem {
     @Column(name = "coordinates", columnDefinition = "POINT SRID 4326")
     private Point coordinates;
 
-    @Column(name = "notification_enabled")
+    @Column(name = "notification_enabled", nullable = false)
     @Builder.Default
     private Boolean notificationEnabled = true;
 }
