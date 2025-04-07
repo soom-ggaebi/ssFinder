@@ -145,11 +145,14 @@ public class NotificationService {
     }
 
     // 3. 습득물 게시된 경우 분실자에게 AI 매칭 알림
+    // TODO 쿼리 중복 호출 개선
     public void sendItemMatchingNotifications(List<AiMatchNotificationRequest> aiMatchNotificationRequests) {
         List<AiMatchNotificationRequest> enabledNotifications = aiMatchNotificationRequests.stream()
                 .filter(request -> {
                     LostItem lostItem = lostItemService.findLostItemById(request.lostItemId());
-                    return lostItem.getNotificationEnabled();
+                    Integer userId = lostItem.getUser().getId();
+                    return userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.AI_MATCH)
+                            && lostItem.getNotificationEnabled();
                 })
                 .toList();
 
