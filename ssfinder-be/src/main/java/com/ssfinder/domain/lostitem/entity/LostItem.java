@@ -76,4 +76,8 @@ public class LostItem {
     @JdbcTypeCode(SqlTypes.GEOMETRY)
     @Column(name = "coordinates", columnDefinition = "POINT SRID 4326")
     private Point coordinates;
+
+    @Column(name = "notification_enabled")
+    @Builder.Default
+    private Boolean notificationEnabled = true;
 }
