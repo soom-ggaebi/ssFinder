@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:sumsumfinder/models/chat_message.dart';
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
@@ -10,9 +11,21 @@ import 'package:sumsumfinder/widgets/chat/chat_input_field.dart';
 import 'package:sumsumfinder/widgets/chat/chat_message_bubble.dart';
 import 'package:sumsumfinder/utils/time_formatter.dart';
 import 'package:sumsumfinder/widgets/chat/option_popups/add.dart';
+import 'package:stomp_dart_client/stomp_dart_client.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({Key? key}) : super(key: key);
+  final String jwt;
+  final int roomId;
+  final String otherUserName;
+  final String myName;
+
+  const ChatPage({
+    Key? key,
+    required this.jwt,
+    required this.roomId,
+    required this.otherUserName,
+    required this.myName,
+  }) : super(key: key);
 
   @override
   State<ChatPage> createState() => _ChatScreenState();
@@ -25,11 +38,221 @@ class _ChatScreenState extends State<ChatPage> {
   final ScrollController _scrollController = ScrollController();
   List<ChatMessage> _messages = [];
 
+  // STOMP 웹소켓 관련 변수
+  late StompClient stompClient;
+  bool isConnected = false;
+
+  // 디버깅을 위한 로그
+  final List<String> logs = [];
+  bool showDebugPanel = false;
+
+  @override
+  void initState() {
+    super.initState();
+    initStompClient();
+  }
+
   @override
   void dispose() {
     _textController.dispose();
     _scrollController.dispose();
+    if (stompClient.connected) {
+      stompClient.deactivate();
+    }
     super.dispose();
+  }
+
+  // 로그 추가 함수
+  void addLog(String log) {
+    setState(() {
+      logs.add('${DateTime.now().toString().substring(11, 19)}: $log');
+      if (logs.length > 100) logs.removeAt(0); // 로그 크기 제한
+    });
+    print('📝 [ChatPage] $log');
+  }
+
+  // STOMP 클라이언트 초기화
+  void initStompClient() {
+    addLog('STOMP 클라이언트 초기화 시작');
+
+    // WebSocket 서버 URL
+    final String serverUrl = 'wss://ssfinder.site/app/';
+
+    // STOMP 클라이언트 설정
+    stompClient = StompClient(
+      config: StompConfig(
+        url: serverUrl,
+        onConnect: onConnect,
+        onDisconnect: onDisconnect,
+        onWebSocketError: onWebSocketError,
+        onStompError: onStompError,
+        onDebugMessage: (String message) {
+          addLog('디버그: $message');
+        },
+        // 포스트맨과 동일한 헤더 설정
+        stompConnectHeaders: {
+          'accept-version': '1.0,1.1,1.2',
+          'heart-beat': '5000,5000',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.jwt}',
+          'chat_room_id': '${widget.roomId}',
+        },
+      ),
+    );
+
+    addLog('STOMP 클라이언트 활성화');
+    stompClient.activate();
+  }
+
+  // 연결 성공 시 호출
+  void onConnect(StompFrame frame) {
+    addLog('연결 성공: ${frame.body}');
+
+    setState(() {
+      isConnected = true;
+    });
+
+    // 세션 ID 확인
+    String? sessionId = frame.headers['session-id'];
+    if (sessionId != null) {
+      addLog('세션 ID: $sessionId');
+    }
+
+    // 채팅방 구독
+    subscribeToChatRoom();
+
+    // 에러 구독
+    subscribeToErrors();
+  }
+
+  // 채팅방 구독
+  void subscribeToChatRoom() {
+    final String topic = '/sub/chat-room/${widget.roomId}';
+
+    addLog('채팅방 구독 시도: $topic');
+
+    try {
+      stompClient.subscribe(
+        destination: topic,
+        callback: (StompFrame frame) {
+          addLog('채팅 메시지 수신: ${frame.body}');
+
+          if (frame.body == null || frame.body!.isEmpty) {
+            addLog('수신된 메시지 본문이 비어있습니다');
+            return;
+          }
+
+          try {
+            final jsonData = json.decode(frame.body!);
+
+            // 메시지 객체 생성
+            final message = ChatMessage(
+              text: jsonData['content'] ?? '',
+              // sender_id와 현재 사용자 ID를, 미구현시 sender_id가 2면 내 메시지로 처리
+              isSent: jsonData['sender_id'] == 2,
+              time: TimeFormatter.getCurrentTime(),
+              // 필요시 다른 필드도 추가
+            );
+
+            setState(() {
+              _messages.add(message);
+            });
+
+            _scrollToBottom();
+            addLog('채팅 수신 및 처리 완료');
+          } catch (e) {
+            addLog('메시지 처리 오류: $e');
+          }
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.jwt}',
+          'chat_room_id': '${widget.roomId}',
+        },
+      );
+
+      addLog('채팅방 구독 성공');
+    } catch (e) {
+      addLog('채팅방 구독 오류: $e');
+    }
+  }
+
+  // 에러 구독
+  void subscribeToErrors() {
+    final String topic = '/user/queue/errors';
+
+    addLog('에러 구독 시도: $topic');
+
+    try {
+      stompClient.subscribe(
+        destination: topic,
+        callback: (StompFrame frame) {
+          addLog('에러 수신: ${frame.body}');
+
+          // 사용자에게 오류 알림
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('서버 오류: ${frame.body}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+      );
+
+      addLog('에러 구독 성공');
+    } catch (e) {
+      addLog('에러 구독 오류: $e');
+    }
+  }
+
+  // 연결 해제 시 호출
+  void onDisconnect(StompFrame frame) {
+    addLog('연결 종료: ${frame.body}');
+
+    setState(() {
+      isConnected = false;
+    });
+  }
+
+  // WebSocket 오류 발생 시 호출
+  void onWebSocketError(dynamic error) {
+    addLog('WebSocket 오류: $error');
+
+    setState(() {
+      isConnected = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('연결 오류가 발생했습니다: $error'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  // STOMP 오류 발생 시 호출
+  void onStompError(StompFrame frame) {
+    addLog('STOMP 오류: ${frame.body}');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('STOMP 프로토콜 오류가 발생했습니다'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  // 재연결 시도
+  void reconnect() {
+    addLog('재연결 시도');
+
+    // 현재 클라이언트가 활성화된 경우 비활성화
+    if (stompClient.connected) {
+      stompClient.deactivate();
+    }
+
+    // 새로운 연결 초기화
+    initStompClient();
   }
 
   void _handleSubmitted(String text) {
@@ -37,32 +260,65 @@ class _ChatScreenState extends State<ChatPage> {
 
     _textController.clear();
 
+    if (!isConnected) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('연결 오류. 다시 시도해주세요.')));
+      return;
+    }
+
+    // 새 메시지 객체 생성
+    final message = ChatMessage(
+      text: text,
+      isSent: true,
+      time: TimeFormatter.getCurrentTime(),
+    );
+
     setState(() {
-      _messages.add(
-        ChatMessage(
-          text: text,
-          isSent: true,
-          time: TimeFormatter.getCurrentTime(),
-        ),
-      );
+      _messages.add(message);
     });
 
     _scrollToBottom();
 
-    // 테스트를 위한 자동 응답
-    Future.delayed(const Duration(seconds: 1), () {
-      setState(() {
-        _messages.add(
-          ChatMessage(
-            text: "네, 알겠습니다.",
-            isSent: false,
-            time: TimeFormatter.getCurrentTime(),
-          ),
-        );
-      });
+    // 웹소켓으로 메시지 전송
+    sendMessage(text);
+  }
 
-      _scrollToBottom();
-    });
+  // 메시지 전송
+  void sendMessage(String text) {
+    if (!isConnected) {
+      addLog('메시지 전송 실패: 연결되지 않음');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('연결 오류. 다시 시도해주세요.')));
+      return;
+    }
+
+    if (text.trim().isEmpty) return;
+
+    final destination = '/pub/chat-room/${widget.roomId}';
+    final messageJson = jsonEncode({"type": "NORMAL", "content": text});
+
+    addLog('메시지 전송 시도: $messageJson');
+
+    try {
+      stompClient.send(
+        destination: destination,
+        body: messageJson,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.jwt}',
+          'chat_room_id': '${widget.roomId}',
+        },
+      );
+
+      addLog('메시지 전송 완료');
+    } catch (e) {
+      addLog('메시지 전송 오류: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('메시지 전송 중 오류가 발생했습니다: $e')));
+    }
   }
 
   void _scrollToBottom() {
@@ -103,7 +359,7 @@ class _ChatScreenState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(
-        title: '기어가는 초콜릿',
+        title: widget.otherUserName,
         onBackPressed: () {
           Navigator.pop(context);
         },
@@ -112,7 +368,19 @@ class _ChatScreenState extends State<ChatPage> {
           Navigator.of(context).popUntil((route) => route.isFirst);
         },
         customActions: [
-          // 더보기 버튼을 customActions에 추가
+          // 연결 상태 표시
+          Center(
+            child: Container(
+              width: 12,
+              height: 12,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isConnected ? Colors.green : Colors.red,
+              ),
+            ),
+          ),
+          // 더보기 버튼
           Center(
             child: Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -123,6 +391,35 @@ class _ChatScreenState extends State<ChatPage> {
                   icon: const Icon(Icons.more_vert),
                   onPressed: () {
                     // 더보기 버튼 동작
+                    showModalBottomSheet(
+                      context: context,
+                      builder:
+                          (context) => Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.refresh),
+                                title: const Text('재연결'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  reconnect();
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.bug_report),
+                                title: Text(
+                                  showDebugPanel ? '디버그 패널 숨기기' : '디버그 패널 표시',
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  setState(() {
+                                    showDebugPanel = !showDebugPanel;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                    );
                   },
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -141,8 +438,74 @@ class _ChatScreenState extends State<ChatPage> {
           child: Column(
             children: [
               ProductInfoWidget(),
-              InfoBannerWidget(otherUserId: "기어가는 초콜릿", myId: "기다리는 토마토"),
+              InfoBannerWidget(
+                otherUserId: widget.otherUserName,
+                myId: widget.myName,
+              ),
               DateDividerWidget(date: '3월 23일'),
+              // 디버그 패널 (토글 가능)
+              if (showDebugPanel)
+                Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    border: Border.all(color: Colors.grey),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        color: Colors.grey[800],
+                        child: Row(
+                          children: [
+                            const Text(
+                              '웹소켓 로그',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  logs.clear();
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: ListView.builder(
+                          reverse: true,
+                          itemCount: logs.length,
+                          itemBuilder: (context, index) {
+                            final logIndex = logs.length - 1 - index;
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              child: Text(
+                                logs[logIndex],
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
                 child: ChatMessagesList(
                   messages: _messages,
