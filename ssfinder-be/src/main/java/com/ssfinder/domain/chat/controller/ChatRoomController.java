@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
  * 2025-03-31          nature1216            채팅방 생성, 상세정보 조회 메소드 추가
+ * 2025-04-06          nature1216            채팅방 퇴장 메소드 추가
  * <br>
  */
 @RestController
@@ -46,5 +47,14 @@ public class ChatRoomController {
         ChatRoomDetailResponse response = chatRoomService.getChatRoomDetail(userId, chatRoomId);
 
         return ApiResponse.ok(response);
+    }
+
+    @DeleteMapping("/{chatRoomId}/participants")
+    public ApiResponse<Void> leave(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                   @PathVariable Integer chatRoomId) {
+        Integer userId = userDetails.getUserId();
+        chatRoomService.leave(userId, chatRoomId);
+
+        return ApiResponse.noContent();
     }
 }

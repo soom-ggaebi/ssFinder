@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -49,18 +49,20 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
 
+    @Transactional(readOnly = true)
     public ChatRoom findById(Integer id) {
         return chatRoomRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_NOT_FOUND));
     }
 
-    public boolean isInChatRoom(Integer chatRoomId, Integer UserId) {
+    @Transactional(readOnly = true)
+    public ChatRoomParticipant getChatRoomParticipant(Integer chatRoomId, Integer UserId) {
         User user = userService.findUserById(UserId);
         ChatRoom chatRoom = findById(chatRoomId);
-        List<ChatRoomParticipant> participants = chatRoomParticipantRepository
-                .findChatRoomParticipantByChatRoomAndUser(chatRoom, user);
 
-        return !participants.isEmpty();
+        return chatRoomParticipantRepository
+                .findChatRoomParticipantByChatRoomAndUser(chatRoom, user)
+                .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_PARTICIPANT_NOT_FOUND));
     }
 
     public ChatRoomEntryResponse getOrCreateChatRoom(Integer userId, Integer foundItemId) {
@@ -81,6 +83,12 @@ public class ChatRoomService {
                         () -> createChatRoom(user, foundItem)
                 );
 
+        ChatRoomParticipant participant = getChatRoomParticipant(chatRoom.getId(), userId);
+
+        if(participant.getStatus() == ChatRoomStatus.INACTIVE) {
+            activate(participant);
+        }
+
         return ChatRoomEntryResponse.builder()
                 .chatRoomId(chatRoom.getId())
                 .build();
@@ -89,17 +97,16 @@ public class ChatRoomService {
     public ChatRoomDetailResponse getChatRoomDetail(Integer userId, Integer chatRoomId) {
         ChatRoom chatRoom = findById(chatRoomId);
         FoundItem foundItem = chatRoom.getFoundItem();
-        User user = userService.findUserById(userId);
 
-        if(!isInChatRoom(chatRoomId, userId)) {
-            throw new CustomException(ErrorCode.CHAT_ROOM_ACCESS_DENIED);
-        }
+        ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
 
-        ChatRoomParticipant chatRoomParticipant = chatRoomParticipantRepository.getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user);
-        ItemCategoryInfo itemCategoryInfo = itemCategoryService.findWithParentById(foundItem.getItemCategory().getId());
+        ItemCategoryInfo itemCategoryInfo = itemCategoryService
+                .findWithParentById(foundItem.getItemCategory().getId());
 
         User opponentUser = chatRoomParticipant.getUser();
-        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper.mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
+
+        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper
+                .mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
 
         return ChatRoomDetailResponse.builder()
                 .chatRoomId(chatRoomId)
@@ -107,6 +114,23 @@ public class ChatRoomService {
                 .opponentNickname(opponentUser.getNickname())
                 .foundItem(chatRoomFoundItem)
                 .build();
+    }
+
+    public void leave(Integer userId, Integer chatRoomId) {
+        ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
+
+        deactivate(chatRoomParticipant);
+    }
+
+    public void activate(ChatRoomParticipant participant) {
+        participant.setLeftAt(null);
+        participant.setRejoinedAt(LocalDateTime.now());
+        participant.setStatus(ChatRoomStatus.ACTIVE);
+    }
+
+    private void deactivate(ChatRoomParticipant participant) {
+        participant.setLeftAt(LocalDateTime.now());
+        participant.setStatus(ChatRoomStatus.INACTIVE);
     }
 
     private ChatRoom createChatRoom(User user, FoundItem foundItem) {
