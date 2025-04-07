@@ -1,6 +1,15 @@
 class FoundItemModel {
-  final String photo, category, itemName, source, foundLocation, createdTime, foundDate, description, color;
-  final String? storageLocation;
+  final String photo,
+      category,
+      itemName,
+      source,
+      foundLocation,
+      createdTime,
+      foundDate,
+      description,
+      color;
+  final String? storageLocation, userName;
+  final int id;
 
   FoundItemModel.fromJson(Map<String, dynamic> json)
     : photo = json['photo'],
@@ -12,5 +21,7 @@ class FoundItemModel {
       foundDate = json['foundDate'],
       storageLocation = json['storageLocation'],
       description = json['description'],
-      color = json['color'];
+      color = json['color'],
+      id = json['id'] ?? 0, // 추가
+      userName = json['userName']; // 추가
 }

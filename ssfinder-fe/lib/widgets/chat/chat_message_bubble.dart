@@ -12,7 +12,7 @@ class ChatMessagesList extends StatelessWidget {
     required this.scrollController,
   }) : super(key: key);
 
-  @override
+  @override // 여기에 중괄호가 없었습니다
   Widget build(BuildContext context) {
     return ListView(
       controller: scrollController,
@@ -27,12 +27,31 @@ class ChatMessagesList extends StatelessWidget {
         // 새로 추가된 메시지들
         ...messages.map((message) {
           if (message.isSent) {
-            return SentMessageBubble(message: message.text, time: message.time);
+            // 내가 보낸 메시지
+            if (message.type == 'IMAGE') {
+              return SentImageBubble(
+                imageUrl: message.imageUrl ?? '',
+                time: message.time,
+              );
+            } else {
+              return SentMessageBubble(
+                message: message.text,
+                time: message.time,
+              );
+            }
           } else {
-            return ReceivedMessageBubble(
-              message: message.text,
-              time: message.time,
-            );
+            // 받은 메시지
+            if (message.type == 'IMAGE') {
+              return ReceivedImageBubble(
+                imageUrl: message.imageUrl ?? '',
+                time: message.time,
+              );
+            } else {
+              return ReceivedMessageBubble(
+                message: message.text,
+                time: message.time,
+              );
+            }
           }
         }).toList(),
       ],
@@ -240,6 +259,195 @@ class ReceivedMessageWithMap extends StatelessWidget {
             Positioned(
               left: 0,
               bottom: -16,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: SvgPicture.asset(
+                  'assets/images/chat/avatar_icon.svg',
+                  width: 40,
+                  height: 40,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SentImageBubble extends StatelessWidget {
+  final String imageUrl;
+  final String time;
+
+  const SentImageBubble({Key? key, required this.imageUrl, required this.time})
+    : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            time,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: Colors.grey[500]),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.6,
+            ),
+            padding: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(
+              color: Color(0xFF619BF7),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(15),
+                topRight: Radius.circular(15),
+                bottomLeft: Radius.circular(15),
+                bottomRight: Radius.circular(0),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                width: 200,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    width: 200,
+                    height: 150,
+                    color: Colors.white.withOpacity(0.3),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value:
+                            loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                        color: Colors.white,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 200,
+                    height: 40,
+                    color: Colors.white.withOpacity(0.3),
+                    child: const Center(
+                      child: Text(
+                        '이미지 로드 실패',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ReceivedImageBubble extends StatelessWidget {
+  final String imageUrl;
+  final String time;
+
+  const ReceivedImageBubble({
+    Key? key,
+    required this.imageUrl,
+    required this.time,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SizedBox(
+        height: 200, // 이미지 크기에 맞게 조정
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 48),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.6,
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEAEAEA),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(15),
+                        topRight: Radius.circular(15),
+                        bottomLeft: Radius.circular(0),
+                        bottomRight: Radius.circular(15),
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        imageUrl,
+                        width: 200,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            width: 200,
+                            height: 150,
+                            color: Colors.grey[300],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value:
+                                    loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 200,
+                            height: 40,
+                            color: Colors.grey[300],
+                            child: const Center(
+                              child: Text(
+                                '이미지 로드 실패',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    time,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelSmall?.copyWith(color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 0,
+              top: 20,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: SvgPicture.asset(

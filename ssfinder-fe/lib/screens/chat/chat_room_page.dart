@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:sumsumfinder/models/chat_message.dart';
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
+import 'package:sumsumfinder/config/environment_config.dart';
 import 'package:sumsumfinder/widgets/chat/product_info.dart';
 import 'package:sumsumfinder/widgets/chat/info_banner.dart';
 import 'package:sumsumfinder/widgets/chat/date_divider.dart';
@@ -48,6 +50,7 @@ class _ChatPageState extends State<ChatPage> {
   File? _selectedImage;
   final ScrollController _scrollController = ScrollController();
   List<ChatMessage> _messages = [];
+  int currentUserId = 15; // 현재 사용자 ID (실제 ID로 변경 필요)
 
   // STOMP 웹소켓 관련 변수
   late StompClient stompClient;
@@ -198,6 +201,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   // 채팅방 구독
+  // 채팅방 구독
   void subscribeToChatRoom() {
     final String topic = '/sub/chat-room/${widget.roomId}';
 
@@ -219,18 +223,45 @@ class _ChatPageState extends State<ChatPage> {
 
           try {
             final jsonData = json.decode(frame.body!);
+            final messageType = jsonData['type'] ?? 'NORMAL';
 
-            // 메시지 객체 생성
-            final message = ChatMessage(
-              text: jsonData['content'] ?? '',
-              isSent: jsonData['sender_id'] == 2,
-              time: TimeFormatter.getCurrentTime(),
-            );
+            // 메시지 타입 확인 및 처리
+            if (messageType == 'IMAGE') {
+              // 이미지 메시지 처리
+              addLog('이미지 메시지 수신: ${jsonData['content']}');
 
-            if (!mounted) return; // setState 전에 다시 한번 확인
-            setState(() {
-              _messages.add(message);
-            });
+              // 새 ChatMessage 객체 생성
+              final message = ChatMessage(
+                text: '',
+                isSent: jsonData['sender_id'] == currentUserId,
+                time: TimeFormatter.getCurrentTime(),
+                type: 'IMAGE',
+                imageUrl: jsonData['content'], // 이미지 URL 저장
+              );
+
+              if (!mounted) return;
+              setState(() {
+                _messages.add(message);
+              });
+
+              // 디버깅용 로그
+              addLog('현재 메시지 개수: ${_messages.length}');
+              addLog('마지막 메시지 타입: ${_messages.last.type}');
+              addLog('마지막 메시지 URL: ${_messages.last.imageUrl}');
+            } else {
+              // 일반 텍스트 메시지 처리 (기존 코드)
+              final message = ChatMessage(
+                text: jsonData['content'] ?? '',
+                isSent: jsonData['sender_id'] == currentUserId,
+                time: TimeFormatter.getCurrentTime(),
+                type: 'NORMAL',
+              );
+
+              if (!mounted) return;
+              setState(() {
+                _messages.add(message);
+              });
+            }
 
             _scrollToBottom();
             addLog('채팅 수신 및 처리 완료');
@@ -240,8 +271,7 @@ class _ChatPageState extends State<ChatPage> {
         },
         headers: {
           'Content-Type': 'application/json',
-          'Authorization':
-              'Bearer $_currentToken', // widget.jwt 대신 _currentToken 사용
+          'Authorization': 'Bearer $_currentToken',
           'chat_room_id': '${widget.roomId}',
         },
       );
@@ -454,6 +484,90 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  // 이미지 메시지 전송을 위한 API 호출
+  Future<void> _sendImageMessage(File imageFile) async {
+    if (!mounted) return;
+
+    try {
+      // 최신 토큰 가져오기
+      final token = await _loginService.getAccessToken();
+
+      if (token == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('로그인이 필요합니다')));
+        return;
+      }
+
+      // 로딩 표시
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // multipart 요청 생성
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(
+          '${EnvironmentConfig.baseUrl}/api/chat-rooms/${widget.roomId}/upload',
+        ),
+      );
+
+      // 헤더 추가
+      request.headers.addAll({'Authorization': 'Bearer $token'});
+
+      // 이미지 파일 추가
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'image',
+          imageFile.path,
+          filename: imageFile.path.split('/').last,
+        ),
+      );
+
+      // 요청 전송
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      // 로딩 닫기
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+
+        if (responseData['success'] == true) {
+          addLog('이미지 전송 성공: ${responseData['data']['content']}');
+
+          // 이미지 메시지가 웹소켓으로 전송되므로 여기서는 UI 업데이트 필요 없음
+          // 웹소켓으로 수신된 메시지가 UI를 업데이트함
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(responseData['error']['message'] ?? '이미지 전송 실패'),
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('이미지 전송 실패: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      // 로딩 닫기
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('이미지 전송 중 오류 발생: $e')));
+      addLog('이미지 전송 오류: $e');
+    }
+  }
+
   Future<void> _getImageFromGallery() async {
     if (!mounted) return;
 
@@ -466,7 +580,9 @@ class _ChatPageState extends State<ChatPage> {
         _selectedImage = File(image.path);
       });
       addLog('갤러리에서 이미지 선택: ${image.path}');
-      // 이미지 메시지 전송 로직 추가 필요
+
+      // 이미지 메시지 전송
+      await _sendImageMessage(File(image.path));
     }
   }
 
@@ -482,7 +598,9 @@ class _ChatPageState extends State<ChatPage> {
         _selectedImage = File(photo.path);
       });
       addLog('카메라로 사진 촬영: ${photo.path}');
-      // 이미지 메시지 전송 로직 추가 필요
+
+      // 이미지 메시지 전송
+      await _sendImageMessage(File(photo.path));
     }
   }
 
