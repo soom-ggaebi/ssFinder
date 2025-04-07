@@ -28,10 +28,10 @@ class ChatPage extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<ChatPage> createState() => _ChatScreenState();
+  State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatScreenState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> {
   final TextEditingController _textController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
@@ -41,6 +41,7 @@ class _ChatScreenState extends State<ChatPage> {
   // STOMP 웹소켓 관련 변수
   late StompClient stompClient;
   bool isConnected = false;
+  int reconnectAttempts = 0;
 
   // 디버깅을 위한 로그
   final List<String> logs = [];
@@ -64,9 +65,10 @@ class _ChatScreenState extends State<ChatPage> {
 
   // 로그 추가 함수
   void addLog(String log) {
+    if (!mounted) return; // mounted 상태 확인 추가
     setState(() {
       logs.add('${DateTime.now().toString().substring(11, 19)}: $log');
-      if (logs.length > 100) logs.removeAt(0); // 로그 크기 제한
+      if (logs.length > 100) logs.removeAt(0);
     });
     print('📝 [ChatPage] $log');
   }
@@ -137,6 +139,8 @@ class _ChatScreenState extends State<ChatPage> {
         callback: (StompFrame frame) {
           addLog('채팅 메시지 수신: ${frame.body}');
 
+          if (!mounted) return; // mounted 상태 확인 추가
+
           if (frame.body == null || frame.body!.isEmpty) {
             addLog('수신된 메시지 본문이 비어있습니다');
             return;
@@ -148,12 +152,11 @@ class _ChatScreenState extends State<ChatPage> {
             // 메시지 객체 생성
             final message = ChatMessage(
               text: jsonData['content'] ?? '',
-              // sender_id와 현재 사용자 ID를, 미구현시 sender_id가 2면 내 메시지로 처리
               isSent: jsonData['sender_id'] == 2,
               time: TimeFormatter.getCurrentTime(),
-              // 필요시 다른 필드도 추가
             );
 
+            if (!mounted) return; // setState 전에 다시 한번 확인
             setState(() {
               _messages.add(message);
             });
@@ -218,16 +221,21 @@ class _ChatScreenState extends State<ChatPage> {
   void onWebSocketError(dynamic error) {
     addLog('WebSocket 오류: $error');
 
+    if (!mounted) return; // mounted 상태 확인 추가
+
     setState(() {
       isConnected = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('연결 오류가 발생했습니다: $error'),
-        backgroundColor: Colors.red,
-      ),
-    );
+    if (mounted) {
+      // ScaffoldMessenger 사용 전 확인
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('연결 오류가 발생했습니다: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // STOMP 오류 발생 시 호출
@@ -267,7 +275,7 @@ class _ChatScreenState extends State<ChatPage> {
       return;
     }
 
-    // 새 메시지 객체 생성
+    // 새 메시지 객체 생성 (UI 즉시 업데이트용)
     final message = ChatMessage(
       text: text,
       isSent: true,
@@ -340,7 +348,8 @@ class _ChatScreenState extends State<ChatPage> {
       setState(() {
         _selectedImage = File(image.path);
       });
-      print('갤러리에서 이미지 선택: ${image.path}');
+      addLog('갤러리에서 이미지 선택: ${image.path}');
+      // 이미지 메시지 전송 로직 추가 필요
     }
   }
 
@@ -351,7 +360,8 @@ class _ChatScreenState extends State<ChatPage> {
       setState(() {
         _selectedImage = File(photo.path);
       });
-      print('카메라로 사진 촬영: ${photo.path}');
+      addLog('카메라로 사진 촬영: ${photo.path}');
+      // 이미지 메시지 전송 로직 추가 필요
     }
   }
 
