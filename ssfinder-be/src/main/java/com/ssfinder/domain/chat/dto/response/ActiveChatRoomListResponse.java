@@ -26,5 +26,5 @@ public record ActiveChatRoomListResponse (
         String opponentNickname,
         String latestMessage,
         LocalDateTime latestSentAt,
-        ChatRoomFoundItem chatRoomFoundItem
+        ChatRoomFoundItem foundItem
 ) { }
