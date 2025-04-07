@@ -46,7 +46,6 @@ public class LostItemRegisterRequest {
     private String location;
 
     @Size(max = 5000)
-    @NotBlank
     private String detail;
 
     private MultipartFile image;
