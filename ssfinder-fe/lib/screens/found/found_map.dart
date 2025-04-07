@@ -46,7 +46,6 @@ class _FoundPageMapState extends State<FoundMap> {
   }
 
   void _createClusters() async {
-    print('#### ${widget.foundItems}');
     if (widget.foundItems.isEmpty) {
       setState(() {
         _markers.clear();

@@ -145,7 +145,7 @@ class _FoundItemFormState extends State<FoundItemForm> {
       final formattedDate =
           "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
 
-      final result = await _apiService.postFoundItem(
+      await _apiService.postFoundItem(
         itemCategoryId: _selectedCategoryId!,
         name: _itemNameController.text,
         foundAt: formattedDate,

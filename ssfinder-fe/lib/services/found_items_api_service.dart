@@ -609,6 +609,7 @@ class FoundItemsApiService {
             response.data as Map<String, dynamic>;
         final List<dynamic> itemsJson =
             responseData['data']['content'] as List<dynamic>;
+        print(itemsJson);
 
         final items =
             itemsJson

@@ -6,8 +6,8 @@ class FoundItemModel {
   final String? image; // 물품 이미지 (null 가능)
   final String type; // 분실물 종류 (예: "경찰청")
   final String color; // 물품의 색상
-  final String majorCategory; // 주요 카테고리
-  final String minorCategory; // 세부 카테고리
+  final String? majorCategory; // 주요 카테고리
+  final String? minorCategory; // 세부 카테고리
   final String name; // 분실물 이름
   final String location; // 물품이 분실된 장소
   final String createdAt; // 등록(생성) 시간
@@ -53,8 +53,8 @@ class FoundItemModel {
       image: item['image'] as String?, // null 가능
       type: item['type'] as String,
       color: item['color'] as String,
-      majorCategory: item['major_category'] as String,
-      minorCategory: item['minor_category'] as String,
+      majorCategory: item['major_category'] as String?,
+      minorCategory: item['minor_category'] as String?,
       name: item['name'] as String,
       location: item['location'] as String,
       createdAt: item['created_at'] as String,
@@ -73,8 +73,8 @@ class FoundItemModel {
 class FoundItemListModel {
   final int id; // 아이템의 고유 ID
   final String? image; // 이미지 파일 (null 가능)
-  final String majorCategory; // 주요 카테고리 (문자열)
-  final String minorCategory; // 세부 카테고리 (문자열)
+  final String? majorCategory; // 주요 카테고리 (문자열)
+  final String? minorCategory; // 세부 카테고리 (문자열)
   final String name; // 아이템 이름
   final String type; // 출처 (예: "숨숨파인더")
   final String? storageLocation; // 보관 위치 (예: "ㅇㅇ경찰청")
@@ -97,8 +97,8 @@ class FoundItemListModel {
     return FoundItemListModel(
       id: json['id'] as int,
       image: json['image'] as String?,
-      majorCategory: json['major_category'] as String,
-      minorCategory: json['minor_category'] as String,
+      majorCategory: json['major_category'] as String?,
+      minorCategory: json['minor_category'] as String?,
       name: json['name'] as String,
       type: json['type'] as String,
       storageLocation: json['stored_at'] as String?,

@@ -55,13 +55,17 @@ class _FoundItemsListState extends State<FoundItemsList> {
   }
 
   Future<void> _loadClusterItems() async {
-    if (isLoading || isLoadingMore) return;
+    print(isLoading);
+    print(isLoadingMore);
+    if (isLoadingMore) return;
+    print(2);
     setState(() {
       isLoading = foundItems.isEmpty;
       isLoadingMore = !isLoading && !isLastPage;
     });
 
     try {
+      print(3);
       final result = await _apiService.getClusterDetailItems(
         ids: widget.itemIds,
         page: currentPage,
@@ -70,13 +74,9 @@ class _FoundItemsListState extends State<FoundItemsList> {
         sortDirection: 'desc',
       );
 
-      print('# ${result}');
-
       final List<FoundItemListModel> items = result['items'];
       final int pages = result['totalPages'];
       final bool lastPage = result['isLastPage'];
-
-      print('#123 ${result}');
 
       setState(() {
         if (currentPage == 0) {

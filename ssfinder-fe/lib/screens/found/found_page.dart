@@ -105,8 +105,6 @@ class _FoundPageState extends State<FoundPage> {
         minLat: bounds.southwest.latitude,
         minLng: bounds.southwest.longitude,
       );
-
-      print('#궁금하다 파운드 아이템 ${foundItems}');
       
       if (mounted) { // 위젯이 여전히 트리에 있는지 확인
         setState(() {
@@ -141,7 +139,6 @@ class _FoundPageState extends State<FoundPage> {
             onCameraIdle: _loadFoundItems,
             foundItems: foundItems,
             onClusterTap: (List<int> itemIds) {
-              print('클러스터 탭: $itemIds');
             },
           ),
           // 하단 드래그 시트 영역: API 데이터 로딩 여부에 따라 처리
