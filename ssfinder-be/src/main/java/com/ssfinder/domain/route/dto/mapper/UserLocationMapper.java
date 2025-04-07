@@ -9,10 +9,7 @@ import org.mapstruct.Mapping;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -49,9 +46,8 @@ public interface UserLocationMapper {
                 .collect(Collectors.toList());
     }
 
-    // 위도/경도 → Point 변환(x=lon, y=lat)
     default GeoJsonPoint toGeoJsonPoint(LocationTrace trace) {
-        if (trace == null || trace.getLatitude() == null || trace.getLongitude() == null) {
+        if (Objects.isNull(trace)|| Objects.isNull(trace.getLatitude()) || Objects.isNull(trace.getLongitude())) {
             return null;
         }
         return new GeoJsonPoint(trace.getLongitude(), trace.getLatitude());
@@ -81,8 +77,8 @@ public interface UserLocationMapper {
         GeoJsonPoint geoJson = location.getLocation();
         return new LocationTrace(
                 location.getTimestamp(),
-                geoJson.getX(), // latitude
-                geoJson.getY() // longitude
+                geoJson.getY(), // lat
+                geoJson.getX() // long
         );
     }
 
