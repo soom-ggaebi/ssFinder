@@ -53,22 +53,24 @@ public class LostItemController {
     }
 
     @GetMapping("/{lostId}")
-    public ApiResponse<LostItemResponse> getLostItem(@PathVariable @Min(1) int lostId) {
-        LostItemResponse response = lostItemService.getLostItem(lostId);
+    public ApiResponse<LostItemResponse> getLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                     @PathVariable @Min(1) int lostId) {
+        LostItemResponse response = lostItemService.getLostItem(userDetails.getUserId(), lostId);
         return ApiResponse.ok(response);
     }
 
     @PutMapping("/{lostId}")
     public ApiResponse<LostItemUpdateResponse> updateLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                               @PathVariable @Min(1) int lostId,
-                                                              @ModelAttribute @Valid LostItemUpdateRequest request) throws IOException {
+                                                              @ModelAttribute @Valid LostItemUpdateRequest request) {
         LostItemUpdateResponse response = lostItemService.updateLostItem(userDetails.getUserId(), lostId, request);
         return ApiResponse.ok(response);
     }
 
     @DeleteMapping("/{lostId}")
-    public ApiResponse<?> deleteLostItem(@PathVariable @Min(1) int lostId) {
-        lostItemService.deleteLostItem(lostId);
+    public ApiResponse<?> deleteLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                         @PathVariable @Min(1) int lostId) {
+        lostItemService.deleteLostItem(userDetails.getUserId(), lostId);
         return ApiResponse.noContent();
     }
 

@@ -100,14 +100,19 @@ public class LostItemService {
     }
 
     @Transactional(readOnly = true)
-    public LostItemResponse getLostItem(int lostId) {
+    public LostItemResponse getLostItem(int userId, int lostId) {
         LostItem lostItem = lostItemRepository.findById(lostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
+
+        if(!lostItem.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.LOST_ITEM_ACCESS_DENIED);
+        }
+
         return lostItemMapper.toResponse(lostItem);
     }
 
     @Transactional
-    public LostItemUpdateResponse updateLostItem(Integer userId, Integer lostId, LostItemUpdateRequest request) throws IOException {
+    public LostItemUpdateResponse updateLostItem(Integer userId, Integer lostId, LostItemUpdateRequest request){
         LostItem lostItem = lostItemRepository.findById(lostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
 
@@ -139,9 +144,13 @@ public class LostItemService {
     }
 
     @Transactional
-    public void deleteLostItem(int lostId) {
+    public void deleteLostItem(int userId, int lostId) {
         LostItem lostItem = lostItemRepository.findById(lostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
+
+        if (!lostItem.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.LOST_ITEM_ACCESS_DENIED);
+        }
 
         if (Objects.nonNull(lostItem.getImage())) {
             s3Service.deleteFile(lostItem.getImage());
