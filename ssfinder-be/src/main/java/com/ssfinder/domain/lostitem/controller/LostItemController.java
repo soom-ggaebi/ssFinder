@@ -6,7 +6,6 @@ import com.ssfinder.domain.lostitem.dto.request.LostItemUpdateRequest;
 import com.ssfinder.domain.lostitem.dto.response.LostItemResponse;
 import com.ssfinder.domain.lostitem.dto.response.LostItemStatusUpdateResponse;
 import com.ssfinder.domain.lostitem.dto.response.LostItemUpdateResponse;
-import com.ssfinder.domain.lostitem.entity.LostItem;
 import com.ssfinder.domain.lostitem.service.LostItemService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.global.common.response.ApiResponse;
@@ -16,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -46,29 +44,32 @@ public class LostItemController {
     }
 
     @PostMapping
-    public ApiResponse<LostItem> registerLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+    public ApiResponse<LostItemResponse> registerLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                   @ModelAttribute @Valid LostItemRegisterRequest request) {
-        LostItem lostItem = lostItemService.registerLostItem(userDetails.getUserId(), request);
-        return ApiResponse.created(lostItem);
+        LostItemResponse response = lostItemService.registerLostItem(userDetails.getUserId(), request);
+        return ApiResponse.created(response);
     }
 
     @GetMapping("/{lostId}")
-    public ApiResponse<LostItemResponse> getLostItem(@PathVariable @Min(1) int lostId) {
-        LostItemResponse response = lostItemService.getLostItem(lostId);
+    public ApiResponse<LostItemResponse> getLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                     @PathVariable @Min(1) int lostId) {
+        LostItemResponse response = lostItemService.getLostItem(userDetails.getUserId(), lostId);
         return ApiResponse.ok(response);
     }
 
     @PutMapping("/{lostId}")
     public ApiResponse<LostItemUpdateResponse> updateLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                               @PathVariable @Min(1) int lostId,
-                                                              @ModelAttribute @Valid LostItemUpdateRequest request) throws IOException {
+                                                              @ModelAttribute @Valid LostItemUpdateRequest request) {
+        System.out.println(userDetails.getUserId());
         LostItemUpdateResponse response = lostItemService.updateLostItem(userDetails.getUserId(), lostId, request);
         return ApiResponse.ok(response);
     }
 
     @DeleteMapping("/{lostId}")
-    public ApiResponse<?> deleteLostItem(@PathVariable @Min(1) int lostId) {
-        lostItemService.deleteLostItem(lostId);
+    public ApiResponse<?> deleteLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                         @PathVariable @Min(1) int lostId) {
+        lostItemService.deleteLostItem(userDetails.getUserId(), lostId);
         return ApiResponse.noContent();
     }
 

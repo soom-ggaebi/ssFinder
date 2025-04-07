@@ -31,14 +31,14 @@ public interface LostItemMapper {
     LostItem toEntity(LostItemRegisterRequest request);
 
     @Mapping(source = "user.id", target = "userId")
-    @Mapping(source = "itemCategory.id", target = "itemCategoryId")
     @Mapping(target = "latitude", expression = "java(lostItem.getCoordinates() != null ? lostItem.getCoordinates().getY() : null)")
     @Mapping(target = "longitude", expression = "java(lostItem.getCoordinates() != null ? lostItem.getCoordinates().getX() : null)")
+    @Mapping(target = "majorItemCategory", expression = "java(mapCategoryMajor(lostItem))")
+    @Mapping(target = "minorItemCategory", expression = "java(mapCategoryMinor(lostItem))")
     LostItemResponse toResponse(LostItem lostItem);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user", ignore = true)
-    @Mapping(target = "itemCategory", expression = "java(createItemCategory(request.getItemCategoryId()))")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "image", ignore = true)
@@ -58,5 +58,23 @@ public interface LostItemMapper {
         ItemCategory itemCategory = new ItemCategory();
         itemCategory.setId(id);
         return itemCategory;
+    }
+
+    default String mapCategoryMajor(LostItem lostItem) {
+        if (lostItem.getItemCategory() == null) {
+            return null;
+        }
+        return lostItem.getItemCategory().getItemCategory() != null
+                ? lostItem.getItemCategory().getItemCategory().getName()
+                : lostItem.getItemCategory().getName();
+    }
+
+    default String mapCategoryMinor(LostItem lostItem) {
+        if (lostItem.getItemCategory() == null) {
+            return null;
+        }
+        return lostItem.getItemCategory().getItemCategory() != null
+                ? lostItem.getItemCategory().getName()
+                : null;
     }
 }

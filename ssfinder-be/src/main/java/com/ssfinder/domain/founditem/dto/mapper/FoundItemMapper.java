@@ -44,7 +44,7 @@ public interface FoundItemMapper {
     @Mapping(target = "image", ignore = true)
     @Mapping(target = "coordinates", ignore = true)
     @Mapping(target = "managementId", ignore = true)
-    @Mapping(target = "storedAt", expression = "java(\"처리중\")")
+    @Mapping(target = "storedAt", expression = "java(null)")
     FoundItem requestToEntity(FoundItemRegisterRequest request, User user, ItemCategory itemCategory);
 
     @Mapping(target = "id", ignore = true)
