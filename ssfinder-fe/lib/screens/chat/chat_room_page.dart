@@ -12,16 +12,17 @@ import 'package:sumsumfinder/widgets/chat/chat_message_bubble.dart';
 import 'package:sumsumfinder/utils/time_formatter.dart';
 import 'package:sumsumfinder/widgets/chat/option_popups/add.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sumsumfinder/services/kakao_login_service.dart';
+import 'dart:math' show min;
 
 class ChatPage extends StatefulWidget {
-  final String jwt;
   final int roomId;
   final String otherUserName;
   final String myName;
 
   const ChatPage({
     Key? key,
-    required this.jwt,
     required this.roomId,
     required this.otherUserName,
     required this.myName,
@@ -36,6 +37,8 @@ typedef UnsubscribeFn =
     void Function({Map<String, String>? unsubscribeHeaders});
 
 class _ChatPageState extends State<ChatPage> {
+  final KakaoLoginService _loginService = KakaoLoginService();
+  String? _currentToken;
   // 구독 함수를 저장할 변수
   UnsubscribeFn? chatRoomUnsubscribeFn;
   UnsubscribeFn? errorUnsubscribeFn;
@@ -61,7 +64,21 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-    initStompClient();
+    _fetchLatestToken(); // 토큰을 먼저 가져오고 나서 STOMP 클라이언트 초기화
+  }
+
+  Future<void> _fetchLatestToken() async {
+    final token = await _loginService.getAccessToken();
+    setState(() {
+      _currentToken = token;
+    });
+
+    // 토큰이 있으면 STOMP 클라이언트 초기화
+    if (_currentToken != null) {
+      initStompClient();
+    } else {
+      // 토큰이 없으면 로그인 화면으로 이동하는 로직
+    }
   }
 
   @override
@@ -146,7 +163,8 @@ class _ChatPageState extends State<ChatPage> {
           'accept-version': '1.0,1.1,1.2',
           'heart-beat': '5000,5000',
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.jwt}',
+          'Authorization':
+              'Bearer $_currentToken', // widget.jwt 대신 _currentToken 사용
           'chat_room_id': '${widget.roomId}',
         },
       ),
@@ -222,7 +240,8 @@ class _ChatPageState extends State<ChatPage> {
         },
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.jwt}',
+          'Authorization':
+              'Bearer $_currentToken', // widget.jwt 대신 _currentToken 사용
           'chat_room_id': '${widget.roomId}',
         },
       );
@@ -308,8 +327,11 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  void reconnect() {
+  Future<void> reconnect() async {
     addLog('재연결 시도');
+
+    // 최신 토큰 가져오기
+    await _fetchLatestToken();
 
     try {
       // 현재 클라이언트가 활성화된 경우 비활성화
@@ -400,7 +422,8 @@ class _ChatPageState extends State<ChatPage> {
         body: messageJson,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.jwt}',
+          'Authorization':
+              'Bearer $_currentToken', // widget.jwt 대신 _currentToken 사용
           'chat_room_id': '${widget.roomId}',
         },
       );

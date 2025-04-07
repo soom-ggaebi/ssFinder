@@ -5,6 +5,7 @@ import 'package:sumsumfinder/screens/chat/chat_room_page.dart'; // 수정된 Cha
 import 'package:sumsumfinder/config/environment_config.dart'; // 환경 설정 임포트
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sumsumfinder/services/kakao_login_service.dart'; // KakaoLoginService 임포트 추가
 
 class ChatRoom {
   final int id;
@@ -36,15 +37,15 @@ class ChatRoom {
 }
 
 class ChatListPage extends StatefulWidget {
-  final String jwt;
-
-  const ChatListPage({Key? key, required this.jwt}) : super(key: key);
+  // jwt 파라미터 제거
+  const ChatListPage({Key? key}) : super(key: key);
 
   @override
   _ChatListPageState createState() => _ChatListPageState();
 }
 
 class _ChatListPageState extends State<ChatListPage> {
+  final KakaoLoginService _loginService = KakaoLoginService(); // 서비스 인스턴스 추가
   List<ChatRoom> _chatRooms = [];
   bool _isLoading = true;
   String? _error;
@@ -80,10 +81,21 @@ class _ChatListPageState extends State<ChatListPage> {
     });
 
     try {
+      // 토큰 가져오기
+      final token = await _loginService.getAccessToken();
+
+      if (token == null) {
+        setState(() {
+          _error = '로그인이 필요합니다';
+          _isLoading = false;
+        });
+        return;
+      }
+
       final response = await http.get(
         Uri.parse('${EnvironmentConfig.baseUrl}/api/chat-rooms'),
         headers: {
-          'Authorization': 'Bearer ${widget.jwt}',
+          'Authorization': 'Bearer $token', // widget.jwt 대신 토큰 사용
           'Content-Type': 'application/json',
         },
       );
@@ -274,7 +286,6 @@ class _ChatListPageState extends State<ChatListPage> {
       MaterialPageRoute(
         builder:
             (context) => ChatPage(
-              jwt: widget.jwt,
               roomId: room.id,
               otherUserName: room.otherUserName,
               myName: _myUserName,

@@ -9,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sumsumfinder/config/environment_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:math' show min; // 파일 상단에 추가
 
 class KakaoLoginService {
   // 싱글톤 패턴 구현
@@ -361,9 +362,10 @@ class KakaoLoginService {
           responseData['data']['expires_in'],
         );
 
-        // 추가 디버그: 저장 직후 토큰 확인
-        final storedToken = await _storage.read(key: 'access_token');
-        print('저장 후 access_token: $storedToken');
+        // 추가 디버그: 저장 직후 토큰 확인 - 여기서 문제가 있음
+        final accountId = user!.id.toString();
+        final storedToken = await _storage.read(key: 'access_token_$accountId');
+        print('저장 후 access_token_$accountId: $storedToken');
 
         // 사용자 닉네임 SharedPreferences에 저장
         final prefs = await SharedPreferences.getInstance();
@@ -441,6 +443,35 @@ class KakaoLoginService {
     }
   }
 
+  Future<void> debugTokenStorage() async {
+    final currentAccountId = await _storage.read(key: 'current_account_id');
+    print('==== 토큰 저장소 디버깅 ====');
+    print('현재 계정 ID: $currentAccountId');
+
+    // 모든 저장된 키 출력
+    final allKeys = await _storage.readAll();
+    for (var entry in allKeys.entries) {
+      // 토큰 값은 일부만 표시
+      final value =
+          entry.key.contains('token') && entry.value.isNotEmpty
+              ? '${entry.value.substring(0, min(15, entry.value.length))}...'
+              : entry.value;
+      print('${entry.key}: $value');
+    }
+
+    // 현재 사용 중인 토큰 확인
+    final activeToken = await getAccessToken();
+    if (activeToken != null) {
+      print(
+        '현재 활성 토큰: ${activeToken.substring(0, min(15, activeToken.length))}...',
+      );
+    } else {
+      print('현재 활성 토큰: null');
+    }
+
+    print('=============================');
+  }
+
   // 통합 로그인 프로세스
   Future<bool> loginWithBackendAuth() async {
     try {
@@ -467,6 +498,8 @@ class KakaoLoginService {
         print('로그인 후에도 JWT 토큰이 null입니다. 토큰 저장 로직을 확인하세요.');
         return false;
       }
+      // 로그인 성공 후 디버깅
+      await debugTokenStorage();
 
       print('로그인 및 백엔드 인증 완료: ${authResult['result_type']}');
       return true;
@@ -574,6 +607,8 @@ class KakaoLoginService {
             responseData['data']['refresh_token'],
             responseData['data']['expires_in'] ?? 3600000,
           );
+          // 토큰 갱신 후 디버깅
+          await debugTokenStorage();
           return true;
         }
       }
@@ -597,35 +632,42 @@ class KakaoLoginService {
     try {
       print('인증 초기화 시작...');
 
-      // 저장된 토큰 확인
-      final accessToken = await _storage.read(key: 'access_token');
+      // 현재 계정 ID 확인
+      final accountId = await _storage.read(key: 'current_account_id');
+      if (accountId == null) {
+        print('저장된 계정 ID가 없습니다. 로그인이 필요합니다.');
+        return;
+      }
 
-      if (accessToken != null) {
-        print('저장된 액세스 토큰이 있습니다. 자동 로그인 시도...');
+      // 계정별 토큰 확인
+      final accessToken = await _storage.read(key: 'access_token_$accountId');
+      if (accessToken == null) {
+        print('저장된 액세스 토큰이 없습니다. 로그인이 필요합니다.');
+        return;
+      }
 
-        // 토큰 만료 시간 확인
-        final expiryStr = await _storage.read(key: 'token_expiry');
-        if (expiryStr != null) {
-          final expiry = int.parse(expiryStr);
-          final now = DateTime.now().millisecondsSinceEpoch;
+      print('저장된 액세스 토큰이 있습니다. 자동 로그인 시도...');
 
-          // 토큰이 만료되었거나 곧 만료될 예정인 경우
-          if (expiry - now < 300000) {
-            print('토큰이 만료되었거나 곧 만료됩니다. 갱신 시도...');
-            await refreshAccessToken();
-          }
+      // 토큰 만료 시간 확인
+      final expiryStr = await _storage.read(key: 'token_expiry_$accountId');
+      if (expiryStr != null) {
+        final expiry = int.parse(expiryStr);
+        final now = DateTime.now().millisecondsSinceEpoch;
+
+        // 토큰이 만료되었거나 곧 만료될 예정인 경우
+        if (expiry - now < 300000) {
+          print('토큰이 만료되었거나 곧 만료됩니다. 갱신 시도...');
+          await refreshAccessToken();
         }
+      }
 
-        // 백엔드 API로 사용자 정보 조회 시도
-        final userProfile = await getUserProfile();
-        if (userProfile != null) {
-          print('사용자 정보 조회 성공. 자동 로그인 완료!');
-          isLoggedIn.value = true;
-        } else {
-          print('사용자 정보 조회 실패. 자동 로그인 불가');
-        }
+      // 백엔드 API로 사용자 정보 조회 시도
+      final userProfile = await getUserProfile();
+      if (userProfile != null) {
+        print('사용자 정보 조회 성공. 자동 로그인 완료!');
+        isLoggedIn.value = true;
       } else {
-        print('저장된 토큰이 없습니다. 로그인이 필요합니다.');
+        print('사용자 정보 조회 실패. 자동 로그인 불가');
       }
 
       // 주기적 토큰 갱신 설정
@@ -634,6 +676,18 @@ class KakaoLoginService {
       print('인증 초기화 완료');
     } catch (e) {
       print('인증 초기화 중 오류 발생: $e');
+    }
+  }
+
+  // 추가: 이전 토큰 형식 삭제
+  Future<void> cleanupOldTokenFormat() async {
+    try {
+      await _storage.delete(key: 'access_token');
+      await _storage.delete(key: 'refresh_token');
+      await _storage.delete(key: 'token_expiry');
+      print('이전 토큰 형식 삭제 완료');
+    } catch (e) {
+      print('이전 토큰 형식 삭제 중 오류: $e');
     }
   }
 
