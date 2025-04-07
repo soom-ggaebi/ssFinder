@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record ActiveChatRoomListResponse (
         Integer chatRoomId,
-        String nickname,
+        String opponentNickname,
         String latestMessage,
         LocalDateTime latestSentAt,
         ChatRoomFoundItem chatRoomFoundItem

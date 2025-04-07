@@ -142,7 +142,7 @@ public class ChatRoomService {
                     ActiveChatRoomListResponse.builder()
                     .chatRoomFoundItem(chatRoomFoundItem)
                     .chatRoomId(chatRoom.getId())
-                    .nickname(opponent.getNickname())
+                    .opponentNickname(opponent.getNickname())
                     .latestMessage(chatRoom.getLatestMessage())
                     .latestSentAt(chatRoom.getLatestSentAt())
                     .build()
