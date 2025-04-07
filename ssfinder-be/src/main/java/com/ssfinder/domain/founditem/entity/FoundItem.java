@@ -73,7 +73,7 @@ public class FoundItem {
     @Column(name = "management_id", length = 30)
     private String managementId;
 
-    @Column(name = "stored_at", nullable = false, length = 100)
+    @Column(name = "stored_at", length = 100)
     private String storedAt;
 
     @JdbcTypeCode(SqlTypes.GEOMETRY)
