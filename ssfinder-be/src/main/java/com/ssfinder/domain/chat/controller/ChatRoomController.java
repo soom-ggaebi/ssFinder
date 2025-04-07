@@ -61,7 +61,7 @@ public class ChatRoomController {
         return ApiResponse.noContent();
     }
 
-    @PatchMapping("/{chatRoomId}/notifications")
+    @PatchMapping("/{chatRoomId}/notification")
     public ApiResponse<Void> updateChatRoomNotificationsEnabled(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                                 @PathVariable Integer chatRoomId,
                                                                 @Valid @RequestBody ChatRoomNotificationEnabledRequest request) {
