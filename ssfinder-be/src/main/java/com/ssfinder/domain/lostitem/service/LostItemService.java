@@ -95,6 +95,7 @@ public class LostItemService {
         LocalDateTime now = LocalDateTime.now();
         lostItem.setCreatedAt(now);
         lostItem.setUpdatedAt(now);
+        lostItem.setNotificationEnabled(true);
 
         LostItem savedLostItem = lostItemRepository.save(lostItem);
         return lostItemMapper.toResponse(savedLostItem);

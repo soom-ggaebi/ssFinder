@@ -54,4 +54,6 @@ public class LostItemResponse {
     private Double latitude;
 
     private Double longitude;
+
+    private Boolean notificationEnabled;
 }
