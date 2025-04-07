@@ -1,10 +1,14 @@
 package com.ssfinder.domain.notification.service;
 
+import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
+import com.ssfinder.domain.chat.entity.MessageType;
+import com.ssfinder.domain.chat.service.ChatService;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemService;
 import com.ssfinder.domain.notification.entity.NotificationType;
 import com.ssfinder.domain.notification.entity.WeatherCondition;
 import com.ssfinder.domain.notification.event.NotificationHistoryEvent;
+import com.ssfinder.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -27,6 +31,7 @@ import java.util.Map;
  * -----------------------------------------------------------<br>
  * 2025-03-25          okeio          최초생성<br>
  * 2025-04-02          okeio          알림 이력 관리를 위한 EventPublisher 추가<br>
+ * 2025-04-06          okeio          메세지 타입에 따른 채팅 알림 메세지 변경<br>
  * <br>
  */
 @Slf4j
@@ -38,9 +43,12 @@ public class NotificationService {
     private final FcmMessageService fcmMessageService;
     private final FoundItemService foundItemService;
     private final UserNotificationSettingService userNotificationSettingService;
+    private final ChatService chatService;
     private final ApplicationEventPublisher eventPublisher;
 
     private final static String NOTIFICATION_TITLE = "숨숨파인더";
+    private final static String CHAT_PLACEHOLDER_IMAGE_MESSAGE = "사진을 보냈습니다.";
+    private final static String CHAT_PLACEHOLDER_LOCATION_MESSAGE = "위치를 공유했습니다.";
 
     // 1. 습득물 게시글 최초 등록일로부터 6일차, 7일차 알림
     @Scheduled(cron = "0 0 10 * * *")
@@ -95,25 +103,34 @@ public class NotificationService {
     }
 
     // 2. 채팅 알림
-    // TODO 채팅 로직에서 채팅 DB 저장 시 트리거
-    public void sendChatNotification(Integer userId, String senderName, String message) {
+    public void sendChatNotification(KafkaChatMessage kafkaChatMessage) {
+        User opponentUser = chatService.getOpponentUser(kafkaChatMessage.chatRoomId(), kafkaChatMessage.senderId());
+        int userId = opponentUser.getId();
+
         // 알림 설정 확인
         if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.CHAT))
             return;
 
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
-        if (!tokens.isEmpty()) {
-            Map<String, String> data = new HashMap<>();
-            data.put("type", NotificationType.CHAT.name());
-            data.put("senderName", senderName);
 
-            fcmMessageService.sendNotificationToDevices(
-                    tokens,
-                    senderName + "님의 메시지",
-                    message,
-                    data
-            );
+        // 메시지 타입 분류
+        MessageType messageType = kafkaChatMessage.type();
+        String content = kafkaChatMessage.content();
+
+        if (messageType.equals(MessageType.IMAGE)) {
+            content = CHAT_PLACEHOLDER_IMAGE_MESSAGE;
+
         }
+        else if (messageType.equals(MessageType.LOCATION)) {
+            content = CHAT_PLACEHOLDER_LOCATION_MESSAGE;
+        }
+
+        fcmMessageService.sendNotificationToDevices(
+                tokens,
+                kafkaChatMessage.nickname() + "님의 메시지",
+                content,
+                kafkaChatMessage.toChatNotificationMap()
+        );
     }
 
     // 3. 물건 매칭 알림
