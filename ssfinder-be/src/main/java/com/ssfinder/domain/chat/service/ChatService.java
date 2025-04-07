@@ -5,6 +5,7 @@ import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
 import com.ssfinder.domain.chat.dto.kafka.KafkaChatReadMessage;
 import com.ssfinder.domain.chat.dto.mapper.ChatMessageMapper;
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
+import com.ssfinder.domain.chat.dto.response.ChatMessageGetResponse;
 import com.ssfinder.domain.chat.entity.*;
 import com.ssfinder.domain.chat.kafka.producer.ChatMessageProducer;
 import com.ssfinder.domain.chat.kafka.producer.ChatMessageReadProducer;
@@ -12,15 +13,20 @@ import com.ssfinder.domain.chat.repository.ChatMessageRepository;
 import com.ssfinder.domain.chat.repository.ChatRoomParticipantRepository;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
+import com.ssfinder.global.common.pagination.CursorScrollResponse;
 import com.ssfinder.global.common.service.S3Service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -133,6 +139,29 @@ public class ChatService {
                 .build();
 
         chatMessageReadProducer.publish(KAFKA_CHAT_READ_TOPIC, readMessage);
+    }
+
+    public ChatMessageGetResponse getMessages(Integer userId, Integer chatRoomId, int size, @Nullable String lastMessageId) {
+        chatRoomService.getChatRoomParticipant(chatRoomId, userId);
+
+        Query query = new Query(
+                Criteria.where("chat_room_id").is(chatRoomId)
+        );
+
+        if(lastMessageId != null) {
+            query.addCriteria(Criteria.where("_id").lt(lastMessageId));
+        }
+
+        query.with(Sort.by(Sort.Direction.DESC, "_id"))
+                .limit(size + 1);
+
+        List<ChatMessage> messages = mongoTemplate.find(query, ChatMessage.class);
+
+        CursorScrollResponse<ChatMessage> messageCursor = CursorScrollResponse.of(messages, size);
+
+        long count = mongoTemplate.count(new Query(Criteria.where("chat_room_id").is(chatRoomId)), ChatMessage.class);
+
+        return ChatMessageGetResponse.of(messageCursor, count);
     }
 
     private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {
