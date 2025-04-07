@@ -52,7 +52,6 @@ public class FoundItemUpdateRequest {
     private String detail;
 
     @Size(max = 100)
-    @NotBlank
     private String storedAt;
 
     @DecimalMin(value = "-90.0", inclusive = true)

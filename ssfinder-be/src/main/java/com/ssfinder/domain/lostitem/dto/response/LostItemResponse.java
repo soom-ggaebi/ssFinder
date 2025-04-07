@@ -29,7 +29,9 @@ public class LostItemResponse {
 
     private Integer userId;
 
-    private int itemCategoryId;
+    private String majorItemCategory;
+
+    private String minorItemCategory;
 
     private String title;
 

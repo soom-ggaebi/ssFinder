@@ -26,7 +26,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -68,7 +67,7 @@ public class LostItemService {
     }
 
     @Transactional
-    public LostItem registerLostItem(int userId, LostItemRegisterRequest request) {
+    public LostItemResponse registerLostItem(int userId, LostItemRegisterRequest request) {
         LostItem lostItem = lostItemMapper.toEntity(request);
 
         User user = userService.findUserById(userId);
@@ -96,23 +95,35 @@ public class LostItemService {
         lostItem.setCreatedAt(now);
         lostItem.setUpdatedAt(now);
 
-        return lostItemRepository.save(lostItem);
+        LostItem savedLostItem = lostItemRepository.save(lostItem);
+        return lostItemMapper.toResponse(savedLostItem);
     }
 
     @Transactional(readOnly = true)
-    public LostItemResponse getLostItem(int lostId) {
-        LostItem lostItem = lostItemRepository.findById(lostId)
-                .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
-        return lostItemMapper.toResponse(lostItem);
-    }
-
-    @Transactional
-    public LostItemUpdateResponse updateLostItem(Integer userId, Integer lostId, LostItemUpdateRequest request) throws IOException {
+    public LostItemResponse getLostItem(int userId, int lostId) {
         LostItem lostItem = lostItemRepository.findById(lostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
 
         if(!lostItem.getUser().getId().equals(userId)) {
             throw new CustomException(ErrorCode.LOST_ITEM_ACCESS_DENIED);
+        }
+
+        return lostItemMapper.toResponse(lostItem);
+    }
+
+    @Transactional
+    public LostItemUpdateResponse updateLostItem(Integer userId, Integer lostId, LostItemUpdateRequest request){
+        LostItem lostItem = lostItemRepository.findById(lostId)
+                .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
+
+        if(!lostItem.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.LOST_ITEM_ACCESS_DENIED);
+        }
+
+        if (request.getItemCategoryId() != null) {
+            ItemCategory category = itemCategoryRepository.findById(request.getItemCategoryId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
+            lostItem.setItemCategory(category);
         }
 
         lostItemMapper.updateLostItemFromRequest(request, lostItem);
@@ -139,9 +150,13 @@ public class LostItemService {
     }
 
     @Transactional
-    public void deleteLostItem(int lostId) {
+    public void deleteLostItem(int userId, int lostId) {
         LostItem lostItem = lostItemRepository.findById(lostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
+
+        if (!lostItem.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.LOST_ITEM_ACCESS_DENIED);
+        }
 
         if (Objects.nonNull(lostItem.getImage())) {
             s3Service.deleteFile(lostItem.getImage());

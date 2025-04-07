@@ -59,7 +59,7 @@ public class FoundItemDocumentDetailResponse {
 
     private Double longitude;
 
-    private Boolean type;
+    private String type;
 
     private Boolean hasBookmark;
 

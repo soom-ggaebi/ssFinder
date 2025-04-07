@@ -26,26 +26,20 @@ import java.time.LocalDate;
 @Setter
 public class LostItemUpdateRequest {
 
-    @NotNull
     private Integer itemCategoryId;
 
-    @NotBlank
     @Size(max = 100)
     private String title;
 
-    @NotBlank
     @Size(max = 20)
     private String color;
 
-    @NotNull
     private LocalDate lostAt;
 
-    @NotBlank
     @Size(max = 100)
     private String location;
 
     @Size(max = 5000)
-    @NotBlank
     private String detail;
 
     private MultipartFile image;
