@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/models/found_item_model.dart';
+import 'package:sumsumfinder/models/found_items_model.dart';
 import 'package:sumsumfinder/widgets/found/found_item_card.dart';
 import 'package:sumsumfinder/screens/found/found_item_detail_police.dart';
 import 'package:sumsumfinder/screens/found/found_item_detail_sumsumfinder.dart';
 
 class Recommended extends StatelessWidget {
-  final List<FoundItemModel> recommendations;
+  final List<FoundItemListModel> recommendations;
 
   const Recommended({Key? key, required this.recommendations})
     : super(key: key);
@@ -30,9 +30,9 @@ class Recommended extends StatelessWidget {
                   MaterialPageRoute(
                     builder:
                         (_) =>
-                            foundItem.source == '경찰청'
-                                ? FoundItemDetailPolice(item: foundItem)
-                                : FoundItemDetailSumsumfinder(item: foundItem),
+                            foundItem.type == '경찰청'
+                                ? FoundItemDetailPolice(id: foundItem.id)
+                                : FoundItemDetailSumsumfinder(id: foundItem.id),
                   ),
                 );
               },

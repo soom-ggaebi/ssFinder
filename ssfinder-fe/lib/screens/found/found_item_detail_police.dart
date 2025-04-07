@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/models/found_item_model.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:sumsumfinder/models/found_items_model.dart';
 import '../../services/found_items_api_service.dart';
+import '../../widgets/map_widget.dart';
+import '../../widgets/found/items_popup.dart';
 
 class FoundItemDetailPolice extends StatelessWidget {
   final int id;
@@ -29,6 +32,7 @@ class FoundItemDetailPolice extends StatelessWidget {
         return mapping['color'] as Color;
       }
     }
+
     return Colors.blue[100]!;
   }
 
@@ -38,6 +42,15 @@ class FoundItemDetailPolice extends StatelessWidget {
       return parts.sublist(2, 4).join(" ");
     }
     return location;
+  }
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      throw 'Could not launch $phoneNumber';
+    }
   }
 
   @override
@@ -65,6 +78,22 @@ class FoundItemDetailPolice extends StatelessWidget {
               '습득 상세 정보',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.more_horiz, color: Color(0xFF3D3D3D)),
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    builder: (context) => MainOptionsPopup(),
+                  );
+                },
+              ),
+            ],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -78,19 +107,25 @@ class FoundItemDetailPolice extends StatelessWidget {
                       height: 200,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
                         color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(16),
                         image:
                             item.image != null
                                 ? DecorationImage(
-                                  image: FileImage(item.image!),
+                                  image: NetworkImage(
+                                    item.image!,
+                                  ), // 이미지가 있을 경우 표시
                                   fit: BoxFit.cover,
                                 )
                                 : null,
                       ),
                       child:
                           item.image == null
-                              ? const Center(child: Text('이미지 없음'))
+                              ? const Icon(
+                                Icons.image, // 이미지가 없을 경우 아이콘 표시
+                                size: 50,
+                                color: Colors.white,
+                              )
                               : null,
                     ),
                     Positioned(
@@ -138,8 +173,8 @@ class FoundItemDetailPolice extends StatelessWidget {
 
                 // 카테고리
                 Text(
-                  item.minorCategory,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  "${item.majorCategory} > ${item.minorCategory}",
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 8),
 
@@ -148,18 +183,48 @@ class FoundItemDetailPolice extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                      child: Text(
-                        item.name,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                extractLocation(item.storedAt!),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const Text(
+                                ' · ',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                item.createdAt.substring(0, 10),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        // 전화 걸기 기능 추가 필요
+                        _makePhoneCall(item.phone!); // 전화 걸기 함수 호출
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blueGrey,
@@ -281,24 +346,36 @@ class FoundItemDetailPolice extends StatelessWidget {
                             item.storedAt!,
                             style: const TextStyle(fontSize: 14),
                           ),
-                          const Icon(
-                            Icons.chevron_right,
-                            size: 18,
-                            color: Colors.grey,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => MapWidget(
+                                        latitude: item.latitude,
+                                        longitude: item.longitude,
+                                      ),
+                                ),
+                              );
+                            },
+                            child: const Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
                 const SizedBox(height: 8),
-
-                // 지도 영역 (추후 GoogleMap 등으로 교체 가능)
                 Container(
                   height: 200,
                   width: double.infinity,
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Text('보관 장소 지도 영역', style: TextStyle(fontSize: 14)),
+                  child: MapWidget(
+                    latitude: item.latitude,
+                    longitude: item.longitude,
                   ),
                 ),
               ],

@@ -1,9 +1,9 @@
-import 'dart:io';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class FoundItemModel {
   final int id; // 물품의 고유 식별자
   final int? userId; // 물품을 등록한 사용자의 ID (null 가능)
-  final File? image; // 물품 이미지 (null 가능)
+  final String? image; // 물품 이미지 (null 가능)
   final String type; // 분실물 종류 (예: "경찰청")
   final String color; // 물품의 색상
   final String majorCategory; // 주요 카테고리
@@ -42,18 +42,19 @@ class FoundItemModel {
   });
 
   factory FoundItemModel.fromJson(Map<String, dynamic> json) {
-    final item = json['item'];
+    final item = json['data'];
+
+    int id = int.parse(item['id']);
+    int? userId = item['user_id'] != null ? int.parse(item['user_id']) : null;
+
     return FoundItemModel(
-      id: item['id'] as int,
-      userId: item['user_id'] as int?, // null 가능
-      image:
-          item['image'] != null
-              ? File(item['image'] as String)
-              : null, // null 가능
+      id: id,
+      userId: userId, // null 가능
+      image: item['image'] as String?, // null 가능
       type: item['type'] as String,
       color: item['color'] as String,
-      majorCategory: item['MajorCategory'] as String,
-      minorCategory: item['MinorCategory'] as String,
+      majorCategory: item['major_category'] as String,
+      minorCategory: item['minor_category'] as String,
       name: item['name'] as String,
       location: item['location'] as String,
       createdAt: item['created_at'] as String,
@@ -71,7 +72,7 @@ class FoundItemModel {
 
 class FoundItemListModel {
   final int id; // 아이템의 고유 ID
-  final File? image; // 이미지 파일 (null 가능)
+  final String? image; // 이미지 파일 (null 가능)
   final String majorCategory; // 주요 카테고리 (문자열)
   final String minorCategory; // 세부 카테고리 (문자열)
   final String name; // 아이템 이름
@@ -95,16 +96,20 @@ class FoundItemListModel {
   factory FoundItemListModel.fromJson(Map<String, dynamic> json) {
     return FoundItemListModel(
       id: json['id'] as int,
-      image: json['image'] != null ? File(json['image'] as String) : null,
-      majorCategory: json['MajorCategory'] as String,
-      minorCategory: json['MinorCategory'] as String,
+      image: json['image'] as String?,
+      majorCategory: json['major_category'] as String,
+      minorCategory: json['minor_category'] as String,
       name: json['name'] as String,
       type: json['type'] as String,
-      storageLocation: json['storageLocation'] as String?,
-      foundLocation: json['foundLocation'] as String,
-      createdTime: json['createdTime'] as String,
+      storageLocation: json['stored_at'] as String?,
+      foundLocation: json['location'] as String,
+      createdTime: json['created_at'] as String,
     );
   }
+}
+
+mixin ClusterItem {
+  LatLng get location;
 }
 
 class FoundItemCoordinatesModel {
@@ -117,6 +122,8 @@ class FoundItemCoordinatesModel {
     required this.latitude,
     required this.longitude,
   });
+
+  LatLng get location => LatLng(latitude, longitude);
 
   factory FoundItemCoordinatesModel.fromJson(Map<String, dynamic> json) {
     return FoundItemCoordinatesModel(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/models/found_item_model.dart';
+import 'package:sumsumfinder/models/found_items_model.dart';
 import '../../services/found_items_api_service.dart';
+import '../../widgets/map_widget.dart';
+import '../../widgets/found/items_popup.dart';
 
 class FoundItemDetailSumsumfinder extends StatelessWidget {
   final int id;
@@ -41,6 +43,14 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
     return location;
   }
 
+  String extractLocation2(String location) {
+    List<String> parts = location.split(" ");
+    if (parts.length >= 4) {
+      return parts.sublist(1, 4).join(" ");
+    }
+    return location;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
@@ -58,6 +68,8 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
           return const Scaffold(body: Center(child: Text('데이터가 없습니다')));
         }
 
+        print('snap: ${snapshot.data!}');
+
         final item = FoundItemModel.fromJson(snapshot.data!);
 
         return Scaffold(
@@ -66,6 +78,22 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
               '습득 상세 정보',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.more_horiz, color: Color(0xFF3D3D3D)),
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    builder: (context) => MainOptionsPopup(),
+                  );
+                },
+              ),
+            ],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -84,14 +112,20 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                         image:
                             item.image != null
                                 ? DecorationImage(
-                                  image: FileImage(item.image!),
+                                  image: NetworkImage(
+                                    item.image!,
+                                  ), // 이미지가 있을 경우 표시
                                   fit: BoxFit.cover,
                                 )
                                 : null,
                       ),
                       child:
                           item.image == null
-                              ? const Center(child: Text('이미지 없음'))
+                              ? const Icon(
+                                Icons.image, // 이미지가 없을 경우 아이콘 표시
+                                size: 50,
+                                color: Colors.white,
+                              )
                               : null,
                     ),
                     Positioned(
@@ -137,13 +171,13 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                 const SizedBox(height: 8),
                 // 카테고리
                 Text(
-                  item.minorCategory,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  "${item.majorCategory} > ${item.minorCategory}",
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 8),
                 // 이름 및 위치, 시간
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Column(
@@ -174,7 +208,7 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                item.createdAt,
+                                item.createdAt.substring(0, 10),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
@@ -230,27 +264,61 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 // 습득 장소
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[100],
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: const Text(
-                    '습득 장소',
-                    style: TextStyle(fontSize: 14, color: Colors.blue),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue[100],
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          '습득 장소',
+                          style: TextStyle(fontSize: 14, color: Colors.blue),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          extractLocation2(item.location),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => MapWidget(
+                                      latitude: item.latitude,
+                                      longitude: item.longitude,
+                                    ),
+                              ),
+                            );
+                          },
+                          child: const Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Container(
                   height: 200,
                   width: double.infinity,
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Text('습득 장소 지도 영역', style: TextStyle(fontSize: 14)),
+                  child: MapWidget(
+                    latitude: item.latitude,
+                    longitude: item.longitude,
                   ),
                 ),
               ],

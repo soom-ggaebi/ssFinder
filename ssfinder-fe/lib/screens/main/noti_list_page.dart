@@ -1,8 +1,13 @@
+// pages/notification_page.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 import 'package:sumsumfinder/services/kakao_login_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sumsumfinder/services/notification_api_service.dart';
+import 'package:sumsumfinder/models/noti_model.dart';
+import 'package:sumsumfinder/utils/noti_state.dart';
+import 'package:sumsumfinder/widgets/main/noti_item_widget.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({Key? key}) : super(key: key);
@@ -11,84 +16,423 @@ class NotificationPage extends StatefulWidget {
   State<NotificationPage> createState() => _NotificationPageState();
 }
 
-class _NotificationPageState extends State<NotificationPage> {
-  // 카카오 로그인 서비스 인스턴스
+class _NotificationPageState extends State<NotificationPage>
+    with SingleTickerProviderStateMixin {
+  // 탭 컨트롤러 및 탭 목록
+  late TabController _tabController;
+  final List<String> _tabLabels = ['전체', '인계', '채팅', 'AI 매칭', '소지품'];
+  final List<NotificationType> _tabTypes = [
+    NotificationType.ALL,
+    NotificationType.TRANSFER,
+    NotificationType.CHAT,
+    NotificationType.AI_MATCH,
+    NotificationType.ITEM_REMINDER,
+  ];
+
+  // 카카오 로그인 서비스
   final _kakaoLoginService = KakaoLoginService();
 
-  // 알림 설정 상태를 저장하는 변수들
-  bool notificationTransfer = true;
-  bool notificationChat = true;
-  bool notificationAiMatch = true;
-  bool notificationItemReminder = true;
+  // 알림 설정 상태
+  final Map<NotificationType, bool> _notificationSettings = {
+    NotificationType.TRANSFER: true,
+    NotificationType.CHAT: true,
+    NotificationType.AI_MATCH: true,
+    NotificationType.ITEM_REMINDER: true,
+  };
 
-  // 샘플 알림 데이터
-  final List<NotificationItem> notifications = [
-    NotificationItem(
-      title: '휴대폰 > 아이폰',
-      subtitle: '아이폰 16 틸',
-      message: '인계 가능한 날이 하루 남았습니다!',
-      dateTime: '제9조 (습득자의 권리 상실)에 의거함',
-      imagePath: 'assets/images/chat/iphone_image.png',
-      isHighlighted: true,
-    ),
-    NotificationItem(
-      title: '휴대폰 > 아이폰',
-      subtitle: '아이폰 16 틸',
-      message: '오늘까지 인계 가능합니다!',
-      dateTime: '제9조 (습득자의 권리 상실)에 의거함',
-      imagePath: 'assets/images/chat/iphone_image.png',
-      isHighlighted: true,
-    ),
-  ];
+  // 알림 상태 관리
+  late NotificationState _state;
 
   @override
   void initState() {
     super.initState();
-    // 로그인 상태 확인 및 비로그인 시 자동 뒤로가기
+    _state = NotificationState.initial();
+
+    // 탭 컨트롤러 초기화
+    _tabController = TabController(length: _tabLabels.length, vsync: this);
+    _tabController.addListener(_handleTabChange);
+
+    // 로그인 상태 확인 및 데이터 로드
     _checkLoginStatus();
-    // 알림 설정 상태 로드
     _loadNotificationSettings();
+    _loadNotifications(NotificationType.ALL);
   }
 
-  // 알림 설정 상태 로드
+  @override
+  void dispose() {
+    _tabController.removeListener(_handleTabChange);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  // 탭 변경 핸들러
+  void _handleTabChange() {
+    if (_tabController.indexIsChanging) {
+      final type = _tabTypes[_tabController.index];
+      if (_state.notificationsMap[type]!.isEmpty && _state.hasMoreMap[type]!) {
+        _loadNotifications(type);
+      }
+    }
+  }
+
+  // 알림 설정 로드
   Future<void> _loadNotificationSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       setState(() {
-        // 개별 알림 설정 상태 로드
-        notificationTransfer = prefs.getBool('notification_TRANSFER') ?? true;
-        notificationChat = prefs.getBool('notification_CHAT') ?? true;
-        notificationAiMatch = prefs.getBool('notification_AI_MATCH') ?? true;
-        notificationItemReminder =
+        _notificationSettings[NotificationType.TRANSFER] =
+            prefs.getBool('notification_TRANSFER') ?? true;
+        _notificationSettings[NotificationType.CHAT] =
+            prefs.getBool('notification_CHAT') ?? true;
+        _notificationSettings[NotificationType.AI_MATCH] =
+            prefs.getBool('notification_AI_MATCH') ?? true;
+        _notificationSettings[NotificationType.ITEM_REMINDER] =
             prefs.getBool('notification_ITEM_REMINDER') ?? true;
       });
     } catch (e) {
-      print('알림 설정 로드 중 오류: $e');
+      _showErrorSnackBar('알림 설정을 로드하는 중 오류가 발생했습니다');
     }
   }
 
-  // 로그인 상태 확인 및 비로그인 시 뒤로가기
-  void _checkLoginStatus() {
-    // 로그인 되어 있지 않으면 바로 뒤로가기
+  // 로그인 상태 확인
+  void _checkLoginStatus() async {
     if (!_kakaoLoginService.isLoggedIn.value) {
-      // 약간의 딜레이를 두고 뒤로가기 (화면 전환 효과를 위해)
       Future.delayed(Duration.zero, () {
         Navigator.of(context).pop();
       });
     }
   }
 
+  // 알림 데이터 로드
+  Future<void> _loadNotifications(
+    NotificationType type, {
+    bool refresh = false,
+  }) async {
+    // 이미 로딩 중이거나 더 이상 데이터가 없는 경우 무시
+    if (_state.isLoadingMap[type]! || (!refresh && !_state.hasMoreMap[type]!)) {
+      return;
+    }
+
+    setState(() {
+      _state = _state.setLoading(type, true);
+    });
+
+    try {
+      // 새로고침 시 상태 초기화
+      if (refresh) {
+        setState(() {
+          _state = _state.resetType(type);
+        });
+      }
+
+      if (type == NotificationType.ALL) {
+        await _loadAllNotifications(refresh);
+      } else {
+        await _loadTypeNotifications(type, refresh);
+      }
+    } catch (e) {
+      _showErrorSnackBar('알림 데이터를 불러오는 중 오류가 발생했습니다');
+    } finally {
+      setState(() {
+        _state = _state.setLoading(type, false);
+      });
+    }
+  }
+
+  // 모든 유형의 알림 데이터 로드
+  // 모든 유형의 알림 데이터 로드 - 개선 버전
+  Future<void> _loadAllNotifications(bool refresh) async {
+    try {
+      // ALL 타입 API를 사용하여 모든 알림을 한 번에 가져옴
+      final response = await NotificationApiService.getNotifications(
+        // type 파라미터를 전달하지 않음 (모든 타입 가져오기)
+        lastId: _state.lastIdMap[NotificationType.ALL],
+      );
+
+      if (response.success && response.data != null) {
+        final items = response.data!.content;
+        final hasMore = response.data!.hasNext;
+
+        // 전체 탭에 데이터 추가
+        setState(() {
+          _state = _state.updateNotifications(
+            NotificationType.ALL,
+            items,
+            hasMore,
+            append: !refresh,
+          );
+        });
+
+        // 각 타입별 알림을 필터링하여 해당 탭에도 저장
+        if (items.isNotEmpty) {
+          // 타입별로 알림 분류
+          Map<NotificationType, List<NotificationItem>> typeGroupedItems = {};
+
+          for (var type in [
+            NotificationType.TRANSFER,
+            NotificationType.CHAT,
+            NotificationType.AI_MATCH,
+            NotificationType.ITEM_REMINDER,
+          ]) {
+            typeGroupedItems[type] =
+                items.where((item) => item.type == type).toList();
+          }
+
+          // 각 타입별 탭 데이터 업데이트
+          setState(() {
+            for (var type in typeGroupedItems.keys) {
+              if (typeGroupedItems[type]!.isNotEmpty) {
+                _state = _state.updateNotifications(
+                  type,
+                  typeGroupedItems[type]!,
+                  hasMore, // 모든 탭에 동일한 hasMore 값 사용
+                  append: !refresh,
+                );
+              }
+            }
+          });
+        }
+      } else if (response.error != null) {
+        _showErrorSnackBar(response.error!.message);
+      }
+    } catch (e) {
+      print('전체 알림 로드 중 오류: $e');
+      _showErrorSnackBar('알림 데이터를 불러오는 중 오류가 발생했습니다');
+    }
+  }
+
+  // 특정 유형의 알림 데이터 로드
+  Future<void> _loadTypeNotifications(
+    NotificationType type,
+    bool refresh,
+  ) async {
+    final response = await NotificationApiService.getNotifications(
+      type: type.apiValue,
+      lastId: _state.lastIdMap[type],
+    );
+
+    if (response.success && response.data != null) {
+      setState(() {
+        _state = _state.updateNotifications(
+          type,
+          response.data!.content,
+          response.data!.hasNext,
+          append: !refresh,
+        );
+      });
+    } else if (response.error != null) {
+      _showErrorSnackBar(response.error!.message);
+    }
+  }
+
+  // 에러 메시지 표시
+  void _showErrorSnackBar(String message) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  // 현재 탭 새로고침
+  Future<void> _refreshCurrentTab() async {
+    final currentType = _tabTypes[_tabController.index];
+    await _loadNotifications(currentType, refresh: true);
+  }
+
+  // 전체 삭제 확인 다이얼로그 표시
+  void _showDeleteAllConfirmation() {
+    final currentType = _tabTypes[_tabController.index];
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('전체 알림 삭제'),
+            content: Text(
+              '${_tabLabels[_tabController.index]} 알림을 모두 삭제하시겠습니까?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _deleteAllNotifications(currentType);
+                },
+                child: const Text('삭제'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // 전체 알림 삭제 처리
+  Future<void> _deleteAllNotifications(NotificationType type) async {
+    // ALL 타입은 API에서 지원하지 않을 수 있으므로 별도 처리
+    if (type == NotificationType.ALL) {
+      // 모든 타입에 대해 각각 삭제 요청
+      bool allSuccess = true;
+
+      for (var subType in [
+        NotificationType.TRANSFER,
+        NotificationType.CHAT,
+        NotificationType.AI_MATCH,
+        NotificationType.ITEM_REMINDER,
+      ]) {
+        final success = await NotificationApiService.deleteAllNotifications(
+          subType.apiValue,
+        );
+        if (!success) allSuccess = false;
+      }
+
+      if (allSuccess) {
+        // 모든 타입의 알림 로컬 상태에서 제거
+        setState(() {
+          for (var t in NotificationType.values) {
+            final newNotificationsMap =
+                Map<NotificationType, List<NotificationItem>>.from(
+                  _state.notificationsMap,
+                );
+            newNotificationsMap[t] = [];
+            _state = _state.copyWith(notificationsMap: newNotificationsMap);
+          }
+        });
+      } else {
+        _showErrorSnackBar('일부 알림을 삭제하지 못했습니다.');
+        _refreshCurrentTab();
+      }
+    } else {
+      // 특정 타입에 대한 삭제 요청
+      final success = await NotificationApiService.deleteAllNotifications(
+        type.apiValue,
+      );
+
+      if (success) {
+        // 해당 타입과 ALL 탭의 해당 타입 알림 로컬 상태에서 제거
+        setState(() {
+          // 해당 타입 탭 비우기
+          final typeNotificationsMap =
+              Map<NotificationType, List<NotificationItem>>.from(
+                _state.notificationsMap,
+              );
+          typeNotificationsMap[type] = [];
+
+          // ALL 탭에서 해당 타입 제거
+          final allNotifications = List<NotificationItem>.from(
+            _state.notificationsMap[NotificationType.ALL] ?? [],
+          );
+          allNotifications.removeWhere((item) => item.type == type);
+          typeNotificationsMap[NotificationType.ALL] = allNotifications;
+
+          _state = _state.copyWith(notificationsMap: typeNotificationsMap);
+        });
+      } else {
+        _showErrorSnackBar('알림을 삭제하지 못했습니다.');
+        _refreshCurrentTab();
+      }
+    }
+  }
+
+  // 알림 삭제 메서드 (여기에 추가)
+  Future<void> _deleteNotification(NotificationItem notification) async {
+    // API를 통해 서버에서 알림 삭제
+    final success = await NotificationApiService.deleteNotification(
+      notification.id,
+    );
+
+    if (success) {
+      // 성공 시 로컬 상태에서도 알림 삭제
+      for (var type in NotificationType.values) {
+        final notifications = List<NotificationItem>.from(
+          _state.notificationsMap[type] ?? [],
+        );
+        notifications.removeWhere((item) => item.id == notification.id);
+
+        setState(() {
+          final newNotificationsMap =
+              Map<NotificationType, List<NotificationItem>>.from(
+                _state.notificationsMap,
+              );
+          newNotificationsMap[type] = notifications;
+          _state = _state.copyWith(notificationsMap: newNotificationsMap);
+        });
+      }
+    } else {
+      // 삭제 실패 시 사용자에게 알림
+      if (context.mounted) {
+        _showErrorSnackBar('알림을 삭제할 수 없습니다.');
+      }
+
+      // 실패 시 UI 갱신 (삭제된 아이템이 다시 나타나도록)
+      _refreshCurrentTab();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: CustomAppBar(
         title: '알림 메시지',
-        onBackPressed: () => Navigator.of(context).pop(),
-        onClosePressed: () => Navigator.of(context).pop(),
+        isFromBottomNav: false,
+        customActions: [
+          Center(
+            child: SizedBox(
+              child: IconButton(
+                icon: SvgPicture.asset(
+                  'assets/images/common/appBar/delete_button.svg',
+                ),
+                onPressed: _showDeleteAllConfirmation,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ),
+          ),
+        ],
       ),
-      body:
-          notifications.isEmpty
+      body: Column(
+        children: [
+          // 탭바
+          Container(
+            color: Colors.white,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: Colors.blue,
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: Colors.blue,
+              tabs: _tabLabels.map((e) => Tab(text: e)).toList(),
+            ),
+          ),
+
+          // 탭 내용
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: List.generate(_tabLabels.length, (index) {
+                final type = _tabTypes[index];
+                return _buildTabContent(type);
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 탭 내용 위젯 빌드
+  Widget _buildTabContent(NotificationType type) {
+    final notifications = _state.notificationsMap[type]!;
+    final isLoading = _state.isLoadingMap[type]!;
+    final hasMore = _state.hasMoreMap[type]!;
+
+    return RefreshIndicator(
+      onRefresh: _refreshCurrentTab,
+      child:
+          isLoading && notifications.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : notifications.isEmpty
               ? const Center(
                 child: Text(
                   '알림이 없습니다',
@@ -96,108 +440,39 @@ class _NotificationPageState extends State<NotificationPage> {
                 ),
               )
               : ListView.separated(
-                itemCount: notifications.length,
+                itemCount:
+                    notifications.length + (isLoading || hasMore ? 1 : 0),
                 separatorBuilder:
                     (context, index) =>
                         Divider(height: 1, color: Colors.grey[200]),
                 itemBuilder: (context, index) {
+                  // 로딩 인디케이터 또는 더 불러오기 버튼
+                  if (index == notifications.length) {
+                    if (isLoading) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    } else if (hasMore) {
+                      return Center(
+                        child: TextButton(
+                          onPressed: () => _loadNotifications(type),
+                          child: const Text('더 불러오기'),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }
+
+                  // 알림 아이템
                   return NotificationItemWidget(
                     notification: notifications[index],
+                    onDelete: _deleteNotification,
                   );
                 },
               ),
-    );
-  }
-}
-
-class NotificationItem {
-  final String title;
-  final String subtitle;
-  final String message;
-  final String dateTime;
-  final String imagePath;
-  final bool isHighlighted;
-
-  NotificationItem({
-    required this.title,
-    required this.subtitle,
-    required this.message,
-    required this.dateTime,
-    required this.imagePath,
-    this.isHighlighted = false,
-  });
-}
-
-class NotificationItemWidget extends StatelessWidget {
-  final NotificationItem notification;
-
-  const NotificationItemWidget({Key? key, required this.notification})
-    : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Color(0xFFE9F1FF),
-        border: Border(bottom: BorderSide(color: Color(0xFF4F4F4F), width: 1)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 제품 이미지
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              notification.imagePath,
-              width: 95,
-              height: 90,
-              fit: BoxFit.cover,
-              errorBuilder:
-                  (context, error, stackTrace) => Container(
-                    width: 60,
-                    height: 60,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.phone_iphone, color: Colors.grey),
-                  ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // 텍스트 내용
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  notification.title,
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 2),
-                Text(notification.subtitle),
-                const SizedBox(height: 6),
-                Text(
-                  notification.message,
-                  style: TextStyle(
-                    color:
-                        notification.isHighlighted
-                            ? Colors.red
-                            : Color(0xFF3D3D3D),
-                    fontWeight:
-                        notification.isHighlighted
-                            ? FontWeight.w500
-                            : FontWeight.normal,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  notification.dateTime,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -51,7 +51,7 @@ class LostItemsApiService {
     required String lostAt,
     required String location,
     required String detail,
-    required File image,
+    required File? image,
     required double latitude,
     required double longitude,
   }) async {
@@ -59,16 +59,18 @@ class LostItemsApiService {
       final token = await _getAccessToken();
 
       final requestBody = FormData.fromMap({
-        'item_category_id': itemCategoryId,
+        'itemCategoryId': itemCategoryId,
         'title': title,
         'color': color,
-        'lost_at': lostAt,
+        'lostAt': lostAt,
         'location': location,
         'detail': detail,
-        'image': await MultipartFile.fromFile(image.path),
+        if (image != null) 'image': await MultipartFile.fromFile(image.path),
         'latitude': latitude.toString(),
         'longitude': longitude.toString(),
       });
+
+      print('requestbody: ${requestBody.fields}');
 
       final response = await _dio.post(
         '${EnvironmentConfig.baseUrl}/api/lost-items',
@@ -114,6 +116,7 @@ class LostItemsApiService {
       );
 
       if (response.statusCode == 200) {
+        print(response.data);
         return response.data as Map<String, dynamic>;
       } else if (response.statusCode == 404) {
         throw Exception('해당 분실물을 찾을 수 없습니다.');

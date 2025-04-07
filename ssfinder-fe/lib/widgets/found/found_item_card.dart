@@ -1,6 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/models/found_item_model.dart'; // FoundItemListModel이 정의된 파일
+import 'package:sumsumfinder/models/found_items_model.dart';
 
 class FoundItemCard extends StatelessWidget {
   final FoundItemListModel item;
@@ -35,11 +34,17 @@ class FoundItemCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(8.0),
           child:
               item.image != null
-                  ? Image.file(
-                    item.image!,
+                  ? Container(
                     width: 100,
                     height: 100,
-                    fit: BoxFit.cover,
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: NetworkImage(
+                          item.image!,
+                        ), // NetworkImage로 이미지 로드
+                        fit: BoxFit.cover, // 이미지를 컨테이너에 맞게 채움
+                      ),
+                    ),
                   )
                   : Container(
                     width: 100,
@@ -84,7 +89,7 @@ class FoundItemCard extends StatelessWidget {
                     style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                   Text(
-                    item.createdTime,
+                    item.createdTime.substring(0, 10),
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],
