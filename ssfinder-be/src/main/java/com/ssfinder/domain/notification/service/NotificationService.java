@@ -2,6 +2,7 @@ package com.ssfinder.domain.notification.service;
 
 import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
 import com.ssfinder.domain.chat.entity.MessageType;
+import com.ssfinder.domain.chat.service.ChatRoomService;
 import com.ssfinder.domain.chat.service.ChatService;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemService;
@@ -48,6 +49,7 @@ public class NotificationService {
     private final FoundItemService foundItemService;
     private final UserNotificationSettingService userNotificationSettingService;
     private final ChatService chatService;
+    private final ChatRoomService chatRoomService;
     private final LostItemService lostItemService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -111,7 +113,8 @@ public class NotificationService {
         int userId = opponentUser.getId();
 
         // 알림 설정 확인
-        if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.CHAT))
+        if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.CHAT) ||
+                !chatRoomService.getChatRoomParticipant(kafkaChatMessage.chatRoomId(), userId).getNotificationEnabled())
             return;
 
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
@@ -123,11 +126,9 @@ public class NotificationService {
         if (messageType.equals(MessageType.IMAGE)) {
             content = CHAT_PLACEHOLDER_IMAGE_MESSAGE;
 
-        }
-        else if (messageType.equals(MessageType.LOCATION)) {
+        } else if (messageType.equals(MessageType.LOCATION)) {
             content = CHAT_PLACEHOLDER_LOCATION_MESSAGE;
-        }
-        else if (messageType.equals(MessageType.NORMAL)) {
+        } else if (messageType.equals(MessageType.NORMAL)) {
             content = kafkaChatMessage.nickname() + "님의 메시지";
         }
 
@@ -191,7 +192,7 @@ public class NotificationService {
         Map<String, String> data = new HashMap<>();
         data.put("type", NotificationType.ITEM_REMINDER.name());
 
-         boolean notificationSent = fcmMessageService.sendNotificationToDevices(
+        boolean notificationSent = fcmMessageService.sendNotificationToDevices(
                 tokens,
                 NOTIFICATION_TITLE,
                 weatherCondition.getNotificationContent(),
