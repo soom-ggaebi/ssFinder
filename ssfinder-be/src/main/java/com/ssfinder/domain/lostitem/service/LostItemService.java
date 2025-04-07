@@ -68,7 +68,7 @@ public class LostItemService {
     }
 
     @Transactional
-    public LostItem registerLostItem(int userId, LostItemRegisterRequest request) {
+    public LostItemResponse registerLostItem(int userId, LostItemRegisterRequest request) {
         LostItem lostItem = lostItemMapper.toEntity(request);
 
         User user = userService.findUserById(userId);
@@ -96,7 +96,8 @@ public class LostItemService {
         lostItem.setCreatedAt(now);
         lostItem.setUpdatedAt(now);
 
-        return lostItemRepository.save(lostItem);
+        LostItem savedLostItem = lostItemRepository.save(lostItem);
+        return lostItemMapper.toResponse(savedLostItem);
     }
 
     @Transactional(readOnly = true)
@@ -118,6 +119,12 @@ public class LostItemService {
 
         if(!lostItem.getUser().getId().equals(userId)) {
             throw new CustomException(ErrorCode.LOST_ITEM_ACCESS_DENIED);
+        }
+
+        if (request.getItemCategoryId() != null) {
+            ItemCategory category = itemCategoryRepository.findById(request.getItemCategoryId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
+            lostItem.setItemCategory(category);
         }
 
         lostItemMapper.updateLostItemFromRequest(request, lostItem);

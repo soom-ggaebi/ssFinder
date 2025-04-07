@@ -46,10 +46,10 @@ public class LostItemController {
     }
 
     @PostMapping
-    public ApiResponse<LostItem> registerLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+    public ApiResponse<LostItemResponse> registerLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                   @ModelAttribute @Valid LostItemRegisterRequest request) {
-        LostItem lostItem = lostItemService.registerLostItem(userDetails.getUserId(), request);
-        return ApiResponse.created(lostItem);
+        LostItemResponse response = lostItemService.registerLostItem(userDetails.getUserId(), request);
+        return ApiResponse.created(response);
     }
 
     @GetMapping("/{lostId}")
@@ -63,6 +63,7 @@ public class LostItemController {
     public ApiResponse<LostItemUpdateResponse> updateLostItem(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                               @PathVariable @Min(1) int lostId,
                                                               @ModelAttribute @Valid LostItemUpdateRequest request) {
+        System.out.println(userDetails.getUserId());
         LostItemUpdateResponse response = lostItemService.updateLostItem(userDetails.getUserId(), lostId, request);
         return ApiResponse.ok(response);
     }
