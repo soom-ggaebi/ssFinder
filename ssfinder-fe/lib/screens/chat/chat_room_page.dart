@@ -16,6 +16,8 @@ import 'package:sumsumfinder/widgets/chat/option_popups/add.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sumsumfinder/services/kakao_login_service.dart';
+import 'package:sumsumfinder/services/chat_service.dart'; // ChatService 추가
+import 'package:permission_handler/permission_handler.dart'; // 권한 처리 패키지 추가
 import 'dart:math' show min;
 
 class ChatPage extends StatefulWidget {
@@ -40,10 +42,12 @@ typedef UnsubscribeFn =
 
 class _ChatPageState extends State<ChatPage> {
   final KakaoLoginService _loginService = KakaoLoginService();
+  final ChatService _chatService = ChatService(); // ChatService 인스턴스 추가
   String? _currentToken;
   // 구독 함수를 저장할 변수
-  UnsubscribeFn? chatRoomUnsubscribeFn;
-  UnsubscribeFn? errorUnsubscribeFn;
+  UnsubscribeFn? chatRoomUnsubscribeFn; // 채팅방 구독 함수
+  UnsubscribeFn? errorUnsubscribeFn; // 에러 구독 함수
+  UnsubscribeFn? readStatusUnsubscribeFn; // 읽음 상태 구독 함수
 
   final TextEditingController _textController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
@@ -68,6 +72,18 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _fetchLatestToken(); // 토큰을 먼저 가져오고 나서 STOMP 클라이언트 초기화
+    _checkPermissions(); // 권한 확인 추가
+  }
+
+  // 권한 확인 메서드 추가
+  Future<void> _checkPermissions() async {
+    // 카메라 및 저장소 권한 확인
+    Map<Permission, PermissionStatus> statuses =
+        await [Permission.camera, Permission.storage].request();
+
+    // 권한 상태 로깅
+    addLog('카메라 권한: ${statuses[Permission.camera]}');
+    addLog('저장소 권한: ${statuses[Permission.storage]}');
   }
 
   Future<void> _fetchLatestToken() async {
@@ -81,6 +97,7 @@ class _ChatPageState extends State<ChatPage> {
       initStompClient();
     } else {
       // 토큰이 없으면 로그인 화면으로 이동하는 로직
+      addLog('토큰이 없습니다. 로그인이 필요합니다.');
     }
   }
 
@@ -109,6 +126,16 @@ class _ChatPageState extends State<ChatPage> {
             print('에러 구독 취소 완료');
           } catch (e) {
             print('에러 구독 취소 중 오류: $e');
+          }
+        }
+
+        // 읽음 상태 구독 취소 추가
+        if (readStatusUnsubscribeFn != null) {
+          try {
+            readStatusUnsubscribeFn!();
+            print('읽음 상태 구독 취소 완료');
+          } catch (e) {
+            print('읽음 상태 구독 취소 중 오류: $e');
           }
         }
 
@@ -166,8 +193,7 @@ class _ChatPageState extends State<ChatPage> {
           'accept-version': '1.0,1.1,1.2',
           'heart-beat': '5000,5000',
           'Content-Type': 'application/json',
-          'Authorization':
-              'Bearer $_currentToken', // widget.jwt 대신 _currentToken 사용
+          'Authorization': 'Bearer $_currentToken',
           'chat_room_id': '${widget.roomId}',
         },
       ),
@@ -198,9 +224,88 @@ class _ChatPageState extends State<ChatPage> {
 
     // 에러 구독
     subscribeToErrors();
+
+    // 읽음 상태 구독 추가
+    subscribeToReadStatus();
   }
 
-  // 채팅방 구독
+  // 읽음 상태 구독
+  void subscribeToReadStatus() {
+    final String topic = '/sub/chat-room/${widget.roomId}/read';
+
+    addLog('읽음 상태 구독 시도: $topic');
+
+    try {
+      // 반환된 함수를 저장
+      readStatusUnsubscribeFn = stompClient.subscribe(
+        destination: topic,
+        callback: (StompFrame frame) {
+          addLog('읽음 상태 메시지 수신: ${frame.body}');
+
+          if (!mounted) return;
+
+          if (frame.body == null || frame.body!.isEmpty) {
+            addLog('수신된 읽음 상태 메시지 본문이 비어있습니다');
+            return;
+          }
+
+          try {
+            final jsonData = json.decode(frame.body!);
+
+            // 수신된 메시지가 현재 사용자의 메시지인지 확인
+            final int userId = jsonData['user_id'] ?? -1;
+            final List<dynamic> messageIds = jsonData['message_ids'] ?? [];
+
+            // 내가 보낸 메시지에 대한 읽음 처리만 업데이트 (상대방이 읽었을 때)
+            if (userId != currentUserId && messageIds.isNotEmpty) {
+              addLog('상대방이 메시지를 읽음: ${messageIds.length}개');
+
+              // 메시지 상태 업데이트 (messageId가 있는 경우 해당 메시지만 업데이트)
+              if (messageIds.isNotEmpty) {
+                for (var message in _messages) {
+                  // messageId가 있고 messageIds 목록에 포함된 경우만 업데이트
+                  if (message.isSent &&
+                      message.status == 'UNREAD' &&
+                      (message.messageId != null &&
+                          messageIds.contains(message.messageId))) {
+                    message.status = 'READ';
+                    addLog('특정 메시지 상태 업데이트: messageId=${message.messageId}');
+                  }
+                }
+              } else {
+                // messageIds가 비어있는 경우 모든 보낸 메시지 업데이트 (이전 방식)
+                for (var message in _messages) {
+                  if (message.isSent && message.status == 'UNREAD') {
+                    message.status = 'READ';
+                    addLog(
+                      '전체 메시지 상태 업데이트: ${message.text.isNotEmpty ? message.text.substring(0, min(10, message.text.length)) : "이미지"}',
+                    );
+                  }
+                }
+              }
+
+              // 강제로 UI 갱신 (notifyListeners 동작이 안될 경우를 대비)
+              setState(() {});
+
+              addLog('메시지 읽음 상태 업데이트 완료');
+            }
+          } catch (e) {
+            addLog('읽음 상태 처리 오류: $e');
+          }
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_currentToken',
+          'chat_room_id': '${widget.roomId}',
+        },
+      );
+
+      addLog('읽음 상태 구독 성공');
+    } catch (e) {
+      addLog('읽음 상태 구독 오류: $e');
+    }
+  }
+
   // 채팅방 구독
   void subscribeToChatRoom() {
     final String topic = '/sub/chat-room/${widget.roomId}';
@@ -225,42 +330,61 @@ class _ChatPageState extends State<ChatPage> {
             final jsonData = json.decode(frame.body!);
             final messageType = jsonData['type'] ?? 'NORMAL';
 
+            // 메시지 객체 생성
+            late ChatMessage message;
+
             // 메시지 타입 확인 및 처리
             if (messageType == 'IMAGE') {
               // 이미지 메시지 처리
               addLog('이미지 메시지 수신: ${jsonData['content']}');
 
               // 새 ChatMessage 객체 생성
-              final message = ChatMessage(
+              message = ChatMessage(
                 text: '',
                 isSent: jsonData['sender_id'] == currentUserId,
                 time: TimeFormatter.getCurrentTime(),
                 type: 'IMAGE',
                 imageUrl: jsonData['content'], // 이미지 URL 저장
+                status: jsonData['status'] ?? 'UNREAD', // 상태 추가
+                messageId: jsonData['message_id'], // 메시지 ID 추가
               );
+            } else if (messageType == 'LOCATION') {
+              // 위치 메시지 처리 추가
+              addLog('위치 메시지 수신: ${jsonData['content']}');
 
-              if (!mounted) return;
-              setState(() {
-                _messages.add(message);
-              });
-
-              // 디버깅용 로그
-              addLog('현재 메시지 개수: ${_messages.length}');
-              addLog('마지막 메시지 타입: ${_messages.last.type}');
-              addLog('마지막 메시지 URL: ${_messages.last.imageUrl}');
+              message = ChatMessage(
+                text: jsonData['content'] ?? '',
+                isSent: jsonData['sender_id'] == currentUserId,
+                time: TimeFormatter.getCurrentTime(),
+                type: 'LOCATION',
+                locationUrl: jsonData['location_url'] ?? '',
+                status: jsonData['status'] ?? 'UNREAD',
+                messageId: jsonData['message_id'],
+              );
             } else {
-              // 일반 텍스트 메시지 처리 (기존 코드)
-              final message = ChatMessage(
+              // 일반 텍스트 메시지 처리
+              message = ChatMessage(
                 text: jsonData['content'] ?? '',
                 isSent: jsonData['sender_id'] == currentUserId,
                 time: TimeFormatter.getCurrentTime(),
                 type: 'NORMAL',
+                status: jsonData['status'] ?? 'UNREAD', // 상태 추가
+                messageId: jsonData['message_id'], // 메시지 ID 추가
               );
+            }
 
-              if (!mounted) return;
-              setState(() {
-                _messages.add(message);
-              });
+            if (!mounted) return;
+            setState(() {
+              _messages.add(message);
+            });
+
+            // 디버깅용 로그
+            addLog('현재 메시지 개수: ${_messages.length}');
+            addLog('마지막 메시지 타입: ${_messages.last.type}');
+            if (messageType == 'IMAGE') {
+              addLog('마지막 메시지 URL: ${_messages.last.imageUrl}');
+            } else if (messageType == 'LOCATION') {
+              addLog('마지막 메시지 위치: ${_messages.last.locationUrl}');
             }
 
             _scrollToBottom();
@@ -385,6 +509,16 @@ class _ChatPageState extends State<ChatPage> {
           }
         }
 
+        // 읽음 상태 구독 취소 추가
+        if (readStatusUnsubscribeFn != null) {
+          try {
+            readStatusUnsubscribeFn!();
+            readStatusUnsubscribeFn = null;
+          } catch (e) {
+            addLog('읽음 상태 구독 취소 중 오류: $e');
+          }
+        }
+
         // 연결 종료
         stompClient.deactivate();
       }
@@ -410,20 +544,7 @@ class _ChatPageState extends State<ChatPage> {
       return;
     }
 
-    // 새 메시지 객체 생성 (UI 즉시 업데이트용)
-    final message = ChatMessage(
-      text: text,
-      isSent: true,
-      time: TimeFormatter.getCurrentTime(),
-    );
-
-    setState(() {
-      _messages.add(message);
-    });
-
-    _scrollToBottom();
-
-    // 웹소켓으로 메시지 전송
+    // 웹소켓으로 메시지만 전송
     sendMessage(text);
   }
 
@@ -452,8 +573,7 @@ class _ChatPageState extends State<ChatPage> {
         body: messageJson,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization':
-              'Bearer $_currentToken', // widget.jwt 대신 _currentToken 사용
+          'Authorization': 'Bearer $_currentToken',
           'chat_room_id': '${widget.roomId}',
         },
       );
@@ -484,7 +604,7 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-  // 이미지 메시지 전송을 위한 API 호출
+  // 이미지 메시지 전송을 위한 개선된 메서드
   Future<void> _sendImageMessage(File imageFile) async {
     if (!mounted) return;
 
@@ -499,6 +619,21 @@ class _ChatPageState extends State<ChatPage> {
         return;
       }
 
+      // 임시 메시지 생성 (UI 즉시 업데이트)
+      final tempMessage = ChatMessage(
+        text: '',
+        isSent: true,
+        time: TimeFormatter.getCurrentTime(),
+        type: 'IMAGE',
+        imageFile: imageFile, // 로컬 파일 참조
+        status: 'SENDING', // 전송 중 상태
+      );
+
+      setState(() {
+        _messages.add(tempMessage);
+      });
+      _scrollToBottom();
+
       // 로딩 표시
       showDialog(
         context: context,
@@ -506,54 +641,39 @@ class _ChatPageState extends State<ChatPage> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      // multipart 요청 생성
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse(
-          '${EnvironmentConfig.baseUrl}/api/chat-rooms/${widget.roomId}/upload',
-        ),
+      // 이미지 크기 로깅 (디버깅용)
+      final fileSize = await imageFile.length();
+      addLog('이미지 전송 시작: ${imageFile.path}, 파일 크기: $fileSize 바이트');
+
+      // ChatService의 uploadImage 메서드 사용
+      final result = await _chatService.uploadImage(
+        imageFile,
+        widget.roomId,
+        currentUserId,
+        token,
       );
-
-      // 헤더 추가
-      request.headers.addAll({'Authorization': 'Bearer $token'});
-
-      // 이미지 파일 추가
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'image',
-          imageFile.path,
-          filename: imageFile.path.split('/').last,
-        ),
-      );
-
-      // 요청 전송
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
 
       // 로딩 닫기
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-
-        if (responseData['success'] == true) {
-          addLog('이미지 전송 성공: ${responseData['data']['content']}');
-
-          // 이미지 메시지가 웹소켓으로 전송되므로 여기서는 UI 업데이트 필요 없음
-          // 웹소켓으로 수신된 메시지가 UI를 업데이트함
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(responseData['error']['message'] ?? '이미지 전송 실패'),
-            ),
-          );
-        }
+      if (result != null) {
+        // 성공 시 임시 메시지 제거 (옵션)
+        setState(() {
+          _messages.removeWhere((msg) => msg == tempMessage);
+          // 서버에서 웹소켓으로 메시지가 전송되면 자동으로 UI에 추가됨
+        });
+        addLog('이미지 전송 성공: ${result.imageUrl}');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('이미지 전송 실패: ${response.statusCode}')),
-        );
+        // 실패 시 임시 메시지 상태 업데이트
+        setState(() {
+          // 임시 메시지 상태 변경
+          tempMessage.status = 'FAILED';
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('이미지 전송 실패')));
       }
     } catch (e) {
       // 로딩 닫기
@@ -568,40 +688,249 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> _getImageFromGallery() async {
+  // 위치 메시지 전송 메서드 추가
+  Future<void> _sendLocationMessage(
+    String locationName,
+    String locationUrl,
+  ) async {
     if (!mounted) return;
 
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (!isConnected) {
+      addLog('위치 메시지 전송 실패: 연결되지 않음');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('연결 오류. 다시 시도해주세요.')));
+      return;
+    }
 
-    if (!mounted) return;
+    try {
+      // 최신 토큰 가져오기
+      final token = await _loginService.getAccessToken();
 
-    if (image != null) {
+      if (token == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('로그인이 필요합니다')));
+        return;
+      }
+
+      // 임시 메시지 생성 (UI 즉시 업데이트)
+      final tempMessage = ChatMessage(
+        text: locationName,
+        isSent: true,
+        time: TimeFormatter.getCurrentTime(),
+        type: 'LOCATION',
+        locationUrl: locationUrl,
+        status: 'SENDING',
+      );
+
       setState(() {
-        _selectedImage = File(image.path);
+        _messages.add(tempMessage);
       });
-      addLog('갤러리에서 이미지 선택: ${image.path}');
+      _scrollToBottom();
 
-      // 이미지 메시지 전송
-      await _sendImageMessage(File(image.path));
+      // WebSocket으로 위치 메시지 전송
+      final destination = '/pub/chat-room/${widget.roomId}';
+      final messageJson = jsonEncode({
+        "type": "LOCATION",
+        "content": locationName,
+        "location_url": locationUrl,
+      });
+
+      addLog('위치 메시지 전송 시도: $messageJson');
+
+      stompClient.send(
+        destination: destination,
+        body: messageJson,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_currentToken',
+          'chat_room_id': '${widget.roomId}',
+        },
+      );
+
+      addLog('위치 메시지 전송 완료');
+    } catch (e) {
+      addLog('위치 메시지 전송 오류: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('위치 전송 중 오류가 발생했습니다: $e')));
+      }
     }
   }
 
+  // 갤러리에서 이미지 선택 메서드 개선
+  Future<void> _getImageFromGallery() async {
+    if (!mounted) return;
+
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70, // 품질 조정
+      );
+
+      if (!mounted) return;
+
+      if (image != null) {
+        final file = File(image.path);
+
+        // 파일 존재 여부 확인
+        if (await file.exists()) {
+          setState(() {
+            _selectedImage = file;
+          });
+          addLog('갤러리에서 이미지 선택: ${image.path}');
+
+          // 이미지 메시지 전송
+          await _sendImageMessage(file);
+        } else {
+          addLog('선택한 이미지 파일이 존재하지 않음: ${image.path}');
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('이미지 파일을 찾을 수 없습니다.')));
+        }
+      }
+    } catch (e) {
+      addLog('갤러리 접근 중 오류: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('갤러리 접근 중 오류가 발생했습니다: $e')));
+    }
+  }
+
+  // 카메라로 이미지 촬영 메서드 개선
   Future<void> _getImageFromCamera() async {
     if (!mounted) return;
 
-    final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+    try {
+      // 카메라 권한 확인
+      var status = await Permission.camera.status;
+      if (!status.isGranted) {
+        status = await Permission.camera.request();
+        if (!status.isGranted) {
+          addLog('카메라 권한이 거부되었습니다.');
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('카메라 사용 권한이 필요합니다.')));
+          return;
+        }
+      }
 
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 70, // 품질 조정
+      );
+
+      if (!mounted) return;
+
+      if (photo != null) {
+        final file = File(photo.path);
+
+        // 파일 존재 여부 및 크기 확인
+        if (await file.exists()) {
+          final fileSize = await file.length();
+          setState(() {
+            _selectedImage = file;
+          });
+          addLog('카메라로 사진 촬영: ${photo.path}, 파일 크기: ${fileSize}바이트');
+
+          // 이미지 메시지 전송
+          await _sendImageMessage(file);
+        } else {
+          addLog('카메라로 촬영한 이미지 파일이 존재하지 않음: ${photo.path}');
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('이미지 파일을 찾을 수 없습니다.')));
+        }
+      }
+    } catch (e) {
+      addLog('카메라 접근 중 오류: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('카메라 접근 중 오류가 발생했습니다: $e')));
+    }
+  }
+
+  // 위치 선택기 다이얼로그 추가
+  void _showLocationSelector() {
     if (!mounted) return;
 
-    if (photo != null) {
-      setState(() {
-        _selectedImage = File(photo.path);
-      });
-      addLog('카메라로 사진 촬영: ${photo.path}');
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('위치 공유'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.location_on),
+                  title: const Text('현재 위치'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // 현재 위치 가져오는 로직 (실제로는 위치 권한 확인 및 GPS 사용 필요)
+                    _sendLocationMessage(
+                      '현재 위치',
+                      'https://maps.google.com/?q=현재위치',
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.search),
+                  title: const Text('위치 검색'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // 위치 검색 화면으로 이동 (실제로는 위치 검색 화면 구현 필요)
+                    _showLocationSearchDialog();
+                  },
+                ),
+              ],
+            ),
+          ),
+    );
+  }
 
-      // 이미지 메시지 전송
-      await _sendImageMessage(File(photo.path));
-    }
+  // 위치 검색 다이얼로그
+  void _showLocationSearchDialog() {
+    if (!mounted) return;
+
+    final searchController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('위치 검색'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: searchController,
+                  decoration: const InputDecoration(
+                    hintText: '위치를 검색하세요',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    final searchText = searchController.text.trim();
+                    if (searchText.isNotEmpty) {
+                      Navigator.pop(context);
+                      // 검색어를 이용한 위치 전송 (실제로는 지도 API 연동 필요)
+                      _sendLocationMessage(
+                        searchText,
+                        'https://maps.google.com/?q=${Uri.encodeComponent(searchText)}',
+                      );
+                    }
+                  },
+                  child: const Text('검색'),
+                ),
+              ],
+            ),
+          ),
+    );
   }
 
   @override
@@ -800,7 +1129,8 @@ class _ChatPageState extends State<ChatPage> {
             },
             onLocationPressed: () {
               Navigator.pop(context);
-              // 장소 관련 로직 추가
+              // 위치 선택기 표시
+              _showLocationSelector();
             },
           ),
     );

@@ -27,8 +27,11 @@ class ChatService {
         ),
       });
 
-      // 헤더 설정
-      _dio.options.headers = {'Authorization': token};
+      // 헤더 설정 - Bearer 접두사 추가
+      _dio.options.headers = {'Authorization': 'Bearer $token'};
+
+      print('업로드 URL: $baseUrl/api/chat-rooms/$chatRoomId/upload');
+      print('토큰: Bearer $token');
 
       // API 요청
       Response response = await _dio.post(
