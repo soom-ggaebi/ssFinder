@@ -35,19 +35,20 @@ public class ItemCategoryService {
                 .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
     }
 
+    @Transactional(readOnly = true)
     public List<ItemCategoryInfo> getItemCategory() {
         List<ItemCategory> categories = itemCategoryRepository.findAll();
-        return categories.stream().map(category -> {
-            ItemCategory parentCategory = category.getItemCategory();
-            Integer parentId = (parentCategory != null) ? parentCategory.getId() : null;
-            String parentName = (parentCategory != null) ? parentCategory.getName() : null;
-
-            return new ItemCategoryInfo(
-                    category.getId(),
-                    category.getName(),
-                    parentId,
-                    parentName
-            );
-        }).collect(Collectors.toList());
+        return categories.stream()
+                .filter(category -> category.getItemCategory() != null)
+                .map(category -> {
+                    ItemCategory parentCategory = category.getItemCategory();
+                    return new ItemCategoryInfo(
+                            category.getId(),
+                            category.getName(),
+                            parentCategory.getId(),
+                            parentCategory.getName()
+                    );
+                })
+                .collect(Collectors.toList());
     }
 }
