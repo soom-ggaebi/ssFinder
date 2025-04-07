@@ -55,17 +55,14 @@ class _FoundItemsListState extends State<FoundItemsList> {
   }
 
   Future<void> _loadClusterItems() async {
-    print(isLoading);
-    print(isLoadingMore);
     if (isLoadingMore) return;
-    print(2);
+
     setState(() {
       isLoading = foundItems.isEmpty;
       isLoadingMore = !isLoading && !isLastPage;
     });
 
     try {
-      print(3);
       final result = await _apiService.getClusterDetailItems(
         ids: widget.itemIds,
         page: currentPage,
