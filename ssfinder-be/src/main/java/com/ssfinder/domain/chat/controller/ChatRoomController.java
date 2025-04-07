@@ -1,5 +1,6 @@
 package com.ssfinder.domain.chat.controller;
 
+import com.ssfinder.domain.chat.dto.response.ActiveChatRoomListResponse;
 import com.ssfinder.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.ssfinder.domain.chat.dto.response.ChatRoomEntryResponse;
 import com.ssfinder.domain.chat.service.ChatRoomService;
@@ -8,6 +9,8 @@ import com.ssfinder.global.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * packageName    : com.ssfinder.domain.chat.controller<br>
@@ -46,6 +49,14 @@ public class ChatRoomController {
 
         ChatRoomDetailResponse response = chatRoomService.getChatRoomDetail(userId, chatRoomId);
 
+        return ApiResponse.ok(response);
+    }
+
+    @GetMapping("/me")
+    public ApiResponse<List<ActiveChatRoomListResponse>> getActiveChatRoomList(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        Integer userId = userDetails.getUserId();
+
+        List<ActiveChatRoomListResponse> response = chatRoomService.getActiveChatRoomList(userId);
         return ApiResponse.ok(response);
     }
 

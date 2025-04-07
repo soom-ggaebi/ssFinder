@@ -1,11 +1,11 @@
 package com.ssfinder.domain.chat.repository;
 
 import com.ssfinder.domain.chat.entity.ChatRoom;
-import com.ssfinder.domain.chat.entity.ChatRoomParticipant;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -27,5 +27,12 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Integer> {
             "WHERE crp.user.id = :userId " +
             "AND cr.foundItem.id = :foundItemId")
     Optional<ChatRoom> findByUserAndFoundItem(@Param("userId") Integer userId,
-                                                         @Param("foundItemId") Integer foundItemId);
+                                              @Param("foundItemId") Integer foundItemId);
+
+    @Query("SELECT cr " +
+            "FROM ChatRoom cr " +
+            "JOIN ChatRoomParticipant crp ON crp.chatRoom.id = cr.id " +
+            "WHERE crp.user.id = :userId " +
+            "AND crp.status = 'ACTIVE'")
+    List<ChatRoom> findByUserAndStatusIsActive(@Param("userId") Integer userId);
 }
