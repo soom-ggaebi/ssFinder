@@ -1,29 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/models/lost_item_model.dart';
+import 'package:sumsumfinder/models/lost_items_model.dart';
 import 'package:sumsumfinder/widgets/lost/lost_item_card.dart';
 import 'lost_item_detail.dart';
-import 'package:sumsumfinder/widgets/lost/recommended_card.dart';
-import 'recommended.dart';
-import 'package:sumsumfinder/models/found_item_model.dart';
+// 추천 항목 관련 import는 주석 처리
+// import 'package:sumsumfinder/widgets/lost/recommended_card.dart';
+// import 'recommended.dart';
+// import 'package:sumsumfinder/models/found_item_model.dart';
 
 class LostItemsList extends StatelessWidget {
-  final List<LostItemModel> items;
+  final List<LostItemListModel> items;
 
   const LostItemsList({Key? key, required this.items}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return Center(
+        child: Text('분실물 목록이 없습니다.'),
+      );
+    }
+    
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (context, index) {
         final lostItem = items[index];
 
+        // 추천 항목 관련 코드 주석 처리
+        /*
         final List<dynamic> recommendationsData =
             lostItem.recommended['recommendations'] as List<dynamic>;
 
         final List<FoundItemModel> foundItems = recommendationsData
             .map((data) => FoundItemModel.fromJson(data))
             .toList();
+        */
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -34,12 +44,18 @@ class LostItemsList extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => LostItemDetail(item: lostItem),
+                    // item 전체가 아닌 itemId만 전달
+                    builder: (_) => LostItemDetail(itemId: lostItem.id),
                   ),
                 );
               },
               child: LostItemCard(item: lostItem),
             ),
+            // 구분선 추가
+            Divider(height: 1, thickness: 1, color: Colors.grey[200]),
+            
+            // 추천 항목 관련 코드 주석 처리
+            /*
             // 추천 항목이 있을 경우에만 추천 카드 표시
             if (foundItems.isNotEmpty)
               GestureDetector(
@@ -61,6 +77,7 @@ class LostItemsList extends StatelessWidget {
                       .toList(),
                 ),
               ),
+            */
           ],
         );
       },

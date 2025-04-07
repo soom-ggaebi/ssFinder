@@ -15,7 +15,6 @@ class CategorySelect extends StatefulWidget {
 }
 
 class _CategorySelectState extends State<CategorySelect> {
-  // 카테고리 목록 (각 항목은 label, icon, 하위 항목 목록을 가지고 있음)
   final List<Map<String, dynamic>> categories = [
     {
       'label': '가방',
@@ -315,7 +314,10 @@ class _CategorySelectState extends State<CategorySelect> {
                               categories[_selectedCategoryIndex!]['label'];
                           final result =
                               '$selectedCategory > $_selectedSubItem';
-                          Navigator.pop(context, result);
+                          Navigator.pop(context, {
+                            'category': result,
+                            'id': _selectedCategoryIndex! + 20,
+                          });
                         },
                 child: const Text('현재 카테고리로 설정'),
               ),

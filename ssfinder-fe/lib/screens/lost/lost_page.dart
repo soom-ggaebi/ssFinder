@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'lost_items_list.dart';
 import 'lost_item_form.dart';
-import 'package:sumsumfinder/models/lost_item_model.dart';
-import 'package:sumsumfinder/services/api_service.dart';
+import 'package:sumsumfinder/models/lost_items_model.dart';
+import 'package:sumsumfinder/services/lost_items_api_service.dart'; // 수정: 올바른 API 서비스 import
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sumsumfinder/screens/main/noti_list_page.dart';
 
-/// LostPage는 분실물 데이터를 API로 받아와 탭별로 필터링하여 보여주는 페이지입니다.
 class LostPage extends StatefulWidget {
   const LostPage({Key? key}) : super(key: key);
 
@@ -18,12 +17,13 @@ class LostPage extends StatefulWidget {
 class _LostPageState extends State<LostPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final LostItemsApiService _apiService = LostItemsApiService();
 
   // 탭 목록: 전체, 숨은물건, 찾은물건
   final List<String> _tabs = ['전체', '숨은물건', '찾은물건'];
 
   // API로부터 받아온 분실물 데이터와 로딩 상태 변수
-  List<LostItemModel> _lostItems = [];
+  List<LostItemListModel> _lostItems = [];
   bool isLoading = true;
 
   @override
@@ -44,7 +44,21 @@ class _LostPageState extends State<LostPage>
   /// API를 호출하여 분실물 데이터를 가져오는 함수
   Future<void> _loadLostItems() async {
     try {
-      List<LostItemModel> items = await LostItemsListApiService.getApiData();
+      final response = await _apiService.getLostItems();
+
+      // 응답 데이터에서 items 배열 추출
+      final List<dynamic> itemsJson = response['data'] as List<dynamic>;
+      print('#### ${itemsJson}');
+
+      // JSON 데이터를 LostItemListModel 객체로 변환
+      final items =
+          itemsJson
+              .map(
+                (item) =>
+                    LostItemListModel.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
+
       setState(() {
         _lostItems = items;
         isLoading = false;
@@ -53,27 +67,28 @@ class _LostPageState extends State<LostPage>
       setState(() => isLoading = false);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('데이터 로딩에 실패했습니다.')));
+      ).showSnackBar(SnackBar(content: Text('데이터 로딩에 실패했습니다: $e')));
+      print('erre: ${e}');
     }
   }
 
   /// 탭별 데이터 필터링 함수
-  List<LostItemModel> _getFilteredItems(String tab) {
+  List<LostItemListModel> _getFilteredItems(String tab) {
     if (tab == '전체') {
       return _lostItems;
     } else if (tab == '숨은물건') {
-      // 숨은물건: status가 false인 경우
-      return _lostItems.where((item) => item.status == false).toList();
+      // 숨은물건: status가 "LOST"인 경우
+      return _lostItems.where((item) => item.status == "LOST").toList();
     } else if (tab == '찾은물건') {
-      // 찾은물건: status가 true인 경우
-      return _lostItems.where((item) => item.status == true).toList();
+      // 찾은물건: status가 "FOUND"인 경우
+      return _lostItems.where((item) => item.status == "FOUND").toList();
     }
     return [];
   }
 
   /// 각 탭에 해당하는 목록을 보여주는 위젯
   Widget _buildTabContent(String tab) {
-    List<LostItemModel> filteredItems = _getFilteredItems(tab);
+    List<LostItemListModel> filteredItems = _getFilteredItems(tab);
     return LostItemsList(items: filteredItems);
   }
 
