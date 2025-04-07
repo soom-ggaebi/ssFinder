@@ -2,7 +2,7 @@ package com.ssfinder.domain.notification.service;
 
 import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
 import com.ssfinder.domain.chat.entity.MessageType;
-import com.ssfinder.domain.chat.service.ChatRoomService;
+import com.ssfinder.domain.chat.service.ChatService;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemService;
 import com.ssfinder.domain.notification.entity.NotificationType;
@@ -43,7 +43,7 @@ public class NotificationService {
     private final FcmMessageService fcmMessageService;
     private final FoundItemService foundItemService;
     private final UserNotificationSettingService userNotificationSettingService;
-    private final ChatRoomService chatRoomService;
+    private final ChatService chatService;
     private final ApplicationEventPublisher eventPublisher;
 
     private final static String NOTIFICATION_TITLE = "숨숨파인더";
@@ -104,7 +104,7 @@ public class NotificationService {
 
     // 2. 채팅 알림
     public void sendChatNotification(KafkaChatMessage kafkaChatMessage) {
-        User opponentUser = chatRoomService.getOpponentUser(kafkaChatMessage.chatRoomId(), kafkaChatMessage.senderId());
+        User opponentUser = chatService.getOpponentUser(kafkaChatMessage.chatRoomId(), kafkaChatMessage.senderId());
         int userId = opponentUser.getId();
 
         // 알림 설정 확인

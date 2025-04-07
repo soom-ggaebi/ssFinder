@@ -35,7 +35,6 @@ import java.util.Objects;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-28          nature1216          최초생성<br>
- * 2025-04-06          okeio               getOpponentUser 메서드 작성<br>
  * <br>
  */
 @Slf4j
@@ -108,15 +107,6 @@ public class ChatRoomService {
                 .opponentNickname(opponentUser.getNickname())
                 .foundItem(chatRoomFoundItem)
                 .build();
-    }
-
-    public User getOpponentUser(Integer chatRoomId, Integer senderId) {
-        ChatRoom chatRoom = findById(chatRoomId);
-        User sender = userService.findUserById(senderId);
-
-        ChatRoomParticipant chatRoomParticipant = chatRoomParticipantRepository.getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, sender);
-
-        return chatRoomParticipant.getUser();
     }
 
     private ChatRoom createChatRoom(User user, FoundItem foundItem) {
