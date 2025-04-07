@@ -9,7 +9,8 @@ class FoundItemsApiService {
   final _storage = const FlutterSecureStorage();
 
   Future<String?> _getAccessToken() async {
-    return await _storage.read(key: 'access_token');
+    final accountId = await _storage.read(key: 'current_account_id');
+    return await _storage.read(key: 'access_token_$accountId');
   }
 
   // 습득물 등록
@@ -111,23 +112,23 @@ class FoundItemsApiService {
     String? detail,
     required double latitude,
     required double longitude,
-    required String storedAt,
   }) async {
     try {
       final token = await _getAccessToken();
 
       final requestBody = FormData.fromMap({
-        'item_category_id': itemCategoryId,
+        'itemCategoryId': itemCategoryId,
         'name': name,
-        'found_at': foundAt,
+        'foundAt': foundAt,
         'location': location,
         'color': color,
         if (image != null) 'image': await MultipartFile.fromFile(image.path),
         'detail': detail ?? '',
         'latitude': latitude.toString(),
         'longitude': longitude.toString(),
-        'stored_at': storedAt,
       });
+
+      print('#### FormData fields 수정: ${requestBody.fields}');
 
       final response = await _dio.put(
         '${EnvironmentConfig.baseUrl}/api/found-items/$foundId',
@@ -584,6 +585,7 @@ class FoundItemsApiService {
   }) async {
     try {
       final token = await _getAccessToken();
+      print('Access token: $token');
 
       final headers = {
         'Content-Type': 'application/json',
@@ -592,24 +594,27 @@ class FoundItemsApiService {
 
       final requestBody = {
         'ids': ids,
-        'page': page.toString(),
-        'size': size.toString(),
-        'sortBy': sortBy,
-        'sortDirection': sortDirection,
       };
+      print(requestBody);
 
       final response = await _dio.get(
         '${EnvironmentConfig.baseUrl}/api/found-items/cluster/detail',
         options: Options(headers: headers),
         data: requestBody,
+        queryParameters: {
+          'page': page.toString(),
+          'size': size.toString(),
+          'sortBy': sortBy,
+          'sortDirection': sortDirection,
+        }
       );
 
       if (response.statusCode == 200) {
+        print(response.data);
         final Map<String, dynamic> responseData =
             response.data as Map<String, dynamic>;
         final List<dynamic> itemsJson =
             responseData['data']['content'] as List<dynamic>;
-        print(itemsJson);
 
         final items =
             itemsJson
@@ -640,6 +645,42 @@ class FoundItemsApiService {
       }
     } catch (e) {
       print('Error fetching cluster detail items: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<CategoryModel>> getCategories() async {
+    try {
+      final token = await _getAccessToken();
+
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+      final response = await _dio.get(
+        '${EnvironmentConfig.baseUrl}/api/category',
+        options: Options(headers: headers),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
+        final List<dynamic> categoriesJson = responseData['data'] as List<dynamic>;
+        
+        return categoriesJson
+            .map((json) => CategoryModel.fromJson(json))
+            .toList();
+      } else if (response.statusCode == 404) {
+        throw Exception('카테고리를 찾을 수 없습니다.');
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          error: 'Unexpected status code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching categories: $e');
       rethrow;
     }
   }

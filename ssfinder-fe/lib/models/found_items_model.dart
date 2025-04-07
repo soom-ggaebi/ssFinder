@@ -133,3 +133,26 @@ class FoundItemCoordinatesModel {
     );
   }
 }
+
+class CategoryModel {
+  final int id;
+  final String name;
+  final int? parentId;
+  final String? parentName;
+
+  CategoryModel({
+    required this.id,
+    required this.name,
+    this.parentId,
+    this.parentName,
+  });
+
+  factory CategoryModel.fromJson(Map<String, dynamic> json) {
+    return CategoryModel(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      parentId: json['parent_id'] as int?,
+      parentName: json['parent_name'] as String?,
+    );
+  }
+}

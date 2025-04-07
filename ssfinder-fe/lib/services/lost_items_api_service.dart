@@ -1,20 +1,23 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sumsumfinder/config/environment_config.dart';
+import 'package:sumsumfinder/models/found_items_model.dart';
 import 'dart:io';
 
 class LostItemsApiService {
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-
+  
   Future<String?> _getAccessToken() async {
-    return await _storage.read(key: 'access_token');
+    final accountId = await _storage.read(key: 'current_account_id');
+    return await _storage.read(key: 'access_token_$accountId');
   }
 
   // 분실물 목록 조회
   Future<Map<String, dynamic>> getLostItems() async {
     try {
       final token = await _getAccessToken();
+      print('token: ${token}');
 
       final response = await _dio.get(
         '${EnvironmentConfig.baseUrl}/api/lost-items',
@@ -28,7 +31,7 @@ class LostItemsApiService {
 
       if (response.statusCode == 200) {
         return response.data as Map<String, dynamic>;
-      } else if (response.statusCode == 404) {
+      } else if (response.statusCode == 401) {
         throw Exception('분실물 목록을 찾을 수 없습니다.');
       } else {
         throw DioException(
@@ -150,10 +153,10 @@ class LostItemsApiService {
       final token = await _getAccessToken();
 
       final requestBody = FormData.fromMap({
-        'item_category_id': itemCategoryId.toString(),
+        'itemCategoryId': itemCategoryId.toString(),
         'title': title,
         'color': color,
-        'lost_at': lostAt,
+        'lostAt': lostAt,
         'location': location,
         'detail': detail,
         if (image != null) 'image': await MultipartFile.fromFile(image.path),
@@ -245,6 +248,42 @@ class LostItemsApiService {
       }
     } catch (e) {
       print('Error updating lost item status: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<CategoryModel>> getCategories() async {
+    try {
+      final token = await _getAccessToken();
+
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+      final response = await _dio.get(
+        '${EnvironmentConfig.baseUrl}/api/category',
+        options: Options(headers: headers),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
+        final List<dynamic> categoriesJson = responseData['data'] as List<dynamic>;
+        
+        return categoriesJson
+            .map((json) => CategoryModel.fromJson(json))
+            .toList();
+      } else if (response.statusCode == 404) {
+        throw Exception('카테고리를 찾을 수 없습니다.');
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          error: 'Unexpected status code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching categories: $e');
       rethrow;
     }
   }

@@ -89,7 +89,7 @@ class FoundItemDetailPolice extends StatelessWidget {
                         top: Radius.circular(20),
                       ),
                     ),
-                    builder: (context) => MainOptionsPopup(),
+                    builder: (context) => MainOptionsPopup(item: item),
                   );
                 },
               ),

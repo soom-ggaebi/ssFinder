@@ -67,7 +67,7 @@ class _LostPageState extends State<LostPage>
       setState(() => isLoading = false);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('데이터 로딩에 실패했습니다: $e')));
+      ).showSnackBar(SnackBar(content: Text('로그인이 필요합니다.')));
       print('erre: ${e}');
     }
   }

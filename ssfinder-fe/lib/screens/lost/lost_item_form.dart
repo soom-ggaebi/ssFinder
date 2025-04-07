@@ -9,7 +9,9 @@ import '../../widgets/selects/location_select.dart';
 import '../../widgets/selects/date_select.dart';
 
 class LostItemForm extends StatefulWidget {
-  const LostItemForm({Key? key}) : super(key: key);
+  final dynamic itemToEdit;
+  
+  const LostItemForm({Key? key, this.itemToEdit}) : super(key: key);
 
   @override
   _LostItemFormState createState() => _LostItemFormState();
@@ -20,11 +22,12 @@ class _LostItemFormState extends State<LostItemForm> {
   final ImagePicker _picker = ImagePicker();
 
   String? _selectedCategory;
-  int? _selectedCategoryId;
+  String? _selectedCategoryId;
   String? _selectedColor;
   String? _selectedLocation;
   DateTime? _selectedDate;
   File? _selectedImage;
+  String? _imageUrl;
 
   // 위치 정보
   double? _latitude;
@@ -39,6 +42,28 @@ class _LostItemFormState extends State<LostItemForm> {
   void initState() {
     super.initState();
     _getCurrentLocation();
+    if (widget.itemToEdit != null) {
+      _initFormWithExistingData();
+    }
+  }
+
+  void _initFormWithExistingData() {
+    final item = widget.itemToEdit!;
+    print(item);
+    _itemNameController.text = item.title;
+    _detailController.text = item.detail;
+    if (item.image != null) {
+      _imageUrl = item.image;
+    }
+    setState(() {
+      _selectedCategory = "${item.majorCategory} > ${item.minorCategory}";
+      _selectedCategoryId = item.minorCategory;
+      _selectedColor = item.color;
+      _selectedLocation = item.location;
+      _selectedDate = DateTime.parse(item.lostAt);
+      _latitude = item.latitude;
+      _longitude = item.longitude;
+    });
   }
 
   // 현재 위치 가져오기
@@ -144,44 +169,63 @@ class _LostItemFormState extends State<LostItemForm> {
     });
 
     try {
-      // 날짜 포맷 변환 (yyyy-MM-dd)
-      final formattedDate =
-          "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
-
-      final result = await _apiService.postLostItem(
-        itemCategoryId: _selectedCategoryId!,
-        title: _itemNameController.text,
-        color: _selectedColor!,
-        lostAt: formattedDate,
-        location: _selectedLocation!,
-        image: _selectedImage,
-        detail: _detailController.text,
-        latitude: _latitude!,
-        longitude: _longitude!,
+      final formattedDate = "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
+      final categories = await _apiService.getCategories();
+      final selectedCategoryName = _selectedCategory?.split(' > ').last.trim();
+      final matchingCategory = categories.firstWhere(
+        (category) => category.name == selectedCategoryName,
+        orElse: () => throw Exception('선택한 카테고리를 찾을 수 없습니다.'),
       );
 
-      print('result: ${result}');
+      final categoryId = matchingCategory.id;
+
+      if (widget.itemToEdit != null) {
+        // 수정
+        await _apiService.updateLostItem(
+          lostId: widget.itemToEdit!.id,
+          itemCategoryId: categoryId,
+          title: _itemNameController.text,
+          color: _selectedColor!,
+          lostAt: formattedDate,
+          location: _selectedLocation!,
+          image: _selectedImage,
+          detail: _detailController.text,
+          latitude: _latitude!,
+          longitude: _longitude!,
+        );
+      } else {
+        // 새 항목 생성
+        await _apiService.postLostItem(
+          itemCategoryId: categoryId,
+          title: _itemNameController.text,
+          color: _selectedColor!,
+          lostAt: formattedDate,
+          location: _selectedLocation!,
+          image: _selectedImage,
+          detail: _detailController.text,
+          latitude: _latitude!,
+          longitude: _longitude!,
+        );
+      }
 
       setState(() {
         _isLoading = false;
       });
 
-      // 성공 처리
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('분실물이 성공적으로 등록되었습니다.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(widget.itemToEdit != null ? '분실물이 성공적으로 수정되었습니다.' : '분실물이 성공적으로 등록되었습니다.')),
+      );
 
-      // 이전 화면으로 돌아가기
       Navigator.pop(context, true);
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
 
-      print('분실물 등록 오류: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('분실물 등록에 실패했습니다: $e')));
+      print('분실물 ${widget.itemToEdit != null ? '수정' : '등록'} 오류: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('분실물 ${widget.itemToEdit != null ? '수정' : '등록'}에 실패했습니다: $e')),
+      );
     }
   }
 
@@ -227,34 +271,30 @@ class _LostItemFormState extends State<LostItemForm> {
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(16),
-                      image:
-                          _selectedImage != null
+                      image: _selectedImage != null
+                          ? DecorationImage(
+                              image: FileImage(_selectedImage!),
+                              fit: BoxFit.cover,
+                            )
+                          : _imageUrl != null
                               ? DecorationImage(
-                                image: FileImage(_selectedImage!),
-                                fit: BoxFit.cover,
-                              )
+                                  image: NetworkImage(_imageUrl!),
+                                  fit: BoxFit.cover,
+                                )
                               : null,
                     ),
-                    child:
-                        _selectedImage == null
-                            ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(
-                                    Icons.image,
-                                    size: 50,
-                                    color: Colors.grey,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    '이미지 선택하기',
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                            )
-                            : null,
+                    child: (_selectedImage == null && _imageUrl == null)
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.image, size: 50, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text('이미지 선택하기', style: TextStyle(color: Colors.grey)),
+                              ],
+                            ),
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -297,7 +337,7 @@ class _LostItemFormState extends State<LostItemForm> {
                       setState(() {
                         // result는 Map<String, dynamic> 형태로 category와 id를 포함
                         _selectedCategory = result['category'];
-                        _selectedCategoryId = result['id'];
+                        _selectedCategoryId = result['categoryId'];
                       });
                     }
                   },
