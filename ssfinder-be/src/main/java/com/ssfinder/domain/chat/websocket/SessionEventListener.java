@@ -20,12 +20,12 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class SessionEventListener {
 
-    private final RedisTemplate<String, String> redisTemplate;
     private final ChatService chatService;
     private final ChatSessionService chatSessionService;
 
     @EventListener
     public void handleSessionConnect(SessionConnectedEvent event) {
+        log.info("Session connecte event: {}", event);
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
         StompHeaderAccessor connectAccessor = StompHeaderAccessor.wrap(
                 (Message<?>) accessor.getHeader(
