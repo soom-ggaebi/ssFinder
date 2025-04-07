@@ -43,162 +43,103 @@ class KakaoLoginService {
 
   // KakaoLoginService 클래스에 추가할 메서드들
 
-  // 1. 앱 시작 시 호출할 자동 로그인 메서드
+  // 1. autoLogin() 함수를 간소화하고 더 명확하게 만들기
+  // 자동 로그인 단일 메서드로 통합
   Future<bool> autoLogin() async {
+    // 1. 저장된 토큰 확인
+    final accountId = await _storage.read(key: 'current_account_id');
+    if (accountId == null) return false;
+
+    final accessToken = await _storage.read(key: 'access_token_$accountId');
+    final refreshToken = await _storage.read(key: 'refresh_token_$accountId');
+    if (accessToken == null || refreshToken == null) return false;
+
+    // 2. 토큰 만료 확인 및 갱신
+    final expiryStr = await _storage.read(key: 'token_expiry_$accountId');
+    if (expiryStr != null) {
+      final expiry = int.parse(expiryStr);
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      if (expiry - now < 300000) {
+        // 5분 이내 만료
+        final refreshed = await refreshAccessToken();
+        if (!refreshed) return false;
+      }
+    }
+
+    // 3. 사용자 정보 확인
     try {
-      print('자동 로그인 시도 중...');
-
-      // 1. 카카오 사용자 정보 확인 (먼저 카카오 로그인 상태를 확인)
-      try {
-        if (await AuthApi.instance.hasToken()) {
-          await UserApi.instance.accessTokenInfo();
-          await _getUserInfo(); // 여기서 user 정보를 가져옵니다
-        } else {
-          print('카카오 토큰이 없습니다. 자동 로그인 불가');
-          return false;
-        }
-      } catch (e) {
-        print('카카오 토큰 확인 중 오류: $e');
-        return false;
-      }
-
-      // 1. 저장된 토큰 확인
-      final accessToken = await getAccessToken();
-      final refreshToken = await getRefreshToken();
-
-      if (accessToken == null || refreshToken == null) {
-        print('저장된 토큰이 없습니다. 자동 로그인 불가');
-        isLoggedIn.value = false;
-        return false;
-      }
-
-      // 3. 토큰의 사용자 ID 확인 (JWT 디코딩)
-      try {
-        // JWT 토큰 구조: header.payload.signature
-        final parts = accessToken.split('.');
-        if (parts.length != 3) {
-          print('유효하지 않은 JWT 토큰 형식입니다');
-          await _clearTokens();
-          return false;
-        }
-
-        // base64 디코딩 (패딩 추가)
-        String payload = parts[1];
-        while (payload.length % 4 != 0) {
-          payload += '=';
-        }
-
-        // base64 디코딩 후 JSON 파싱
-        final decoded = utf8.decode(base64.decode(payload));
-        final payloadMap = jsonDecode(decoded);
-
-        // 사용자 ID 추출 ("sub" 필드)
-        final tokenUserId = payloadMap['sub'];
-
-        // 현재 카카오 사용자 ID와 비교
-        if (user != null &&
-            tokenUserId != null &&
-            tokenUserId.toString() != user!.id.toString()) {
-          print(
-            '토큰의 사용자 ID(${tokenUserId})가 현재 카카오 사용자 ID(${user!.id})와 일치하지 않습니다',
-          );
-          await _clearTokens();
-          return false;
-        }
-      } catch (e) {
-        print('토큰 검증 중 오류 발생: $e');
-        // 오류 발생 시 토큰 삭제
-        await _clearTokens();
-        isLoggedIn.value = false;
-        return false;
-      }
-
-      // 2. 토큰 만료 확인 및 필요시 갱신
-      final expiryStr = await _storage.read(key: 'token_expiry');
-      if (expiryStr != null) {
-        final expiry = int.parse(expiryStr);
-        final now = DateTime.now().millisecondsSinceEpoch;
-
-        // 토큰이 만료되었거나 곧 만료될 예정인 경우 (5분 이내)
-        if (expiry - now < 300000) {
-          // 5분 = 300,000 밀리초
-          print('토큰이 만료되었거나 곧 만료됩니다. 리프레시 토큰으로 갱신 시도...');
-
-          // 리프레시 토큰으로 액세스 토큰 갱신 시도
-          final refreshed = await refreshAccessToken();
-          if (!refreshed) {
-            print('토큰 갱신 실패. 다시 로그인이 필요합니다.');
-            isLoggedIn.value = false;
-            return false;
-          }
-          print('토큰 갱신 성공!');
-        }
-      }
-
-      // 3. 사용자 정보 가져오기 (갱신된 토큰으로 시도)
       final userProfile = await getUserProfile();
-      if (userProfile == null) {
-        print('사용자 정보 조회 실패. 다시 로그인이 필요합니다.');
-        isLoggedIn.value = false;
-        return false;
-      }
+      if (userProfile == null) return false;
 
-      // 사용자 정보를 SharedPreferences에 저장
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'user_nickname',
-        userProfile['profile_nickname'] ?? "",
-      );
-
-      // 4. 카카오 API 토큰 확인 (선택적)
+      // 4. 카카오 토큰 확인 (선택적)
       try {
         if (await AuthApi.instance.hasToken()) {
           await UserApi.instance.accessTokenInfo();
           await _getUserInfo();
         }
       } catch (e) {
-        print('카카오 토큰 확인 중 오류: $e');
-        // 카카오 토큰 오류가 있어도 백엔드 토큰이 유효하면 진행
+        // 카카오 토큰 오류는 무시 (백엔드 토큰이 있으면 충분)
       }
 
-      print('자동 로그인 성공!');
       isLoggedIn.value = true;
       return true;
     } catch (e) {
-      print('자동 로그인 중 오류 발생: $e');
-      isLoggedIn.value = false;
       return false;
     }
   }
 
   // 2. 토큰 자동 갱신을 위한 요청 인터셉터
+  // HTTP 요청 인터셉터 개선
   Future<http.Response> authenticatedRequestWithAutoRefresh(
     String method,
     String endpoint, {
     Map<String, dynamic>? body,
   }) async {
+    // 요청 전 토큰 유효성 검사
+    final isAuthenticated = await ensureAuthenticated();
+    if (!isAuthenticated) {
+      throw Exception('인증 실패');
+    }
+
+    final response = await authenticatedRequest(method, endpoint, body: body);
+
+    // 401 응답 처리
+    if (response.statusCode == 401) {
+      final refreshed = await refreshAccessToken();
+      if (refreshed) {
+        return await authenticatedRequest(method, endpoint, body: body);
+      } else {
+        isLoggedIn.value = false;
+        throw Exception('인증 토큰 갱신 실패');
+      }
+    }
+
+    return response;
+  }
+
+  // KakaoLoginService.dart 내부에 다음 메서드 추가
+  Future<bool> forceLogin() async {
+    // 토큰이 있는지 확인
+    final accessToken = await getAccessToken();
+    if (accessToken == null) {
+      return false;
+    }
+
     try {
-      // 1. 먼저 기존 토큰으로 요청 시도
-      final response = await authenticatedRequest(method, endpoint, body: body);
-
-      // 2. 401 Unauthorized 응답일 경우 토큰 갱신 후 재시도
-      if (response.statusCode == 401) {
-        print('인증 만료. 토큰 갱신 시도 중...');
-        final refreshed = await refreshAccessToken();
-
-        if (refreshed) {
-          print('토큰 갱신 성공. 요청 재시도...');
-          return await authenticatedRequest(method, endpoint, body: body);
-        } else {
-          print('토큰 갱신 실패. 로그인 필요.');
-          throw Exception('인증 토큰 갱신 실패');
-        }
+      // 사용자 정보 가져오기 시도
+      final userProfile = await getUserProfile();
+      if (userProfile == null) {
+        return false;
       }
 
-      return response;
+      // 로그인 상태 강제 설정
+      isLoggedIn.value = true;
+      print('강제 로그인 성공: ${userProfile['profile_nickname']}');
+      return true;
     } catch (e) {
-      print('인증 요청 중 오류: $e');
-      rethrow;
+      print('강제 로그인 중 오류: $e');
+      return false;
     }
   }
 
@@ -319,26 +260,61 @@ class KakaoLoginService {
     }
 
     try {
-      // fcm 토큰 가져오기
-      String? fcmToken = await FirebaseMessaging.instance.getToken();
-
       // 기존 토큰 확인
       final existingAccessToken = await getAccessToken();
       final existingRefreshToken = await getRefreshToken();
 
-      // 기존 토큰이 있고 유효하다면 해당 토큰 사용
+      // 기존 토큰이 있다면 유효성 검증
       if (existingAccessToken != null && existingRefreshToken != null) {
-        final isTokenValid = await ensureAuthenticated();
-        if (isTokenValid) {
-          print('기존 토큰 사용');
-          isLoggedIn.value = true;
-          return {
-            'access_token': existingAccessToken,
-            'refresh_token': existingRefreshToken,
-            'result_type': '기존 토큰 유지',
-          };
+        // 1. 토큰 만료 시간 확인
+        bool isValid = await ensureAuthenticated();
+
+        // 2. 토큰이 유효한 경우 실제 API 호출로 확인
+        if (isValid) {
+          try {
+            // 사용자 정보 API를 호출하여 실제 토큰 유효성 확인
+            final testResponse = await authenticatedRequest(
+              'GET',
+              '/api/users',
+            );
+
+            if (testResponse.statusCode == 200) {
+              print('기존 토큰이 유효합니다. 새로운 토큰을 발급하지 않고 기존 토큰 사용');
+              isLoggedIn.value = true;
+              return {
+                'access_token': existingAccessToken,
+                'refresh_token': existingRefreshToken,
+                'result_type': '기존 토큰 유지',
+              };
+            } else if (testResponse.statusCode == 401) {
+              print('토큰이 만료되었습니다. 갱신 시도하겠습니다.');
+              // 토큰 갱신 시도
+              final refreshSuccess = await refreshAccessToken();
+              if (refreshSuccess) {
+                final newAccessToken = await getAccessToken();
+                final newRefreshToken = await getRefreshToken();
+                if (newAccessToken != null && newRefreshToken != null) {
+                  print('토큰 갱신 성공. 갱신된 토큰 사용');
+                  isLoggedIn.value = true;
+                  return {
+                    'access_token': newAccessToken,
+                    'refresh_token': newRefreshToken,
+                    'result_type': '토큰 갱신',
+                  };
+                }
+              }
+            }
+          } catch (e) {
+            print('토큰 유효성 검증 중 오류 발생: $e');
+            // 오류 발생 시 새 토큰 발급으로 진행
+          }
         }
       }
+
+      print('새로운 토큰 발급 시도');
+
+      // fcm 토큰 가져오기
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
 
       // 성별 정보 변환 (male/female)
       String? gender;
@@ -369,7 +345,7 @@ class KakaoLoginService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestData),
       );
-      print('사용 중인 백엔드 URL: ${dotenv.env['BACKEND_URL'] ?? ''}');
+      print('사용 중인 백엔드 URL: $_backendUrl');
       print('백엔드 응답 상태 코드: ${response.statusCode}');
 
       // 응답 파싱
@@ -395,8 +371,6 @@ class KakaoLoginService {
         if (nickname.isNotEmpty) {
           await prefs.setString('user_nickname', nickname);
           print('닉네임 저장됨: $nickname');
-        } else {
-          print('닉네임이 비어있어 저장하지 않음');
         }
 
         // 인증 성공 시 로그인 상태를 true로 설정
@@ -405,7 +379,7 @@ class KakaoLoginService {
         return responseData['data'];
       } else {
         print('백엔드 인증 실패: ${responseData['error']}');
-        isLoggedIn.value = false; // 인증 실패 시 명시적으로 false 설정
+        isLoggedIn.value = false;
         return null;
       }
     } catch (e) {
@@ -414,78 +388,35 @@ class KakaoLoginService {
     }
   }
 
-  // 토큰 저장
+  // 2. 계정 ID 관리 일관성 유지
+  // 토큰 저장 메서드 개선
   Future<void> _saveTokens(
     String accessToken,
     String refreshToken,
     int expiresIn,
   ) async {
-    String accountId = user!.id.toString(); // 카카오 계정 ID
-
-    try {
-      // 계정별 토큰 저장
-      await _storage.write(key: 'access_token_$accountId', value: accessToken);
-      await _storage.write(
-        key: 'refresh_token_$accountId',
-        value: refreshToken,
-      );
-      await _storage.write(
-        key: 'token_expiry_$accountId',
-        value: (DateTime.now().millisecondsSinceEpoch + expiresIn).toString(),
-      );
-
-      // 통합 키에도 토큰 저장 (다른 서비스에서 사용하기 위함)
-      await _storage.write(key: 'access_token', value: accessToken);
-      await _storage.write(key: 'refresh_token', value: refreshToken);
-      await _storage.write(
-        key: 'token_expiry',
-        value: (DateTime.now().millisecondsSinceEpoch + expiresIn).toString(),
-      );
-
-      // 현재 활성 계정 ID 저장
-      await _storage.write(key: 'active_account_id', value: accountId);
-
-      // 저장 후 바로 확인
-      final savedToken = await _storage.read(key: 'access_token');
-      if (savedToken == null || savedToken.isEmpty) {
-        print('경고: 토큰이 저장되지 않았습니다. FlutterSecureStorage 설정을 확인하세요.');
-      } else {
-        print('토큰 저장 완료: $accountId');
-      }
-    } catch (e) {
-      print('토큰 저장 중 오류 발생: $e');
-      // 에러 발생 시 기본 SharedPreferences에도 백업 저장 시도
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('backup_access_token', accessToken);
-        await prefs.setString('backup_refresh_token', refreshToken);
-        print('backup: SharedPreferences에 토큰 백업 저장 완료');
-      } catch (backupError) {
-        print('백업 저장도 실패: $backupError');
-      }
+    final accountId = user?.id.toString() ?? '';
+    if (accountId.isEmpty) {
+      throw Exception('사용자 ID가 없습니다.');
     }
+
+    final expiryTime = DateTime.now().millisecondsSinceEpoch + expiresIn;
+
+    // 계정별 토큰만 저장하고 현재 계정 ID를 기록
+    await _storage.write(key: 'access_token_$accountId', value: accessToken);
+    await _storage.write(key: 'refresh_token_$accountId', value: refreshToken);
+    await _storage.write(
+      key: 'token_expiry_$accountId',
+      value: expiryTime.toString(),
+    );
+    await _storage.write(key: 'current_account_id', value: accountId);
   }
 
+  // 토큰 접근 단순화
   Future<String?> getAccessToken() async {
-    try {
-      // 현재 카카오 계정이 있는 경우 해당 계정 ID 사용
-      if (user != null) {
-        String accountId = user!.id.toString();
-        return await _storage.read(key: 'access_token_$accountId');
-      }
-
-      // 현재 저장된 계정 ID 확인
-      String? currentAccountId = await _storage.read(key: 'current_account_id');
-      if (currentAccountId == null) {
-        print('저장된 계정 ID가 없습니다');
-        return null;
-      }
-
-      return await _storage.read(key: 'access_token_$currentAccountId');
-    } catch (e) {
-      print('액세스 토큰 조회 중 오류: $e');
-      return null;
-    }
+    final accountId = await _storage.read(key: 'current_account_id');
+    if (accountId == null) return null;
+    return await _storage.read(key: 'access_token_$accountId');
   }
 
   Future<String?> getRefreshToken() async {
@@ -617,110 +548,108 @@ class KakaoLoginService {
     }
   }
 
-  // 2. 액세스 토큰 재발급 API
+  // 오류 처리 유틸리티 메서드 추가
+  void _handleAuthError(dynamic error) {
+    isLoggedIn.value = false;
+    // 적절한 에러 핸들링 로직 (예: 이벤트 버스를 통한 알림)
+  }
+
+  // refreshAccessToken() 오류 처리 개선
   Future<bool> refreshAccessToken() async {
     try {
-      // 저장된 리프레시 토큰 가져오기
       final refreshToken = await getRefreshToken();
-      String? accountId =
-          user?.id.toString() ?? await _storage.read(key: 'current_account_id');
+      if (refreshToken == null) return false;
 
-      if (refreshToken == null || accountId == null) {
-        print('리프레시 토큰이나 계정 ID가 없습니다.');
-        return false;
-      }
-
-      // 백엔드 API 호출
       final response = await http.post(
         Uri.parse('$_backendUrl/api/auth/refresh'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refresh_token': refreshToken}),
       );
 
-      print('토큰 재발급 응답 상태 코드: ${response.statusCode}');
-
       if (response.statusCode == 200) {
-        // 응답 파싱
         final responseData = jsonDecode(response.body);
-
         if (responseData['success'] == true) {
-          // 새 토큰 저장
-          final accessToken = responseData['data']['access_token'];
-          final newRefreshToken = responseData['data']['refresh_token'];
-          final expiresIn =
-              responseData['data']['expires_in'] ?? 3600000; // 기본값 1시간
-
-          // 계정별 토큰 저장
-          await _storage.write(
-            key: 'access_token_$accountId',
-            value: accessToken,
+          await _saveTokens(
+            responseData['data']['access_token'],
+            responseData['data']['refresh_token'],
+            responseData['data']['expires_in'] ?? 3600000,
           );
-          await _storage.write(
-            key: 'refresh_token_$accountId',
-            value: newRefreshToken,
-          );
-          await _storage.write(
-            key: 'token_expiry_$accountId',
-            value:
-                (DateTime.now().millisecondsSinceEpoch + expiresIn).toString(),
-          );
-
-          print('액세스 토큰 재발급 성공');
           return true;
-        } else {
-          print('토큰 재발급 실패: ${responseData['error']}');
-          return false;
         }
-      } else if (response.statusCode == 401 || response.statusCode == 400) {
-        // 리프레시 토큰이 유효하지 않으면 저장된 토큰 삭제
-        print('리프레시 토큰이 유효하지 않습니다. 다시 로그인이 필요합니다.');
+      }
+
+      // 실패 시 인증 상태 초기화
+      if (response.statusCode == 401 || response.statusCode == 400) {
         await _clearTokens();
         isLoggedIn.value = false;
-        return false;
-      } else {
-        print('토큰 재발급 요청 실패: ${response.statusCode}');
-        return false;
       }
+
+      return false;
     } catch (e) {
-      print('토큰 재발급 중 오류 발생: $e');
+      await _clearTokens();
+      isLoggedIn.value = false;
       return false;
     }
   }
 
-  // 3. 앱 시작 시 호출할 초기화 메서드 추가 (main.dart 또는 앱 시작 부분에서 호출)
+  // 3. initializeAuth() 메소드 개선하여 앱 시작 시 자동 로그인 시도
   Future<void> initializeAuth() async {
-    // 저장된 토큰 확인
-    final accessToken = await getAccessToken();
-    final refreshToken = await getRefreshToken();
+    try {
+      print('인증 초기화 시작...');
 
-    if (accessToken != null && refreshToken != null) {
-      // 토큰 만료 시간 확인
-      final expiryStr = await _storage.read(key: 'token_expiry');
-      if (expiryStr != null) {
-        final expiry = int.parse(expiryStr);
-        final now = DateTime.now().millisecondsSinceEpoch;
+      // 저장된 토큰 확인
+      final accessToken = await _storage.read(key: 'access_token');
 
-        // 토큰이 만료되었거나 5분 이내에 만료 예정인 경우 자동 갱신
-        if (expiry - now < 300000) {
-          print('앱 시작 시 토큰 만료 감지. 자동 갱신 시도...');
-          await refreshAccessToken();
+      if (accessToken != null) {
+        print('저장된 액세스 토큰이 있습니다. 자동 로그인 시도...');
+
+        // 토큰 만료 시간 확인
+        final expiryStr = await _storage.read(key: 'token_expiry');
+        if (expiryStr != null) {
+          final expiry = int.parse(expiryStr);
+          final now = DateTime.now().millisecondsSinceEpoch;
+
+          // 토큰이 만료되었거나 곧 만료될 예정인 경우
+          if (expiry - now < 300000) {
+            print('토큰이 만료되었거나 곧 만료됩니다. 갱신 시도...');
+            await refreshAccessToken();
+          }
         }
+
+        // 백엔드 API로 사용자 정보 조회 시도
+        final userProfile = await getUserProfile();
+        if (userProfile != null) {
+          print('사용자 정보 조회 성공. 자동 로그인 완료!');
+          isLoggedIn.value = true;
+        } else {
+          print('사용자 정보 조회 실패. 자동 로그인 불가');
+        }
+      } else {
+        print('저장된 토큰이 없습니다. 로그인이 필요합니다.');
       }
 
-      // 자동 로그인 시도
-      await autoLogin();
-    }
+      // 주기적 토큰 갱신 설정
+      setupPeriodicTokenRefresh();
 
-    // 주기적 토큰 확인 설정
-    setupPeriodicTokenRefresh();
+      print('인증 초기화 완료');
+    } catch (e) {
+      print('인증 초기화 중 오류 발생: $e');
+    }
   }
 
   // 3. 회원 정보 조회 API
   Future<Map<String, dynamic>?> getUserProfile() async {
     try {
+      print('회원 정보 조회 시도...');
+      print('사용 중인 백엔드 URL: $_backendUrl');
+
+      final token = await getAccessToken();
+      print('요청에 사용될 토큰: ${token?.substring(0, 15)}...');
+
       final response = await authenticatedRequest('GET', '/api/users');
 
       print('회원 정보 조회 응답 상태 코드: ${response.statusCode}');
+      debugPrint('회원 정보 조회 응답 본문: ${response.body.substring(0, 100)}...');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);

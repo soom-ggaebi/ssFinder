@@ -52,19 +52,37 @@ Future<void> main() async {
   }
   KakaoSdk.init(nativeAppKey: kakaoNativeAppKey);
 
-  // 카카오 로그인 서비스 초기화 및 자동 로그인 시도
+  // 카카오 로그인 서비스 초기화
   final kakaoLoginService = KakaoLoginService();
-  // 주기적 토큰 갱신 설정
-  kakaoLoginService.setupPeriodicTokenRefresh();
+
+  // 초기화 메소드 호출 (이 부분 추가)
+  await kakaoLoginService.initializeAuth();
+
+  // 로그인 상태 확인 및 강제 업데이트
+  if (kakaoLoginService.isLoggedIn.value == false) {
+    // 토큰이 있지만 로그인 상태가 아닌 경우 강제 로그인 시도
+    bool forceLoginResult = await kakaoLoginService.forceLogin();
+    print('강제 로그인 시도 결과: $forceLoginResult');
+  }
+
+  print('최종 로그인 상태: ${kakaoLoginService.isLoggedIn.value}');
 
   // 로그인 상태 변화 감지 및 위치 추적 제어
   kakaoLoginService.onLoginStatusChanged = (isLoggedIn) {
+    print('로그인 상태 변경: $isLoggedIn');
     if (isLoggedIn) {
       locationService.startLocationService();
     } else {
       locationService.stopLocationService();
     }
   };
+
+  // 현재 로그인 상태에 따른 위치 서비스 시작/중지
+  if (kakaoLoginService.isLoggedIn.value) {
+    await locationService.startLocationService();
+  } else {
+    await locationService.stopLocationService();
+  }
 
   // 자동 로그인 시도 (결과 출력을 위한 디버그 로그 추가)
   bool autoLoginResult = await kakaoLoginService.autoLogin();

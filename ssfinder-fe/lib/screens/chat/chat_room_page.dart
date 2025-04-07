@@ -31,7 +31,15 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
+// 구독 변수를 함수 타입으로 선언
+typedef UnsubscribeFn =
+    void Function({Map<String, String>? unsubscribeHeaders});
+
 class _ChatPageState extends State<ChatPage> {
+  // 구독 함수를 저장할 변수
+  UnsubscribeFn? chatRoomUnsubscribeFn;
+  UnsubscribeFn? errorUnsubscribeFn;
+
   final TextEditingController _textController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
@@ -42,6 +50,9 @@ class _ChatPageState extends State<ChatPage> {
   late StompClient stompClient;
   bool isConnected = false;
   int reconnectAttempts = 0;
+  // 구독 ID를 저장할 변수들 (구독 취소를 위해)
+  String? chatRoomSubscriptionId;
+  String? errorSubscriptionId;
 
   // 디버깅을 위한 로그
   final List<String> logs = [];
@@ -55,22 +66,53 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
+    // 연결 상태와 상관없이 컨트롤러들 정리
     _textController.dispose();
     _scrollController.dispose();
-    if (stompClient.connected) {
-      stompClient.deactivate();
+
+    // WebSocket 정리
+    try {
+      if (stompClient.connected) {
+        // 구독 취소 시도
+        if (chatRoomUnsubscribeFn != null) {
+          try {
+            chatRoomUnsubscribeFn!();
+            print('채팅방 구독 취소 완료');
+          } catch (e) {
+            print('채팅방 구독 취소 중 오류: $e');
+          }
+        }
+
+        if (errorUnsubscribeFn != null) {
+          try {
+            errorUnsubscribeFn!();
+            print('에러 구독 취소 완료');
+          } catch (e) {
+            print('에러 구독 취소 중 오류: $e');
+          }
+        }
+
+        // 연결 종료
+        stompClient.deactivate();
+        print('STOMP 클라이언트 비활성화 완료');
+      }
+    } catch (e) {
+      print('dispose 중 오류: $e');
     }
+
     super.dispose();
   }
 
   // 로그 추가 함수
   void addLog(String log) {
+    print('📝 [ChatPage] $log'); // 항상 로그는 출력
+
     if (!mounted) return; // mounted 상태 확인 추가
+
     setState(() {
       logs.add('${DateTime.now().toString().substring(11, 19)}: $log');
       if (logs.length > 100) logs.removeAt(0);
     });
-    print('📝 [ChatPage] $log');
   }
 
   // STOMP 클라이언트 초기화
@@ -84,10 +126,18 @@ class _ChatPageState extends State<ChatPage> {
     stompClient = StompClient(
       config: StompConfig(
         url: serverUrl,
-        onConnect: onConnect,
-        onDisconnect: onDisconnect,
-        onWebSocketError: onWebSocketError,
-        onStompError: onStompError,
+        onConnect: (frame) {
+          if (mounted) onConnect(frame);
+        },
+        onDisconnect: (frame) {
+          if (mounted) onDisconnect(frame);
+        },
+        onWebSocketError: (error) {
+          if (mounted) onWebSocketError(error);
+        },
+        onStompError: (frame) {
+          if (mounted) onStompError(frame);
+        },
         onDebugMessage: (String message) {
           addLog('디버그: $message');
         },
@@ -109,6 +159,8 @@ class _ChatPageState extends State<ChatPage> {
   // 연결 성공 시 호출
   void onConnect(StompFrame frame) {
     addLog('연결 성공: ${frame.body}');
+
+    if (!mounted) return;
 
     setState(() {
       isConnected = true;
@@ -134,7 +186,8 @@ class _ChatPageState extends State<ChatPage> {
     addLog('채팅방 구독 시도: $topic');
 
     try {
-      stompClient.subscribe(
+      // 반환된 함수를 저장
+      chatRoomUnsubscribeFn = stompClient.subscribe(
         destination: topic,
         callback: (StompFrame frame) {
           addLog('채팅 메시지 수신: ${frame.body}');
@@ -180,17 +233,18 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  // 에러 구독
   void subscribeToErrors() {
     final String topic = '/user/queue/errors';
-
     addLog('에러 구독 시도: $topic');
 
     try {
-      stompClient.subscribe(
+      // 반환된 함수를 저장
+      errorUnsubscribeFn = stompClient.subscribe(
         destination: topic,
         callback: (StompFrame frame) {
           addLog('에러 수신: ${frame.body}');
+
+          if (!mounted) return;
 
           // 사용자에게 오류 알림
           ScaffoldMessenger.of(context).showSnackBar(
@@ -211,6 +265,8 @@ class _ChatPageState extends State<ChatPage> {
   // 연결 해제 시 호출
   void onDisconnect(StompFrame frame) {
     addLog('연결 종료: ${frame.body}');
+
+    if (!mounted) return;
 
     setState(() {
       isConnected = false;
@@ -242,6 +298,8 @@ class _ChatPageState extends State<ChatPage> {
   void onStompError(StompFrame frame) {
     addLog('STOMP 오류: ${frame.body}');
 
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('STOMP 프로토콜 오류가 발생했습니다'),
@@ -250,13 +308,36 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  // 재연결 시도
   void reconnect() {
     addLog('재연결 시도');
 
-    // 현재 클라이언트가 활성화된 경우 비활성화
-    if (stompClient.connected) {
-      stompClient.deactivate();
+    try {
+      // 현재 클라이언트가 활성화된 경우 비활성화
+      if (stompClient.connected) {
+        // 구독 취소 (구독 함수 호출 방식으로)
+        if (chatRoomUnsubscribeFn != null) {
+          try {
+            chatRoomUnsubscribeFn!();
+            chatRoomUnsubscribeFn = null;
+          } catch (e) {
+            addLog('채팅방 구독 취소 중 오류: $e');
+          }
+        }
+
+        if (errorUnsubscribeFn != null) {
+          try {
+            errorUnsubscribeFn!();
+            errorUnsubscribeFn = null;
+          } catch (e) {
+            addLog('에러 구독 취소 중 오류: $e');
+          }
+        }
+
+        // 연결 종료
+        stompClient.deactivate();
+      }
+    } catch (e) {
+      addLog('연결 종료 중 오류: $e');
     }
 
     // 새로운 연결 초기화
@@ -267,6 +348,8 @@ class _ChatPageState extends State<ChatPage> {
     if (text.trim().isEmpty) return;
 
     _textController.clear();
+
+    if (!mounted) return;
 
     if (!isConnected) {
       ScaffoldMessenger.of(
@@ -294,6 +377,8 @@ class _ChatPageState extends State<ChatPage> {
 
   // 메시지 전송
   void sendMessage(String text) {
+    if (!mounted) return;
+
     if (!isConnected) {
       addLog('메시지 전송 실패: 연결되지 않음');
       ScaffoldMessenger.of(
@@ -323,14 +408,19 @@ class _ChatPageState extends State<ChatPage> {
       addLog('메시지 전송 완료');
     } catch (e) {
       addLog('메시지 전송 오류: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('메시지 전송 중 오류가 발생했습니다: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('메시지 전송 중 오류가 발생했습니다: $e')));
+      }
     }
   }
 
   void _scrollToBottom() {
+    if (!mounted) return;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
@@ -342,7 +432,11 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _getImageFromGallery() async {
+    if (!mounted) return;
+
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (!mounted) return;
 
     if (image != null) {
       setState(() {
@@ -354,7 +448,11 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _getImageFromCamera() async {
+    if (!mounted) return;
+
     final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+
+    if (!mounted) return;
 
     if (photo != null) {
       setState(() {
@@ -400,6 +498,8 @@ class _ChatPageState extends State<ChatPage> {
                 child: IconButton(
                   icon: const Icon(Icons.more_vert),
                   onPressed: () {
+                    if (!mounted) return;
+
                     // 더보기 버튼 동작
                     showModalBottomSheet(
                       context: context,
@@ -422,6 +522,7 @@ class _ChatPageState extends State<ChatPage> {
                                 ),
                                 onTap: () {
                                   Navigator.pop(context);
+                                  if (!mounted) return;
                                   setState(() {
                                     showDebugPanel = !showDebugPanel;
                                   });
@@ -483,6 +584,7 @@ class _ChatPageState extends State<ChatPage> {
                                 size: 16,
                               ),
                               onPressed: () {
+                                if (!mounted) return;
                                 setState(() {
                                   logs.clear();
                                 });
@@ -526,6 +628,7 @@ class _ChatPageState extends State<ChatPage> {
                 textController: _textController,
                 onSubmitted: _handleSubmitted,
                 onAttachmentPressed: () {
+                  if (!mounted) return;
                   _showAddOptionsBottomSheet(context);
                 },
               ),
@@ -537,6 +640,8 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _showAddOptionsBottomSheet(BuildContext context) {
+    if (!mounted) return;
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
