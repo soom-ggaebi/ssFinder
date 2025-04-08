@@ -53,9 +53,8 @@ public class ChatRoomParticipant {
     @Enumerated(EnumType.STRING)
     private ChatRoomStatus status;
 
-    // mongodb id 값 참조 - 추후 수정 필요하면 수정
-    @Column(name = "latest_read_message_id")
-    private String latestReadMessageId;
+    @Column(name = "last_read_at")
+    private LocalDateTime lastReadAt;
 
     @Column(name = "notification_enabled", nullable = false)
     @Builder.Default
