@@ -46,11 +46,9 @@ class _LostPageState extends State<LostPage>
     try {
       final response = await _apiService.getLostItems();
 
-      // 응답 데이터에서 items 배열 추출
       final List<dynamic> itemsJson = response['data'] as List<dynamic>;
       print('#### ${itemsJson}');
 
-      // JSON 데이터를 LostItemListModel 객체로 변환
       final items =
           itemsJson
               .map(

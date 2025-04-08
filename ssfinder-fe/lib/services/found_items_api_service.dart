@@ -31,7 +31,7 @@ class FoundItemsApiService {
       final requestBody = FormData.fromMap({
         'itemCategoryId': itemCategoryId,
         'name': name,
-        'foundAt': '2025-04-06',
+        'foundAt': foundAt,
         'location': location,
         'color': color,
         'latitude': latitude,
@@ -386,7 +386,7 @@ class FoundItemsApiService {
         'min_longitude': minLng,
         'status': status,
         'type': type,
-        'foundAt': foundAt,
+        'found_at': foundAt,
         'major_category': majorCategory,
         'minor_category': minorCategory,
         'color': color,

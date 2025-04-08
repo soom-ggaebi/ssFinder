@@ -118,17 +118,17 @@ class _FoundItemFormState extends State<FoundItemForm> {
       return false;
     }
 
-    if (_selectedLocation == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('습득장소를 선택해주세요.')));
-      return false;
-    }
-
     if (_selectedDate == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('습득일자를 선택해주세요.')));
+      return false;
+    }
+
+    if (_selectedLocation == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('습득장소를 선택해주세요.')));
       return false;
     }
 
@@ -240,9 +240,6 @@ class _FoundItemFormState extends State<FoundItemForm> {
       // 위치 정보
       _latitude = item.latitude;
       _longitude = item.longitude;
-
-      // 이미지는 URL에서 File로 변환이 필요하므로 별도 처리 필요
-      // 실제 구현 시에는 이미지 URL을 저장하고 UI에서만 표시하는 방식으로 처리할 수 있음
     });
   }
 
@@ -362,7 +359,6 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     );
                     if (result != null) {
                       setState(() {
-                        // result는 Map<String, dynamic> 형태로 category와 id를 포함
                         _selectedCategory = result['category'];
                         _selectedCategoryId = result['categoryId'];
                       });
@@ -396,27 +392,6 @@ class _FoundItemFormState extends State<FoundItemForm> {
                 ),
                 SizedBox(height: 20),
 
-                // 습득 장소 선택
-                Text('습득장소'),
-                SizedBox(height: 8),
-                _buildSelectionItem(
-                  value: _selectedLocation ?? '',
-                  onTap: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => LocationSelect()),
-                    );
-                    if (result != null) {
-                      setState(() {
-                        _selectedLocation = result['location'];
-                        _latitude = result['latitude'];
-                        _longitude = result['longitude'];
-                      });
-                    }
-                  },
-                ),
-                SizedBox(height: 20),
-
                 // 습득 일자 선택
                 Text('습득일자'),
                 SizedBox(height: 8),
@@ -439,6 +414,33 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     if (result != null) {
                       setState(() {
                         _selectedDate = result;
+                      });
+                    }
+                  },
+                ),
+                SizedBox(height: 20),
+
+                // 습득 장소 선택
+                Text('습득장소'),
+                SizedBox(height: 8),
+                _buildSelectionItem(
+                  value: _selectedLocation ?? '',
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => LocationSelect(
+                          date: _selectedDate != null
+                              ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}"
+                              : null,
+                        ),
+                      ),
+                    );
+                    if (result != null) {
+                      setState(() {
+                        _selectedLocation = result['location'];
+                        _latitude = result['latitude'];
+                        _longitude = result['longitude'];
                       });
                     }
                   },

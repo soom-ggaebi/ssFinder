@@ -33,7 +33,6 @@ class _FoundItemDetailSumsumfinderState
     _loadFoundItem();
   }
 
-  // API 호출 후 데이터를 받아와 상태값에 저장합니다.
   Future<void> _loadFoundItem() async {
     setState(() {
       _isLoading = true;
@@ -46,7 +45,6 @@ class _FoundItemDetailSumsumfinderState
         _foundItem = FoundItemModel.fromJson(data);
       });
     } catch (e) {
-      // 에러 발생 시 메시지 출력 (실제 앱에서는 에러처리를 좀 더 강화할 수 있습니다)
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('데이터 로드 중 에러 발생: $e')));
@@ -57,8 +55,7 @@ class _FoundItemDetailSumsumfinderState
     }
   }
 
-  // 색상을 반환하는 함수
-  // (DecorationImage, BoxFit 등: Flutter에서 이미지를 꾸미거나 배치할 때 사용하는 용어입니다)
+  // 색상
   Color getBackgroundColor(String colorName) {
     final List<Map<String, dynamic>> colorMapping = [
       {'label': '검정색', 'color': Colors.black},
@@ -84,8 +81,6 @@ class _FoundItemDetailSumsumfinderState
     return Colors.blue[100]!;
   }
 
-  // 위치를 문자열에서 추출하는 함수들
-  // (여기서 split는 문자열을 구분자를 기준으로 여러 조각으로 나누는 함수입니다)
   String extractLocation(String location) {
     List<String> parts = location.split(" ");
     if (parts.length >= 4) {
@@ -104,7 +99,6 @@ class _FoundItemDetailSumsumfinderState
 
   @override
   Widget build(BuildContext context) {
-    // 로딩 중이거나 데이터가 아직 없을 때 처리
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -289,11 +283,7 @@ class _FoundItemDetailSumsumfinderState
                         item.userId.toString() == userSnapshot.data;
 
                     if (isMyPost) {
-                      // 기존에는 ElevatedButton이나 ToggleButtons를 사용했지만,
-                      // 여기서 CustomSwitch를 사용해 상태를 표현해봅시다.
                       final bool isOn = (item.status == "STORED");
-                      // 예시: 'STORED' 상태면 true(ON), 'RECEIVED'면 false(OFF)로 매핑
-
                       return Row(
                         children: [
                           // 스위치
@@ -329,7 +319,6 @@ class _FoundItemDetailSumsumfinderState
                             },
                           ),
                           const SizedBox(width: 8),
-                          // 토글 상태에 따라 문자열을 표시하고 싶다면 간단히 추가 가능
                           Text(
                             isOn ? "찾는 중" : "찾음",
                             style: const TextStyle(fontSize: 14),
@@ -351,7 +340,6 @@ class _FoundItemDetailSumsumfinderState
                             return;
                           }
 
-                          // 로딩 다이얼로그 표시
                           showDialog(
                             context: context,
                             barrierDismissible: false,
@@ -372,7 +360,7 @@ class _FoundItemDetailSumsumfinderState
                               },
                             );
 
-                            Navigator.pop(context); // 로딩 다이얼로그 닫기
+                            Navigator.pop(context);
 
                             if (response.statusCode == 200) {
                               final responseData = jsonDecode(response.body);

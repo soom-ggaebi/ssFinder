@@ -44,8 +44,8 @@ class FoundItemCard extends StatelessWidget {
                       image: DecorationImage(
                         image: NetworkImage(
                           item.image!,
-                        ), // NetworkImage로 이미지 로드
-                        fit: BoxFit.cover, // 이미지를 컨테이너에 맞게 채움
+                        ), 
+                        fit: BoxFit.cover,
                       ),
                     ),
                   )
@@ -68,9 +68,22 @@ class FoundItemCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "${item.majorCategory} > ${item.minorCategory}",
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "${item.majorCategory} > ${item.minorCategory}",
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      Text(
+                        item.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ]
                   ),
                   if (isLoggedIn)
                   Positioned(
@@ -88,14 +101,6 @@ class FoundItemCard extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-              Text(
-                item.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: Colors.black,
-                ),
               ),
               Text(
                 item.type,

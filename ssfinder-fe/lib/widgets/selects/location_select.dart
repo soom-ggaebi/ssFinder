@@ -5,7 +5,13 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:sumsumfinder/config/environment_config.dart';
 
+import '../../services/location_api_service.dart';
+
 class LocationSelect extends StatefulWidget {
+  final String? date;
+
+  const LocationSelect({Key? key, this.date}) : super(key: key);
+
   @override
   _LocationSelectState createState() => _LocationSelectState();
 }
@@ -13,26 +19,33 @@ class LocationSelect extends StatefulWidget {
 class _LocationSelectState extends State<LocationSelect> {
   GoogleMapController? _mapController;
 
-  // 초기값: 기본 위치 또는 현재 위치
+  // 기본 위치
   LatLng _cameraPosition = LatLng(35.160121, 126.851317);
 
-  // 사용자가 선택한 좌표
   LatLng? _selectedLatLng;
 
-  // 역지오코딩 결과 주소
   String? _selectedAddress_name;
   String? _selectedAddress_street;
 
-  // 주소 검색 쿼리
   String _searchQuery = "";
+
+  Set<Polyline> _polylines = {};
 
   @override
   void initState() {
     super.initState();
-    _determinePosition();
+
+    if (widget.date != null) {
+      _loadRouteData().then((_) {
+        if (_selectedLatLng == null) {
+          _determinePosition();
+        }
+      });
+    } else {
+      _determinePosition();
+    }
   }
 
-  /// 위치 권한 확인 및 현재 위치 가져오기
   Future<void> _determinePosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return;
@@ -47,85 +60,130 @@ class _LocationSelectState extends State<LocationSelect> {
     Position position = await Geolocator.getCurrentPosition();
     setState(() {
       _cameraPosition = LatLng(position.latitude, position.longitude);
+      _selectedLatLng = LatLng(position.latitude, position.longitude);
     });
+    if (_mapController != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
+      );
+    }
   }
 
-  /// 역지오코딩: 좌표 -> 주소 (Google Maps Geocoding API 사용)
-  Future<void> _reverseGeocode(LatLng latLng) async {
-    final url =
-        'https://maps.googleapis.com/maps/api/geocode/json?latlng=${latLng.latitude},${latLng.longitude}&key=${EnvironmentConfig.googleMapApiKey}&language=ko'; // 한국어로 결과 받기
-
+  Future<void> _loadRouteData() async {
+    final locationApiService = LocationApiService();
     try {
-      final response = await http.get(Uri.parse(url));
-      final data = json.decode(response.body);
-
-      if (data['status'] == 'OK') {
-        final results = data['results'];
-        if (results.isNotEmpty) {
-          // 첫 번째 결과의 formatted_address 사용
-          final formattedAddress = results[0]['formatted_address'];
-          // 건물명 또는 POI 이름 (있는 경우)
-          String placeName = '';
-
-          // 주소 구성요소에서 건물명 또는 POI 찾기
-          for (var component in results[0]['address_components']) {
-            if (component['types'].contains('point_of_interest') ||
-                component['types'].contains('establishment')) {
-              placeName = component['long_name'];
-              break;
-            }
-          }
-
+      final response = await locationApiService.getLocationRoutes(widget.date!);
+      if (response['success'] == true) {
+        final routes = response['data']['routes'] as List<dynamic>;
+        List<LatLng> routeCoordinates = [];
+        for (var route in routes) {
+          final lat = route['latitude'] as double;
+          final lng = route['longitude'] as double;
+          routeCoordinates.add(LatLng(lat, lng));
+        }
+        if (routeCoordinates.isNotEmpty) {
           setState(() {
-            _selectedAddress_name = placeName.isNotEmpty ? placeName : '선택한 위치';
-            _selectedAddress_street = formattedAddress;
+            _polylines.add(
+              Polyline(
+                polylineId: PolylineId('route'),
+                points: routeCoordinates,
+                width: 4,
+                color: Colors.blue,
+              ),
+            );
+            _selectedLatLng = routeCoordinates[0];
+            _cameraPosition = routeCoordinates[0];
           });
+          if (_mapController != null) {
+            _mapController!.animateCamera(
+              CameraUpdate.newLatLng(routeCoordinates[0]),
+            );
+          }
         }
       } else {
-        throw Exception('Geocoding API error: ${data['status']}');
+        print('API 호출은 성공했으나, 응답 결과가 성공 상태가 아닙니다.');
       }
     } catch (e) {
-      print('Error in reverse geocoding: $e');
+      print('Error loading route data: $e');
+    }
+  }
+
+  Future<void> _reverseGeocode(LatLng latLng) async {
+    final url =
+        'https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${latLng.longitude}&y=${latLng.latitude}';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'KakaoAK ${EnvironmentConfig.kakaoApiKey}',
+        },
+      );
+      final data = json.decode(response.body);
+
+      if (data['meta'] != null && data['meta']['total_count'] > 0) {
+        String address = "";
+        String addressName = "";
+
+        if (data['documents'][0]['road_address'] != null) {
+          address = data['documents'][0]['road_address']['address_name'];
+        } else if (data['documents'][0]['address'] != null) {
+          address = data['documents'][0]['address']['address_name'];
+        }
+
+        addressName = (data['documents'][0]['road_address']?['building_name']?.toString().isNotEmpty == true)
+            ? data['documents'][0]['road_address']['building_name']
+            : '선택한 장소';
+        setState(() {
+          _selectedAddress_street = address;
+          _selectedAddress_name = addressName;
+        });
+      } else {
+        setState(() {
+          _selectedAddress_street = "주소를 찾을 수 없습니다.";
+        });
+      }
+    } catch (e) {
+      print('Kakao reverse geocoding error: $e');
       setState(() {
         _selectedAddress_street = '주소를 가져올 수 없습니다.';
       });
     }
   }
 
-  /// 주소 검색: 입력한 주소 -> 좌표 (Google Maps Geocoding API 사용)
+  // 주소 검색 기능
   Future<void> _searchAddress() async {
     if (_searchQuery.isEmpty) return;
-
-    final apiKey = 'YOUR_GOOGLE_API_KEY'; // Google API 키 입력
     final url =
-        'https://maps.googleapis.com/maps/api/geocode/json?address=${Uri.encodeComponent(_searchQuery)}&key=$apiKey&language=ko';
-
+        'https://dapi.kakao.com/v2/local/search/keyword.json?query=${Uri.encodeComponent(_searchQuery)}';
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'KakaoAK ${EnvironmentConfig.kakaoApiKey}',
+        },
+      );
       final data = json.decode(response.body);
+      if (data['meta'] != null && data['meta']['total_count'] > 0) {
+        final firstResult = data['documents'][0];
+        double latitude = double.parse(firstResult['y']);
+        double longitude = double.parse(firstResult['x']);
+        LatLng searchedLatLng = LatLng(latitude, longitude);
 
-      if (data['status'] == 'OK') {
-        final results = data['results'];
-        if (results.isNotEmpty) {
-          final location = results[0]['geometry']['location'];
-          LatLng searchedLatLng = LatLng(location['lat'], location['lng']);
-
-          // 지도 카메라 이동
-          _mapController?.animateCamera(CameraUpdate.newLatLng(searchedLatLng));
-
-          // 선택된 좌표 업데이트 및 역지오코딩
-          setState(() {
-            _selectedLatLng = searchedLatLng;
-          });
-          _reverseGeocode(searchedLatLng);
-        }
+        _mapController?.animateCamera(CameraUpdate.newLatLng(searchedLatLng));
+        setState(() {
+          _selectedLatLng = searchedLatLng;
+        });
+        _reverseGeocode(searchedLatLng);
       } else {
-        throw Exception('Geocoding API error: ${data['status']}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('검색 결과가 없습니다.')),
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('주소 검색에 실패했습니다.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('주소 검색에 실패하였습니다.')),
+      );
     }
   }
 
@@ -135,13 +193,12 @@ class _LocationSelectState extends State<LocationSelect> {
       appBar: AppBar(
         title: Text(
           '습득장소 선택',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
       body: SafeArea(
         child: Stack(
           children: [
-            // 구글 맵 영역
             GoogleMap(
               initialCameraPosition: CameraPosition(
                 target: _cameraPosition,
@@ -150,33 +207,31 @@ class _LocationSelectState extends State<LocationSelect> {
               onMapCreated: (controller) {
                 _mapController = controller;
               },
-              // 지도 탭 시 선택된 좌표 업데이트 및 역지오코딩
               onTap: (LatLng latLng) {
                 setState(() {
                   _selectedLatLng = latLng;
                 });
                 _reverseGeocode(latLng);
               },
-              // 카메라 이동 시 중앙 좌표 업데이트
               onCameraMove: (position) {
                 _cameraPosition = position.target;
               },
-              markers:
-                  _selectedLatLng != null
-                      ? {
-                        Marker(
-                          markerId: MarkerId('selected'),
-                          position: _selectedLatLng!,
-                          icon: BitmapDescriptor.defaultMarkerWithHue(
-                            BitmapDescriptor.hueAzure,
-                          ),
+              markers: _selectedLatLng != null
+                  ? {
+                      Marker(
+                        markerId: MarkerId('selected'),
+                        position: _selectedLatLng!,
+                        icon: BitmapDescriptor.defaultMarkerWithHue(
+                          BitmapDescriptor.hueAzure,
                         ),
-                      }
-                      : {},
+                      ),
+                    }
+                  : {},
+              polylines: _polylines,
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
             ),
-            // 상단 검색 창
+            // 주소 검색창
             Positioned(
               top: 16,
               left: 16,
@@ -200,7 +255,7 @@ class _LocationSelectState extends State<LocationSelect> {
                       Expanded(
                         child: TextField(
                           decoration: InputDecoration(
-                            hintText: '위치 검색',
+                            hintText: '주소 검색',
                             border: InputBorder.none,
                           ),
                           onChanged: (value) => _searchQuery = value,
@@ -212,7 +267,7 @@ class _LocationSelectState extends State<LocationSelect> {
                 ),
               ),
             ),
-            // 하단 주소 + 버튼 영역
+            // 하단에 선택된 위치 정보 및 버튼 표시
             Positioned(
               left: 0,
               right: 0,
@@ -237,7 +292,6 @@ class _LocationSelectState extends State<LocationSelect> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 건물명
                     Text(
                       _selectedAddress_name ?? '물건을 주우신 위치를 알려주세요!',
                       style: TextStyle(
@@ -245,13 +299,12 @@ class _LocationSelectState extends State<LocationSelect> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    // 도로명
                     Text(
-                      _selectedAddress_street ?? '게시글에는 상세 위치 정보를 공개하지 않습니다.',
+                      _selectedAddress_street ??
+                          '게시글에는 상세 위치 정보를 공개하지 않습니다.',
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     SizedBox(height: 16),
-                    // "현재 위치로 설정" 버튼
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         minimumSize: Size.fromHeight(48),
@@ -261,17 +314,15 @@ class _LocationSelectState extends State<LocationSelect> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      onPressed:
-                          _selectedLatLng == null
-                              ? null
-                              : () {
-                                // 위치 정보와 함께 주소 반환
-                                Navigator.pop(context, {
-                                  'location': _selectedAddress_street,
-                                  'latitude': _selectedLatLng!.latitude,
-                                  'longitude': _selectedLatLng!.longitude,
-                                });
-                              },
+                      onPressed: _selectedLatLng == null
+                          ? null
+                          : () {
+                              Navigator.pop(context, {
+                                'location': _selectedAddress_street,
+                                'latitude': _selectedLatLng!.latitude,
+                                'longitude': _selectedLatLng!.longitude,
+                              });
+                            },
                       child: Text('현재 위치로 설정'),
                     ),
                   ],

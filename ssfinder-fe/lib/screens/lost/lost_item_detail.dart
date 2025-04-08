@@ -271,14 +271,12 @@ class _LostItemDetailState extends State<LostItemDetail> {
                         _item = _item!.copyWith(status: newStatus);
                       });
                       
-                      // 성공 메시지 표시
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('상태가 성공적으로 변경되었습니다.')),
                       );
 
                       Navigator.pop(context, {'id': _item!.id, 'status': newStatus});
                     } catch (e) {
-                      // 오류 발생 시 에러 메시지 표시
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('상태 변경에 실패했습니다: $e')),
                       );

@@ -377,7 +377,7 @@ class _LostItemFormState extends State<LostItemForm> {
                   onTap: () async {
                     final result = await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => LocationSelect()),
+                      MaterialPageRoute(builder: (_) => LocationSelect(date: "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}")),
                     );
                     if (result != null) {
                       setState(() {

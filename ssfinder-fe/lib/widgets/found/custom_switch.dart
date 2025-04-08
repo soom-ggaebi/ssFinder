@@ -24,7 +24,7 @@ class _CustomSwitchState extends State<CustomSwitch>
   @override
   void didUpdateWidget(CustomSwitch oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 부모(상위)에서 value가 바뀌면 여기도 반영
+    // 부모에서 value가 바뀌면 여기도 반영
     if (oldWidget.value != widget.value) {
       setState(() {
         _isOn = widget.value;
@@ -45,7 +45,6 @@ class _CustomSwitchState extends State<CustomSwitch>
     return GestureDetector(
       onTap: _handleTap,
       child: AnimatedContainer(
-        // AnimatedContainer로 너비, 높이, 색상, 모서리 둥글기 등이 변할 때 애니메이션 적용
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         width: 50,
@@ -55,7 +54,6 @@ class _CustomSwitchState extends State<CustomSwitch>
           borderRadius: BorderRadius.circular(25),
         ),
         child: AnimatedAlign(
-          // AnimatedAlign으로 동그라미(토글)의 위치가 바뀔 때 애니메이션 적용
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
           alignment: _isOn ? Alignment.centerRight : Alignment.centerLeft,

@@ -1,14 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // DateTime 포맷팅을 위해 추가
+import 'package:intl/intl.dart';
 import 'package:sumsumfinder/widgets/selects/category_select.dart';
 import 'package:sumsumfinder/widgets/selects/color_select.dart';
-// 습득 장소 선택 위젯 제거: import 'package:sumsumfinder/widgets/selects/location_select.dart';
 import 'package:sumsumfinder/widgets/selects/date_select.dart';
 
 class FilterPage extends StatefulWidget {
-  // FoundPage에서 전달한 초기 필터 값
-  // 예를 들어, { 'status': 'ALL', 'foundDate': '2025-04-08', 'majorCategory': '전자기기', 'minorCategory': '스마트폰', 'color': '검정색', 'type': '숨숨파인더' }
   final Map<String, dynamic> initialFilter;
   const FilterPage({Key? key, required this.initialFilter}) : super(key: key);
 
@@ -17,22 +14,12 @@ class FilterPage extends StatefulWidget {
 }
 
 class _FilterPageState extends State<FilterPage> {
-  /// 상태 선택 (전체, 보관중, 전달완료) — UI에서는 한글 값 사용
   String _selectedState = '전체';
-
-  /// 보관 장소 선택 (전체, 숨숨파인더, 경찰청)
   String _storageLocation = '전체';
-
-  /// 습득 일자 선택 – 화면에는 "YYYY년 M월 d일" 형식으로 표시, 내부적으로는 DateTime 객체로 관리
-  DateTime? _foundDate;
-
-  /// 카테고리 선택 (예: "전자기기 > 스마트폰")
+  DateTime? _foundAt;
   String? _selectedCategory;
-
-  /// 색상 선택
   String? _selectedColor;
 
-  // 상태 매핑 함수: UI 한글 값을 API용 문자열로 변경
   String _mapStatus(String state) {
     switch (state) {
       case '전체':
@@ -46,7 +33,6 @@ class _FilterPageState extends State<FilterPage> {
     }
   }
 
-  // 보관 장소(타입) 매핑 함수
   String _mapStorage(String storage) {
     switch (storage) {
       case '전체':
@@ -60,28 +46,10 @@ class _FilterPageState extends State<FilterPage> {
     }
   }
 
-  // 카테고리 문자열 분리 함수: "A > B" 형식이면 A는 majorCategory, B는 minorCategory로 반환
-  Map<String, String> _splitCategory(String? category) {
-    if (category == null || category.trim().isEmpty) {
-      return {'majorCategory': 'null', 'minorCategory': 'null'};
-    }
-    final parts = category.split(' > ');
-    if (parts.length >= 2) {
-      return {
-        'majorCategory': parts[0].trim(),
-        'minorCategory': parts[1].trim(),
-      };
-    } else {
-      return {'majorCategory': category.trim(), 'minorCategory': 'null'};
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    // FoundPage에서 전달한 초기 필터 값을 기반으로 UI 초기화
 
-    // [상태] – API 값 (예: 'ALL')을 UI 한글 값으로 매핑
     String status = widget.initialFilter['status'] ?? 'ALL';
     switch (status) {
       case 'ALL':
@@ -97,7 +65,6 @@ class _FilterPageState extends State<FilterPage> {
         _selectedState = '전체';
     }
 
-    // [보관 장소] – API의 'type' 값으로 설정 (숨숨파인더 또는 경찰청이면 그대로, 그 외에는 "전체")
     String type = widget.initialFilter['type'] ?? '전체';
     if (type == '숨숨파인더' || type == '경찰청') {
       _storageLocation = type;
@@ -105,36 +72,33 @@ class _FilterPageState extends State<FilterPage> {
       _storageLocation = '전체';
     }
 
-    // [습득 일자] – API 형식("yyyy-MM-dd")을 DateTime으로 파싱한 후, UI에 표시할 때 포맷팅
-    String apiFoundDate = widget.initialFilter['foundDate'] ?? 'null';
-    if (apiFoundDate != 'null' && apiFoundDate.trim().isNotEmpty) {
+    String apifoundAt = widget.initialFilter['foundAt'] ?? '';
+    if (apifoundAt != '' && apifoundAt.trim().isNotEmpty) {
       try {
-        _foundDate = DateTime.parse(apiFoundDate);
+        _foundAt = DateTime.parse(apifoundAt);
       } catch (e) {
-        _foundDate = null;
+        _foundAt = null;
       }
     } else {
-      _foundDate = null;
+      _foundAt = null;
     }
 
-    // [카테고리] – majorCategory와 minorCategory가 모두 존재하면 결합 ("A > B")하여 UI에 표시
-    String major = widget.initialFilter['majorCategory'] ?? 'null';
-    String minor = widget.initialFilter['minorCategory'] ?? 'null';
-    if (major != 'null' && minor != 'null') {
-      _selectedCategory = '$major > $minor';
+    String major = widget.initialFilter['majorCategory'] ?? '';
+    String minor = widget.initialFilter['minorCategory'] ?? '';
+
+    if (major != '' || minor != '') {
+      _selectedCategory = major + ' > ' + minor;
     } else {
       _selectedCategory = '';
     }
 
-    // [색상]
     _selectedColor = widget.initialFilter['color'] ?? '';
   }
 
   @override
   Widget build(BuildContext context) {
-    // _foundDate가 DateTime일 경우, 화면 표시에 사용할 문자열 생성 (예: "2025년 4월 8일")
-    String foundDateDisplay =
-        _foundDate != null ? DateFormat('yyyy년 M월 d일').format(_foundDate!) : '';
+    String foundAtDisplay =
+        _foundAt != null ? DateFormat('yyyy년 M월 d일').format(_foundAt!) : '';
 
     return Scaffold(
       body: SafeArea(
@@ -158,25 +122,22 @@ class _FilterPageState extends State<FilterPage> {
                       const SizedBox(height: 16),
                       _buildLabel('습득 일자'),
                       const SizedBox(height: 8),
-                      // foundDateDisplay 문자열을 화면에 표시
                       _buildSelectionItem(
-                        value: foundDateDisplay,
+                        value: foundAtDisplay,
                         hintText: '습득 일자를 선택하세요',
                         onTap: () async {
-                          // DateSelect가 DateTime 객체를 반환하도록 구성
                           final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (_) => DateSelect(
-                                    headerLine1: '찾으시는',
-                                    headerLine2: '날짜를 알려주세요!',
-                                  ),
+                              builder: (_) => DateSelect(
+                                headerLine1: '찾으시는',
+                                headerLine2: '날짜를 알려주세요',
+                              ),
                             ),
                           );
                           if (result != null && result is DateTime) {
                             setState(() {
-                              _foundDate = result;
+                              _foundAt = result;
                             });
                           }
                         },
@@ -191,17 +152,16 @@ class _FilterPageState extends State<FilterPage> {
                           final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (_) => CategorySelect(
-                                    headerLine1: '찾으시는 물건의',
-                                    headerLine2: '종류를 알려주세요!',
-                                  ),
+                              builder: (_) => CategorySelect(
+                                headerLine1: '찾으시는 물건의',
+                                headerLine2: '종류를 알려주세요',
+                              ),
                             ),
                           );
                           if (result != null) {
                             setState(() {
-                              // CategorySelect에서 'category' 키의 값 사용 (문자열)
-                              _selectedCategory = result['category'].toString();
+                              _selectedCategory =
+                                  result['category'].toString();
                             });
                           }
                         },
@@ -216,11 +176,10 @@ class _FilterPageState extends State<FilterPage> {
                           final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (_) => ColorSelect(
-                                    headerLine1: '찾으시는 물건의',
-                                    headerLine2: '색상을 알려주세요!',
-                                  ),
+                              builder: (_) => ColorSelect(
+                                headerLine1: '찾으시는 물건의',
+                                headerLine2: '색상을 알려주세요',
+                              ),
                             ),
                           );
                           if (result != null) {
@@ -245,23 +204,18 @@ class _FilterPageState extends State<FilterPage> {
                   ),
                 ),
                 onPressed: () {
-                  // [상태] UI 한글 값을 API용 문자열로 변환
                   final apiStatus = _mapStatus(_selectedState);
-                  // [보관 장소] API용으로 변환
                   final apiType = _mapStorage(_storageLocation);
-                  // [습득 일자] DateTime을 "yyyy-MM-dd" 형식으로 포맷팅
-                  String apiFoundAt =
-                      _foundDate != null
-                          ? DateFormat('yyyy-MM-dd').format(_foundDate!)
-                          : 'null';
+                  String apiFoundAt = _foundAt != null
+                      ? DateFormat('yyyy-MM-dd').format(_foundAt!)
+                      : '';
 
-                  // 반환할 Map은 FoundPage에서 기대하는 키로 구성
                   Navigator.pop(context, {
-                    'state': apiStatus, // 예: "ALL", "STORED", "RECEIVED"
-                    'type': apiType, // 예: "숨숨파인더", "경찰청", "all(숨숨파인더/경찰청/all)"
-                    'foundDate': apiFoundAt, // 예: "2025-04-08"
-                    'category': _selectedCategory ?? 'null', // 예: "전자기기 > 스마트폰"
-                    'color': _selectedColor?.toString() ?? 'null',
+                    'state': apiStatus,
+                    'type': apiType,
+                    'foundAt': apiFoundAt,
+                    'category': _selectedCategory ?? '',
+                    'color': _selectedColor?.toString() ?? '',
                   });
                 },
                 child: const Text('필터 적용'),
@@ -273,7 +227,6 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  /// 상단 헤더 위젯
   Widget _buildHeader(BuildContext context) {
     return Container(
       height: 56,
@@ -300,7 +253,6 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  /// 상태 선택 위젯 (전체, 보관중, 전달완료)
   Widget _buildStateSelector() {
     return Container(
       height: 50,
@@ -319,7 +271,6 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  /// 보관 장소 선택 위젯 (전체, 숨숨파인더, 경찰청)
   Widget _buildStorageLocationSelector() {
     return Container(
       height: 50,
@@ -338,7 +289,6 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  /// 공통 선택 버튼 위젯 (상태/보관 장소)
   Widget _buildStateButton(String label, {required String isFor}) {
     bool isSelected = false;
     if (isFor == 'state') {
@@ -377,7 +327,6 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  /// 라벨 텍스트 위젯
   Widget _buildLabel(String text) {
     return Text(
       text,
@@ -385,7 +334,6 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  /// 선택형 항목 위젯 (InkWell + 아이콘)
   Widget _buildSelectionItem({
     required String value,
     required String hintText,
