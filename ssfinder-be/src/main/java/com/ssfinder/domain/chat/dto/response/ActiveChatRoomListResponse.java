@@ -27,5 +27,6 @@ public record ActiveChatRoomListResponse (
         String latestMessage,
         LocalDateTime latestSentAt,
         boolean notificationEnabled,
+        boolean hasUnread,
         ChatRoomFoundItem foundItem
 ) { }
