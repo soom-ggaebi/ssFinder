@@ -98,6 +98,7 @@ public class ChatRoomService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public ChatRoomDetailResponse getChatRoomDetail(Integer userId, Integer chatRoomId) {
         ChatRoom chatRoom = findById(chatRoomId);
         FoundItem foundItem = chatRoom.getFoundItem();
@@ -120,6 +121,7 @@ public class ChatRoomService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public List<ActiveChatRoomListResponse> getActiveChatRoomList(Integer userId) {
         List<ChatRoomListDetail> chatRooms = chatRoomRepository.findByUserAndStatusIsActive(userId);
         User user = userService.findUserById(userId);
@@ -144,10 +146,10 @@ public class ChatRoomService {
 
             response.add(
                     ActiveChatRoomListResponse.builder()
-                            .chatRoomFoundItem(chatRoomFoundItem)
+                            .foundItem(chatRoomFoundItem)
                             .chatRoomId(chatRoom.getId())
                             .notificationEnabled(participant.getNotificationEnabled())
-                            .nickname(opponent.getNickname())
+                            .opponentNickname(opponent.getNickname())
                             .latestMessage(chatRoom.getLatestMessage())
                             .latestSentAt(chatRoom.getLatestSentAt())
                             .build()
