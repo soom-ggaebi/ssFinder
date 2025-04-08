@@ -25,7 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * packageName    : com.ssfinder.domain.user.service<br>
@@ -145,11 +144,11 @@ public class ChatService {
     }
 
     private ChatMessageStatus checkStatus(Integer userId, Integer chatRoomId) {
-        return isUserInChatRoom(userId, chatRoomId) ?
+        return isViewingChatRoom(userId, chatRoomId) ?
                 ChatMessageStatus.READ : ChatMessageStatus.UNREAD;
     }
 
-    public boolean isUserInChatRoom(Integer userId, Integer chatRoomId) {
+    public boolean isViewingChatRoom(Integer userId, Integer chatRoomId) {
         return Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(REDIS_CHAT_USERS_KEY + chatRoomId, userId.toString()));
     }
 }
