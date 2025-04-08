@@ -145,7 +145,11 @@ public class ChatService {
     }
 
     private ChatMessageStatus checkStatus(Integer userId, Integer chatRoomId) {
-        boolean isViewing = Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(REDIS_CHAT_USERS_KEY + chatRoomId, userId.toString()));
-        return isViewing ? ChatMessageStatus.READ : ChatMessageStatus.UNREAD;
+        return isUserInChatRoom(userId, chatRoomId) ?
+                ChatMessageStatus.READ : ChatMessageStatus.UNREAD;
+    }
+
+    public boolean isUserInChatRoom(Integer userId, Integer chatRoomId) {
+        return Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(REDIS_CHAT_USERS_KEY + chatRoomId, userId.toString()));
     }
 }
