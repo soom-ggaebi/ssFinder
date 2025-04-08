@@ -12,6 +12,7 @@ import com.ssfinder.domain.founditem.repository.FoundItemRepository;
 import com.ssfinder.domain.itemcategory.entity.ItemCategory;
 import com.ssfinder.domain.itemcategory.repository.ItemCategoryRepository;
 import com.ssfinder.domain.user.entity.User;
+import com.ssfinder.domain.user.repository.UserRepository;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
@@ -63,6 +64,7 @@ public class FoundItemService {
     private final ImageHandler imageHandler;
     private final S3Service s3Service;
     private final FoundItemElasticsearchQueryService elasticsearchQueryService;
+    private final UserRepository userRepository;
 
     // 습득물 데이터 저장
     @Transactional
@@ -91,6 +93,15 @@ public class FoundItemService {
         } else {
             response.setHasBookmark(false);
         }
+
+        if (document.getUserId() != null) {
+            User user = userRepository.findById(Integer.valueOf(document.getUserId()))
+                    .orElse(null);
+            response.setUserName(user != null ? user.getNickname() : null);
+        } else {
+            response.setUserName(null);
+        }
+
         return response;
     }
 

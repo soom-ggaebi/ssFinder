@@ -7,6 +7,18 @@ import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * packageName    : com.ssfinder.domain.found.converter<br>
+ * fileName       : FoundItemDtoConverter.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-04-07<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-04-07          leeyj           최초생성<br>
+ * <br>
+ */
 public class FoundItemDtoConverter {
 
     public static FoundItemDetailResponse convertToDetailResponse(FoundItemDocument document) {
