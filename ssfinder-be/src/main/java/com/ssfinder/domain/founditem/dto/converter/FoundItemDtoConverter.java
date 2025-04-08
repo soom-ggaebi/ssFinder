@@ -53,6 +53,7 @@ public class FoundItemDtoConverter {
         response.setName(document.getName());
         response.setLocation(document.getLocation());
         response.setType(document.getManagementId() != null ? "경찰청" : "숨숨파인더");
+        response.setStatus(document.getStatus());
 
         if (document.getStoredAt() != null) {
             response.setStoredAt(document.getStoredAt());
