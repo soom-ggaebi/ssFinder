@@ -2,7 +2,7 @@ package com.ssfinder.domain.route.dto.response;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.ssfinder.domain.route.dto.request.RouteCreateRequest;
+import com.ssfinder.domain.route.dto.request.LocationTrace;
 
 import java.util.List;
 
@@ -20,6 +20,6 @@ import java.util.List;
  */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record RoutesGetResponse(
-    List<RouteCreateRequest> routes
+        List<LocationTrace> routes
 ) {
 }

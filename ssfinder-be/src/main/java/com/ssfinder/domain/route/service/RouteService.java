@@ -52,7 +52,6 @@ public class RouteService {
         LocalDateTime endOfDay = startOfDay.plusDays(1);
         List<UserLocation> userLocations = userLocationRepository.findByUserIdAndTimestampBetween(userId, startOfDay, endOfDay);
 
-        // TODO 히트맵 (경로 분석 추가)
         return userLocationMapper.toRoutesGetResponse(userLocations);
     }
 
