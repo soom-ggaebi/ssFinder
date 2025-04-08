@@ -2,6 +2,7 @@ package com.ssfinder.domain.chat.controller;
 
 import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
+import com.ssfinder.domain.chat.dto.response.ChatMessageGetResponse;
 import com.ssfinder.domain.chat.service.ChatService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.global.common.exception.CustomException;
@@ -60,6 +61,20 @@ public class ChattingController {
                                    @RequestPart(name = PART_CHAT_IMAGE, required = false) MultipartFile image) {
         Integer userId = userDetails.getUserId();
         KafkaChatMessage response = chatService.sendFile(userId, chatRoomId, image);
+        return ApiResponse.ok(response);
+    }
+
+
+    @GetMapping("/{chatRoomId}/messages")
+    @ResponseBody
+    public ApiResponse<ChatMessageGetResponse> getMessages(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                           @PathVariable Integer chatRoomId,
+                                                           @RequestParam Integer size,
+                                                           @RequestParam(required = false) String cursor) {
+        Integer userId = userDetails.getUserId();
+
+        ChatMessageGetResponse response = chatService.getMessages(userId, chatRoomId, size, cursor);
+
         return ApiResponse.ok(response);
     }
 }
