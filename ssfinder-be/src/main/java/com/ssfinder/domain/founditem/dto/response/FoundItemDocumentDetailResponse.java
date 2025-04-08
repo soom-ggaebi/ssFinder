@@ -63,4 +63,6 @@ public class FoundItemDocumentDetailResponse {
 
     private Boolean hasBookmark;
 
+    private String userName;
+
 }

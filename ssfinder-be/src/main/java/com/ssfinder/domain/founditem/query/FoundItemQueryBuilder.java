@@ -4,6 +4,18 @@ package com.ssfinder.domain.founditem.query;
 import com.ssfinder.domain.founditem.dto.request.FoundItemFilterRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
 
+/**
+ * packageName    : com.ssfinder.domain.found.query<br>
+ * fileName       : FoundItemQueryBuilder.java<br>
+ * author         : leeyj<br>
+ * date           : 2025-04-07<br>
+ * description    :  <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-04-07          leeyj           최초생성<br>
+ * <br>
+ */
 public class FoundItemQueryBuilder {
 
     // 뷰포트 기반 쿼리 생성
