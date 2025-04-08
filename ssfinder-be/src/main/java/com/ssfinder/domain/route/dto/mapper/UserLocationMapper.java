@@ -8,7 +8,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -33,6 +32,10 @@ public interface UserLocationMapper {
     @Mapping(target = "eventTimestamp", source = "request.eventTimestamp")
     UserLocation toUserLocation(RouteCreateRequest request, LocationTrace trace);
 
+    @Mapping(target = "longitude", expression = "java(userLocation.getLocation().getX())")
+    @Mapping(target = "latitude", expression = "java(userLocation.getLocation().getY())")
+    LocationTrace toLocationTrace(UserLocation userLocation);
+
     default List<UserLocation> toUserLocations(RouteCreateRequest request, int userId) {
         if (request.route() == null) {
             return Collections.emptyList();
@@ -54,34 +57,11 @@ public interface UserLocationMapper {
     }
 
     default RoutesGetResponse toRoutesGetResponse(List<UserLocation> userLocations) {
-        // 1. 그룹핑
-        Map<GroupKey, List<UserLocation>> grouped = userLocations.stream()
-                .collect(Collectors.groupingBy(loc -> new GroupKey(loc.getEventType(), loc.getEventTimestamp())));
-
-        List<RouteCreateRequest> routeCreateRequests = grouped.entrySet().stream()
-                .map(entry -> {
-                    GroupKey key = entry.getKey();
-                    List<LocationTrace> traces = entry.getValue().stream()
-                            .sorted(Comparator.comparing(UserLocation::getTimestamp))
-                            .map(this::toLocationTrace)
-                            .collect(Collectors.toList());
-
-                    return new RouteCreateRequest(key.eventType(), key.eventTimestamp(), traces);
-                })
+        List<LocationTrace> list = userLocations.stream()
+                .map(this::toLocationTrace)
                 .collect(Collectors.toList());
 
-        return new RoutesGetResponse(routeCreateRequests);
+        return new RoutesGetResponse(list);
     }
 
-    default LocationTrace toLocationTrace(UserLocation location) {
-        GeoJsonPoint geoJson = location.getLocation();
-        return new LocationTrace(
-                location.getTimestamp(),
-                geoJson.getY(), // lat
-                geoJson.getX() // long
-        );
-    }
-
-    // 내부 그룹 키 클래스 (eventType + eventTimestamp로 그룹핑)
-    record GroupKey(String eventType, LocalDateTime eventTimestamp) {}
 }
