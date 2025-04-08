@@ -1,6 +1,8 @@
 package com.ssfinder.domain.chat.service;
 
 import com.ssfinder.domain.chat.dto.ChatRoomFoundItem;
+import com.ssfinder.domain.chat.dto.ChatRoomListDetail;
+import com.ssfinder.domain.chat.dto.response.ActiveChatRoomListResponse;
 import com.ssfinder.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.ssfinder.domain.chat.dto.response.ChatRoomEntryResponse;
 import com.ssfinder.domain.chat.entity.ChatRoom;
@@ -23,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -95,6 +99,7 @@ public class ChatRoomService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public ChatRoomDetailResponse getChatRoomDetail(Integer userId, Integer chatRoomId) {
         ChatRoom chatRoom = findById(chatRoomId);
         FoundItem foundItem = chatRoom.getFoundItem();
@@ -115,6 +120,44 @@ public class ChatRoomService {
                 .opponentNickname(opponentUser.getNickname())
                 .foundItem(chatRoomFoundItem)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActiveChatRoomListResponse> getActiveChatRoomList(Integer userId) {
+        List<ChatRoomListDetail> chatRooms = chatRoomRepository.findByUserAndStatusIsActive(userId);
+        User user = userService.findUserById(userId);
+
+        List<ActiveChatRoomListResponse> response = new ArrayList<>();
+
+        for(ChatRoomListDetail item : chatRooms) {
+            ChatRoom chatRoom = item.chatRoom();
+            ChatRoomParticipant participant = item.chatRoomParticipant();
+
+            FoundItem foundItem = chatRoom.getFoundItem();
+
+            ItemCategoryInfo itemCategoryInfo = itemCategoryService
+                    .findWithParentById(foundItem.getItemCategory().getId());
+
+            ChatRoomFoundItem chatRoomFoundItem = foundItemMapper
+                    .mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
+
+            User opponent = chatRoomParticipantRepository
+                    .getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user)
+                    .getUser();
+
+            response.add(
+                    ActiveChatRoomListResponse.builder()
+                            .foundItem(chatRoomFoundItem)
+                            .chatRoomId(chatRoom.getId())
+                            .notificationEnabled(participant.getNotificationEnabled())
+                            .opponentNickname(opponent.getNickname())
+                            .latestMessage(chatRoom.getLatestMessage())
+                            .latestSentAt(chatRoom.getLatestSentAt())
+                            .build()
+            );
+        }
+
+        return response;
     }
 
     public void leave(Integer userId, Integer chatRoomId) {
