@@ -23,9 +23,6 @@ class _HomePageState extends State<HomePage> {
     _currentIndex = widget.initialIndex;
   }
 
-  // 각 탭에 해당하는 페이지 리스트
-  final List<Widget> _pages = [MainPage(), LostPage(), FoundPage(), ChatPage()];
-
   void _onNavBarTap(int index) {
     setState(() {
       _currentIndex = index;
@@ -34,9 +31,16 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // 페이지 리스트
+    final List<Widget> pages = [
+      MainPage(),
+      LostPage(),
+      FoundPage(),
+      ChatListPage(), // jwt 파라미터 제거
+    ];
+
     return Scaffold(
-      // 현재 인덱스에 해당하는 페이지
-      body: _pages[_currentIndex],
+      body: pages[_currentIndex],
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,
         onTap: _onNavBarTap,

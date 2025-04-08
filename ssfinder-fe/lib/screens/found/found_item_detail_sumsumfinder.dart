@@ -3,6 +3,11 @@ import 'package:sumsumfinder/models/found_items_model.dart';
 import '../../services/found_items_api_service.dart';
 import '../../widgets/map_widget.dart';
 import '../../widgets/found/items_popup.dart';
+import 'package:sumsumfinder/services/kakao_login_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:sumsumfinder/config/environment_config.dart';
+import 'package:sumsumfinder/screens/chat/chat_room_page.dart';
 
 class FoundItemDetailSumsumfinder extends StatelessWidget {
   final int id;
@@ -221,16 +226,93 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () {
-                        // 채팅 기능
+                      onPressed: () async {
+                        final KakaoLoginService loginService =
+                            KakaoLoginService();
+                        final token = await loginService.getAccessToken();
+
+                        if (token == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('로그인이 필요합니다')),
+                          );
+                          return;
+                        }
+
+                        // 로딩 표시
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder:
+                              (context) => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                        );
+
+                        try {
+                          // API 호출
+                          final response = await http.post(
+                            Uri.parse(
+                              '${EnvironmentConfig.baseUrl}/api/chat-rooms/${item.id}',
+                            ),
+                            headers: {
+                              'Authorization': 'Bearer $token',
+                              'Content-Type': 'application/json',
+                            },
+                          );
+
+                          // 로딩 닫기
+                          Navigator.pop(context);
+
+                          if (response.statusCode == 200) {
+                            final responseData = jsonDecode(response.body);
+
+                            if (responseData['success'] == true) {
+                              // 채팅방 ID 가져오기
+                              final chatRoomId =
+                                  responseData['data']['chat_room_id'];
+
+                              // 채팅방으로 이동
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => ChatPage(
+                                        roomId: chatRoomId,
+                                        otherUserName: item.userName ?? '습득자',
+                                        myName: '나',
+                                      ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    responseData['error']['message'] ??
+                                        '채팅방 생성 실패',
+                                  ),
+                                ),
+                              );
+                            }
+                          } else {
+                            final errorData = jsonDecode(response.body);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  errorData['error']['message'] ?? '서버 오류',
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          // 에러 발생 시 로딩 닫기
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('채팅방 생성 중 오류 발생: $e')),
+                          );
+                        }
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
                       child: const Text('채팅하기', style: TextStyle(fontSize: 14)),
                     ),
                   ],

@@ -37,32 +37,32 @@ class _MainPageState extends State<MainPage> {
                   // 상단 아이콘 버튼들
                   _buildTopBar(context),
 
-                  const Spacer(flex: 1),
+                  const SizedBox(height: 16),
 
                   // 로그인 컨테이너
                   const LoginWidget(),
 
-                  const Spacer(flex: 1),
+                  const SizedBox(height: 16),
 
                   // 날씨 및 검색 컨테이너
                   const WeatherWidget(),
 
-                  const Spacer(flex: 1),
+                  const SizedBox(height: 16),
 
                   // 분실물 카운트 컨테이너
                   const StatisticsWidget(),
 
-                  const Spacer(flex: 1),
+                  const SizedBox(height: 16),
 
                   // 등록한 분실물 및 습득물 카운트 컨테이너
                   const UserStatsWidget(),
 
-                  const Spacer(flex: 1),
+                  const SizedBox(height: 16),
 
                   // 물건 찾기/주웠어요 버튼
                   ActionButtonsWidget(availableHeight: availableHeight),
 
-                  const Spacer(flex: 1),
+                  const SizedBox(height: 16),
 
                   // 하단 배너 (높이 제한)
                   _buildBottomBanner(),
@@ -80,47 +80,63 @@ class _MainPageState extends State<MainPage> {
 
   Widget _buildTopBar(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween, // 양 끝에 요소 배치
       children: [
-        IconButton(
-          icon: SvgPicture.asset(
-            'assets/images/main/noti_icon.svg',
-            width: 24,
+        // 좌측 끝에 로고 배치
+        Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: SvgPicture.asset(
+            'assets/images/main/logo.svg',
+            width: 100, // 필요에 따라 조정
             height: 24,
           ),
-          onPressed: () {
-            if (_kakaoLoginService.isLoggedIn.value) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationPage(),
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('로그인이 필요한 기능입니다.')));
-            }
-          },
         ),
-        IconButton(
-          icon: SvgPicture.asset(
-            'assets/images/main/myPage_icon.svg',
-            width: 24,
-            height: 24,
-          ),
-          onPressed: () {
-            if (_kakaoLoginService.isLoggedIn.value) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MyPage()),
-              );
-            } else {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('로그인이 필요한 기능입니다.')));
-            }
-          },
+
+        // 오른쪽 끝에 아이콘 배치
+        Row(
+          mainAxisSize: MainAxisSize.min, // 아이콘들이 차지하는 공간만 사용
+          children: [
+            IconButton(
+              icon: SvgPicture.asset(
+                'assets/images/main/noti_icon.svg',
+                width: 24,
+                height: 24,
+              ),
+              onPressed: () {
+                if (_kakaoLoginService.isLoggedIn.value) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationPage(),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('로그인이 필요한 기능입니다.')),
+                  );
+                }
+              },
+            ),
+            IconButton(
+              icon: SvgPicture.asset(
+                'assets/images/main/myPage_icon.svg',
+                width: 24,
+                height: 24,
+              ),
+              onPressed: () {
+                if (_kakaoLoginService.isLoggedIn.value) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MyPage()),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('로그인이 필요한 기능입니다.')),
+                  );
+                }
+              },
+            ),
+          ],
         ),
       ],
     );

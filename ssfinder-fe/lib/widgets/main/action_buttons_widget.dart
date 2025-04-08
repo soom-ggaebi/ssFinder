@@ -36,13 +36,12 @@ class ActionButtonsWidget extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const AppText('물건을', style: TextStyle(fontSize: 13.0)),
-                  const AppText('찾아줘요', style: TextStyle(fontSize: 13.0)),
+                  const AppText('찾아줘요'),
                   SizedBox(height: getHeightPercent(0.015)),
                   SvgPicture.asset(
                     'assets/images/main/lost_icon.svg',
-                    width: getHeightPercent(0.04),
-                    height: getHeightPercent(0.04),
+                    width: getHeightPercent(0.8),
+                    height: getHeightPercent(0.08),
                   ),
                 ],
               ),
@@ -70,13 +69,12 @@ class ActionButtonsWidget extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const AppText('물건을', style: TextStyle(fontSize: 13.0)),
-                  const AppText('주웠어요', style: TextStyle(fontSize: 13.0)),
+                  const AppText('주웠어요'),
                   SizedBox(height: getHeightPercent(0.015)),
                   SvgPicture.asset(
                     'assets/images/main/found_icon.svg',
-                    width: getHeightPercent(0.04),
-                    height: getHeightPercent(0.04),
+                    width: getHeightPercent(0.8),
+                    height: getHeightPercent(0.08),
                   ),
                 ],
               ),
