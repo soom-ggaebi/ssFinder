@@ -3,8 +3,11 @@ import 'package:sumsumfinder/models/found_items_model.dart';
 
 class FoundItemCard extends StatelessWidget {
   final FoundItemListModel item;
+  final bool isLoggedIn; // 로그인 상태
 
-  const FoundItemCard({Key? key, required this.item}) : super(key: key);
+  const FoundItemCard({Key? key, 
+    required this.item, 
+    required this.isLoggedIn,}) : super(key: key);
 
   String extractLocation(String location) {
     List<String> parts = location.split(" ");
@@ -93,6 +96,19 @@ class FoundItemCard extends StatelessWidget {
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],
+              ),
+            if (isLoggedIn)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: IconButton(
+                  icon: Icon(
+                    item.bookmarked! ? Icons.bookmark : Icons.bookmark_border,
+                    color: item.bookmarked! ? Colors.blue : Colors.grey,
+                  ),
+                  onPressed: () {
+                  },
+                ),
               ),
             ],
           ),

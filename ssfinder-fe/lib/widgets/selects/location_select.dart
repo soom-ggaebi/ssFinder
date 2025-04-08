@@ -53,7 +53,7 @@ class _LocationSelectState extends State<LocationSelect> {
   /// 역지오코딩: 좌표 -> 주소 (Google Maps Geocoding API 사용)
   Future<void> _reverseGeocode(LatLng latLng) async {
     final url =
-        'https://maps.googleapis.com/maps/api/geocode/json?latlng=${latLng.latitude},${latLng.longitude}&key=${EnvironmentConfig.weatherBaseUrl}&language=ko'; // 한국어로 결과 받기
+        'https://maps.googleapis.com/maps/api/geocode/json?latlng=${latLng.latitude},${latLng.longitude}&key=${EnvironmentConfig.googleMapApiKey}&language=ko'; // 한국어로 결과 받기
 
     try {
       final response = await http.get(Uri.parse(url));

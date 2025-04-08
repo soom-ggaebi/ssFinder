@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 class FoundItemModel {
   final int id; // 물품의 고유 식별자
   final int? userId; // 물품을 등록한 사용자의 ID (null 가능)
+  final String? userName;
   final String? image; // 물품 이미지 (null 가능)
   final String type; // 분실물 종류 (예: "경찰청")
   final String color; // 물품의 색상
@@ -23,6 +24,7 @@ class FoundItemModel {
   FoundItemModel({
     required this.id,
     required this.userId,
+    required this.userName,
     this.image,
     required this.type,
     required this.color,
@@ -50,6 +52,7 @@ class FoundItemModel {
     return FoundItemModel(
       id: id,
       userId: userId, // null 가능
+      userName: item['userName'] as String?, // null 가능
       image: item['image'] as String?, // null 가능
       type: item['type'] as String,
       color: item['color'] as String,
@@ -80,6 +83,7 @@ class FoundItemListModel {
   final String? storageLocation; // 보관 위치 (예: "ㅇㅇ경찰청")
   final String foundLocation; // 분실된 위치 (예: "서울시 강남역 근처")
   final String createdTime; // 생성 시각
+  final bool? bookmarked;
 
   FoundItemListModel({
     required this.id,
@@ -91,6 +95,7 @@ class FoundItemListModel {
     required this.storageLocation,
     required this.foundLocation,
     required this.createdTime,
+    this.bookmarked,
   });
 
   factory FoundItemListModel.fromJson(Map<String, dynamic> json) {
@@ -104,6 +109,7 @@ class FoundItemListModel {
       storageLocation: json['stored_at'] as String?,
       foundLocation: json['location'] as String,
       createdTime: json['created_at'] as String,
+      bookmarked: json['bookmarked'] as bool?,
     );
   }
 }

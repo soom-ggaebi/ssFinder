@@ -3,12 +3,18 @@ import 'package:sumsumfinder/models/found_items_model.dart';
 import '../../services/found_items_api_service.dart';
 import '../../widgets/map_widget.dart';
 import '../../widgets/found/items_popup.dart';
+import 'package:sumsumfinder/services/auth_service.dart';
+import 'package:sumsumfinder/services/kakao_login_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:sumsumfinder/config/environment_config.dart';
+import 'package:sumsumfinder/screens/chat/chat_room_page.dart';
 
 class FoundItemDetailSumsumfinder extends StatelessWidget {
   final int id;
 
   const FoundItemDetailSumsumfinder({Key? key, required this.id})
-    : super(key: key);
+      : super(key: key);
 
   Color getBackgroundColor(String colorName) {
     final List<Map<String, dynamic>> colorMapping = [
@@ -68,6 +74,7 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
           return const Scaffold(body: Center(child: Text('데이터가 없습니다')));
         }
 
+        // 디버깅용 출력
         print('snap: ${snapshot.data!}');
 
         final item = FoundItemModel.fromJson(snapshot.data!);
@@ -109,24 +116,22 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(16),
-                        image:
-                            item.image != null
-                                ? DecorationImage(
-                                  image: NetworkImage(
-                                    item.image!,
-                                  ), // 이미지가 있을 경우 표시
-                                  fit: BoxFit.cover,
-                                )
-                                : null,
-                      ),
-                      child:
-                          item.image == null
-                              ? const Icon(
-                                Icons.image, // 이미지가 없을 경우 아이콘 표시
-                                size: 50,
-                                color: Colors.white,
+                        image: item.image != null
+                            ? DecorationImage(
+                                image: NetworkImage(
+                                  item.image!,
+                                ), // 이미지가 있을 경우 표시
+                                fit: BoxFit.cover,
                               )
-                              : null,
+                            : null,
+                      ),
+                      child: item.image == null
+                          ? const Icon(
+                              Icons.image, // 이미지가 없을 경우 아이콘 표시
+                              size: 50,
+                              color: Colors.white,
+                            )
+                          : null,
                     ),
                     Positioned(
                       left: 16,
@@ -141,7 +146,7 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
-                          '숨숨파인더',
+                          '습득파인더',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.blue,
@@ -175,7 +180,7 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 8),
-                // 이름 및 위치, 시간
+                // 이름, 위치, 시간 및 버튼 (채팅 또는 상태 변경)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -220,18 +225,161 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        // 채팅 기능
+                    // FutureBuilder를 사용하여 사용자 ID 조회 후 본인 게시글 여부에 따라 버튼 노출
+                    FutureBuilder<String?>(
+                      future: AuthService.getUserId(),
+                      builder: (context, userSnapshot) {
+                        if (userSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const SizedBox(
+                            width: 140,
+                            height: 40,
+                            child: Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+
+                        // 본인 게시글 여부 판단 (item.userId가 로그인한 사용자 ID와 일치하면 본인 게시글)
+                        final isMyPost = userSnapshot.hasData &&
+                            userSnapshot.data != null &&
+                            item.userId.toString() == userSnapshot.data;
+
+                        if (isMyPost) {
+                          // 본인 글인 경우 -> 상태 변경 버튼
+                          return ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: item.status == "STORED"
+                                  ? Colors.blue
+                                  : Colors.green,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(140, 40),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () async {
+                              try {
+                                // 현재 상태의 반대 상태로 변경 (LOST -> FOUND, FOUND -> LOST)
+                                String newStatus =
+                                    item.status == "STORED" ? "RECEIVED" : "STORED";
+
+                                // API 서비스 인스턴스 생성 후 상태 업데이트 호출
+                                final apiService = FoundItemsApiService();
+                                await apiService.updateFoundItemStatus(
+                                  foundId: item.id,
+                                  status: newStatus,
+                                );
+
+                                // 성공 메시지 표시
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('상태가 성공적으로 변경되었습니다.')),
+                                );
+                              } catch (e) {
+                                // 오류 발생 시 메시지 표시
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('상태 변경에 실패했습니다: $e')),
+                                );
+                              }
+                            },
+                            child: Text(
+                              item.status == "STORED" ? '찾는 중' : '찾음',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          );
+                        } else {
+                          // 본인 글이 아니라면 -> 기존 채팅하기 버튼
+                          return ElevatedButton(
+                            onPressed: () async {
+                              final KakaoLoginService loginService =
+                                  KakaoLoginService();
+                              final token = await loginService.getAccessToken();
+
+                              if (token == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('로그인이 필요합니다')),
+                                );
+                                return;
+                              }
+
+                              // 로딩 다이얼로그 표시
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (context) =>
+                                    const Center(child: CircularProgressIndicator()),
+                              );
+
+                              try {
+                                // 채팅방 생성 API 호출
+                                final response = await http.post(
+                                  Uri.parse(
+                                    '${EnvironmentConfig.baseUrl}/api/chat-rooms/${item.id}',
+                                  ),
+                                  headers: {
+                                    'Authorization': 'Bearer $token',
+                                    'Content-Type': 'application/json',
+                                  },
+                                );
+
+                                // 로딩 다이얼로그 닫기
+                                Navigator.pop(context);
+
+                                if (response.statusCode == 200) {
+                                  final responseData = jsonDecode(response.body);
+
+                                  if (responseData['success'] == true) {
+                                    // 채팅방 ID 가져오기
+                                    final chatRoomId =
+                                        responseData['data']['chat_room_id'];
+
+                                    // 채팅방 페이지로 이동
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ChatPage(
+                                          roomId: chatRoomId,
+                                          otherUserName: item.userName ?? '습득자',
+                                          myName: '나',
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          responseData['error']['message'] ??
+                                              '채팅방 생성 실패',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  final errorData = jsonDecode(response.body);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        errorData['error']['message'] ??
+                                            '서버 오류',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                // 오류 발생 시 로딩 다이얼로그 닫기 및 오류 메시지 표시
+                                if (Navigator.canPop(context)) {
+                                  Navigator.pop(context);
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('채팅방 생성 중 오류 발생: $e')),
+                                );
+                              }
+                            },
+                            child: const Text('채팅하기', style: TextStyle(fontSize: 14)),
+                          );
+                        }
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('채팅하기', style: TextStyle(fontSize: 14)),
                     ),
                   ],
                 ),
@@ -294,11 +442,10 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (context) => MapWidget(
-                                      latitude: item.latitude,
-                                      longitude: item.longitude,
-                                    ),
+                                builder: (context) => MapWidget(
+                                  latitude: item.latitude,
+                                  longitude: item.longitude,
+                                ),
                               ),
                             );
                           },

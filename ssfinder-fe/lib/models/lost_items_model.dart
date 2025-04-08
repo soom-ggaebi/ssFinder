@@ -33,6 +33,42 @@ class LostItemModel {
     required this.longitude,
   });
 
+  LostItemModel copyWith({
+    int? id,
+    int? userId,
+    String? image,
+    String? color,
+    String? majorCategory,
+    String? minorCategory,
+    String? title,
+    String? detail,
+    String? lostAt,
+    String? location,
+    String? status,
+    String? createdAt,
+    String? updatedAt,
+    double? latitude,
+    double? longitude,
+  }) {
+    return LostItemModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      image: image ?? this.image,
+      color: color ?? this.color,
+      majorCategory: majorCategory ?? this.majorCategory,
+      minorCategory: minorCategory ?? this.minorCategory,
+      title: title ?? this.title,
+      detail: detail ?? this.detail,
+      lostAt: lostAt ?? this.lostAt,
+      location: location ?? this.location,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+    );
+  }
+
   factory LostItemModel.fromJson(Map<String, dynamic> json) {
     final item = json['data'];
     return LostItemModel(

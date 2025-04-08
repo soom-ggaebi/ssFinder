@@ -197,6 +197,7 @@ class FoundItemsApiService {
   }) async {
     try {
       final token = await _getAccessToken();
+      print('#### ${foundId} ${status}');
 
       final response = await _dio.put(
         '${EnvironmentConfig.baseUrl}/api/found-items/$foundId/status',
