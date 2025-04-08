@@ -3,9 +3,11 @@ package com.ssfinder.domain.lostitem.controller;
 import com.ssfinder.domain.lostitem.dto.request.LostItemRegisterRequest;
 import com.ssfinder.domain.lostitem.dto.request.LostItemStatusUpdateRequest;
 import com.ssfinder.domain.lostitem.dto.request.LostItemUpdateRequest;
+import com.ssfinder.domain.lostitem.dto.request.UpdateNotificationSettingsRequest;
 import com.ssfinder.domain.lostitem.dto.response.LostItemResponse;
 import com.ssfinder.domain.lostitem.dto.response.LostItemStatusUpdateResponse;
 import com.ssfinder.domain.lostitem.dto.response.LostItemUpdateResponse;
+import com.ssfinder.domain.lostitem.dto.response.UpdateNotificationSettingsResponse;
 import com.ssfinder.domain.lostitem.service.LostItemService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.global.common.response.ApiResponse;
@@ -80,5 +82,15 @@ public class LostItemController {
             @Valid @RequestBody LostItemStatusUpdateRequest request) {
         LostItemStatusUpdateResponse response = lostItemService.updateLostItemStatus(userDetails.getUserId(), lostId, request);
         return ApiResponse.ok(response);
+    }
+
+    @PatchMapping("/{lostId}/notification-settings")
+    public ApiResponse<UpdateNotificationSettingsResponse> updateNotificationSettings(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable @Min(1) int lostId,
+            @Valid @RequestBody UpdateNotificationSettingsRequest request) {
+        UpdateNotificationSettingsResponse response= lostItemService.updateNotificationSettings(userDetails.getUserId(), lostId, request);
+        return ApiResponse.ok(response);
+
     }
 }
