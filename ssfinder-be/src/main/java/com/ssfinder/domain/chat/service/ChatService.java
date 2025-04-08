@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * packageName    : com.ssfinder.domain.user.service<br>
@@ -139,11 +140,15 @@ public class ChatService {
     }
 
     public ChatMessageGetResponse getMessages(Integer userId, Integer chatRoomId, int size, @Nullable String lastMessageId) {
-        chatRoomService.getChatRoomParticipant(chatRoomId, userId);
+        ChatRoomParticipant participant = chatRoomService.getChatRoomParticipant(chatRoomId, userId);
 
         Query query = new Query(
                 Criteria.where("chat_room_id").is(chatRoomId)
         );
+
+        if(Objects.nonNull(participant.getRejoinedAt())) {
+            query.addCriteria(Criteria.where("created_at").gt(participant.getRejoinedAt()));
+        }
 
         if(lastMessageId != null) {
             query.addCriteria(Criteria.where("_id").lt(lastMessageId));
