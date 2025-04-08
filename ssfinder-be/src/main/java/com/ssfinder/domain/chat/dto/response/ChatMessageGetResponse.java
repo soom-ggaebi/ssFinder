@@ -40,6 +40,7 @@ public class ChatMessageGetResponse {
                 .map(
                         message ->
                                 ChatMessageInfo.builder()
+                                        .messageId(message.getId())
                                         .senderId(message.getSenderId())
                                         .chatRoomId(message.getChatRoomId())
                                         .content(message.getContent())

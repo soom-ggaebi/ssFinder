@@ -26,6 +26,6 @@ public class CursorScrollResponse<T> {
     }
 
     public T getNextCursor() {
-        return itemWithNextCursor.get(countPerScroll - 1);
+        return itemWithNextCursor.get(countPerScroll);
     }
 }
