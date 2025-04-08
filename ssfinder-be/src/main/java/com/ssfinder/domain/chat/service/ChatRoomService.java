@@ -1,6 +1,7 @@
 package com.ssfinder.domain.chat.service;
 
 import com.ssfinder.domain.chat.dto.ChatRoomFoundItem;
+import com.ssfinder.domain.chat.dto.ChatRoomListDetail;
 import com.ssfinder.domain.chat.dto.response.ActiveChatRoomListResponse;
 import com.ssfinder.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.ssfinder.domain.chat.dto.response.ChatRoomEntryResponse;
@@ -120,12 +121,15 @@ public class ChatRoomService {
     }
 
     public List<ActiveChatRoomListResponse> getActiveChatRoomList(Integer userId) {
-        List<ChatRoom> chatRooms = chatRoomRepository.findByUserAndStatusIsActive(userId);
+        List<ChatRoomListDetail> chatRooms = chatRoomRepository.findByUserAndStatusIsActive(userId);
         User user = userService.findUserById(userId);
 
         List<ActiveChatRoomListResponse> response = new ArrayList<>();
 
-        for(ChatRoom chatRoom : chatRooms) {
+        for(ChatRoomListDetail item : chatRooms) {
+            ChatRoom chatRoom = item.chatRoom();
+            ChatRoomParticipant participant = item.chatRoomParticipant();
+
             FoundItem foundItem = chatRoom.getFoundItem();
 
             ItemCategoryInfo itemCategoryInfo = itemCategoryService
@@ -140,12 +144,13 @@ public class ChatRoomService {
 
             response.add(
                     ActiveChatRoomListResponse.builder()
-                    .chatRoomFoundItem(chatRoomFoundItem)
-                    .chatRoomId(chatRoom.getId())
-                    .nickname(opponent.getNickname())
-                    .latestMessage(chatRoom.getLatestMessage())
-                    .latestSentAt(chatRoom.getLatestSentAt())
-                    .build()
+                            .chatRoomFoundItem(chatRoomFoundItem)
+                            .chatRoomId(chatRoom.getId())
+                            .notificationEnabled(participant.getNotificationEnabled())
+                            .nickname(opponent.getNickname())
+                            .latestMessage(chatRoom.getLatestMessage())
+                            .latestSentAt(chatRoom.getLatestSentAt())
+                            .build()
             );
         }
 
