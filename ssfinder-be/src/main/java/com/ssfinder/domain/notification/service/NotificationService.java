@@ -109,12 +109,14 @@ public class NotificationService {
 
     // 2. 채팅 알림
     public void sendChatNotification(KafkaChatMessage kafkaChatMessage) {
-        User opponentUser = chatService.getOpponentUser(kafkaChatMessage.chatRoomId(), kafkaChatMessage.senderId());
+        int chatRoomId = kafkaChatMessage.chatRoomId();
+        User opponentUser = chatService.getOpponentUser(kafkaChatMessage.senderId(), chatRoomId);
         int userId = opponentUser.getId();
 
         // 알림 설정 확인
         if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.CHAT) ||
-                !chatRoomService.getChatRoomParticipant(kafkaChatMessage.chatRoomId(), userId).getNotificationEnabled())
+                !chatRoomService.getChatRoomParticipant(chatRoomId, userId).getNotificationEnabled() ||
+                chatService.isUserInChatRoom(userId, chatRoomId))
             return;
 
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
@@ -125,7 +127,6 @@ public class NotificationService {
 
         if (messageType.equals(MessageType.IMAGE)) {
             content = CHAT_PLACEHOLDER_IMAGE_MESSAGE;
-
         } else if (messageType.equals(MessageType.LOCATION)) {
             content = CHAT_PLACEHOLDER_LOCATION_MESSAGE;
         } else if (messageType.equals(MessageType.NORMAL)) {
