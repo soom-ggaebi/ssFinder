@@ -68,22 +68,25 @@ public interface FoundItemMapper {
     @Mapping(target = "imageHdfs", ignore = true)
     FoundItemDocument entityToDocument(FoundItem foundItem);
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "user", ignore = true)
-    @Mapping(target = "itemCategory", source = "itemCategory")
-    @Mapping(target = "name", source = "request.name")
-    @Mapping(target = "foundAt", source = "request.foundAt")
-    @Mapping(target = "location", source = "request.location")
-    @Mapping(target = "color", source = "request.color")
-    @Mapping(target = "detail", source = "request.detail")
-    @Mapping(target = "storedAt", ignore = true)
-    @Mapping(target = "updatedAt", expression = "java(java.time.LocalDateTime.now())")
-    @Mapping(target = "image", ignore = true)
-    @Mapping(target = "coordinates", ignore = true)
-    @Mapping(target = "status", ignore = true)
-    @Mapping(target = "phone", ignore = true)
-    @Mapping(target = "managementId", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mappings({
+            @Mapping(target = "id",           ignore = true),
+            @Mapping(target = "user",         ignore = true),
+            @Mapping(target = "itemCategory", source = "itemCategory"),
+            @Mapping(target = "name",         source = "request.name"),
+            @Mapping(target = "foundAt",      source = "request.foundAt"),
+            @Mapping(target = "location",     source = "request.location"),
+            @Mapping(target = "color",        source = "request.color"),
+            @Mapping(target = "detail",       source = "request.detail"),
+            @Mapping(target = "storedAt",     ignore = true),
+            @Mapping(target = "updatedAt",    expression = "java(java.time.LocalDateTime.now())"),
+            @Mapping(target = "image",        ignore = true),
+            @Mapping(target = "coordinates",  ignore = true),
+            @Mapping(target = "status",       ignore = true),
+            @Mapping(target = "phone",        ignore = true),
+            @Mapping(target = "managementId", ignore = true),
+            @Mapping(target = "createdAt",    expression = "java(java.time.LocalDateTime.now())")
+    })
     void updateEntityFromRequest(FoundItemUpdateRequest request, @MappingTarget FoundItem foundItem, ItemCategory itemCategory);
 
     @Mapping(target = "userId", expression = "java(foundItem.getUser().getId())")

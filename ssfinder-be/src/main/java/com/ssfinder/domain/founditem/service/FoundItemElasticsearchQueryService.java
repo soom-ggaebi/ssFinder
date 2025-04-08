@@ -67,6 +67,7 @@ public class FoundItemElasticsearchQueryService {
         String queryJson = FoundItemQueryBuilder.buildViewportQuery(request);
         StringQuery query = new StringQuery(queryJson);
         query.setPageable(pageable);
+        query.setRequestCache(false);
         query.addSourceFilter(FetchSourceFilter.of(
                 new String[]{"mysql_id", "image", "category_major", "category_minor", "name", "location", "stored_at", "created_at", "management_id", "status"},
                 null));
