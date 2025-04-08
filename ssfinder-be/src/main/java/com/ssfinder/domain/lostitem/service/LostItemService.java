@@ -6,9 +6,11 @@ import com.ssfinder.domain.lostitem.dto.mapper.LostItemMapper;
 import com.ssfinder.domain.lostitem.dto.request.LostItemRegisterRequest;
 import com.ssfinder.domain.lostitem.dto.request.LostItemStatusUpdateRequest;
 import com.ssfinder.domain.lostitem.dto.request.LostItemUpdateRequest;
+import com.ssfinder.domain.lostitem.dto.request.UpdateNotificationSettingsRequest;
 import com.ssfinder.domain.lostitem.dto.response.LostItemResponse;
 import com.ssfinder.domain.lostitem.dto.response.LostItemStatusUpdateResponse;
 import com.ssfinder.domain.lostitem.dto.response.LostItemUpdateResponse;
+import com.ssfinder.domain.lostitem.dto.response.UpdateNotificationSettingsResponse;
 import com.ssfinder.domain.lostitem.entity.LostItem;
 import com.ssfinder.domain.lostitem.entity.LostItemStatus;
 import com.ssfinder.domain.lostitem.repository.LostItemRepository;
@@ -183,5 +185,23 @@ public class LostItemService {
         lostItem.setUpdatedAt(LocalDateTime.now());
 
         return lostItemMapper.toStatusUpdateResponse(lostItem);
+    }
+
+    @Transactional
+    public UpdateNotificationSettingsResponse updateNotificationSettings(int userId, Integer lostId, UpdateNotificationSettingsRequest request) {
+        LostItem lostItem = lostItemRepository.findById(lostId)
+                .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
+
+        if(!lostItem.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.LOST_ITEM_ACCESS_DENIED);
+        }
+
+        lostItem.setNotificationEnabled(request.getNotificationEnabled());
+
+        UpdateNotificationSettingsResponse response = new UpdateNotificationSettingsResponse();
+        response.setId(lostId);
+        response.setNotificationEnabled(lostItem.getNotificationEnabled());
+
+        return response;
     }
 }

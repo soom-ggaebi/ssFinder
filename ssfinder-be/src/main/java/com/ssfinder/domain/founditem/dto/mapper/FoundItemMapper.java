@@ -76,7 +76,7 @@ public interface FoundItemMapper {
     @Mapping(target = "location", source = "request.location")
     @Mapping(target = "color", source = "request.color")
     @Mapping(target = "detail", source = "request.detail")
-    @Mapping(target = "storedAt", source = "request.storedAt")
+    @Mapping(target = "storedAt", ignore = true)
     @Mapping(target = "updatedAt", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "image", ignore = true)
     @Mapping(target = "coordinates", ignore = true)
