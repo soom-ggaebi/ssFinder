@@ -116,7 +116,7 @@ public class NotificationService {
         // 알림 설정 확인
         if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.CHAT) ||
                 !chatRoomService.getChatRoomParticipant(chatRoomId, userId).getNotificationEnabled() ||
-                chatService.isUserInChatRoom(userId, chatRoomId))
+                chatService.isViewingChatRoom(userId, chatRoomId))
             return;
 
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
