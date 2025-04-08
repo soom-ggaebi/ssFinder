@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
  * -----------------------------------------------------------<br>
  * 2025-03-19          joker901010           최초생성<br>
  * 2025-03-27          joker901010           코드리뷰 수정<br>
+ * 2025-04-07          okeio                 findLostItemById 추가<br>
  * <br>
  */
 @Slf4j
@@ -94,6 +95,7 @@ public class LostItemService {
         LocalDateTime now = LocalDateTime.now();
         lostItem.setCreatedAt(now);
         lostItem.setUpdatedAt(now);
+        lostItem.setNotificationEnabled(true);
 
         LostItem savedLostItem = lostItemRepository.save(lostItem);
         return lostItemMapper.toResponse(savedLostItem);
@@ -109,6 +111,12 @@ public class LostItemService {
         }
 
         return lostItemMapper.toResponse(lostItem);
+    }
+
+    @Transactional(readOnly = true)
+    public LostItem findLostItemById(int lostId) {
+        return lostItemRepository.findById(lostId)
+                .orElseThrow(() -> new CustomException(ErrorCode.LOST_ITEM_NOT_FOUND));
     }
 
     @Transactional
