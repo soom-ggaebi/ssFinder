@@ -35,6 +35,7 @@ import java.util.Objects;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-28          nature1216          최초생성<br>
+ * 2025-04-07          okeio               채팅방 별 알림 설정 메서드 추가<br>
  * <br>
  */
 @Slf4j
@@ -126,6 +127,11 @@ public class ChatRoomService {
         participant.setLeftAt(null);
         participant.setRejoinedAt(LocalDateTime.now());
         participant.setStatus(ChatRoomStatus.ACTIVE);
+    }
+
+    public void updateNotificationEnabled(Integer userId, Integer chatRoomId, boolean enabled) {
+        ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
+        chatRoomParticipant.setNotificationEnabled(enabled);
     }
 
     private void deactivate(ChatRoomParticipant participant) {
