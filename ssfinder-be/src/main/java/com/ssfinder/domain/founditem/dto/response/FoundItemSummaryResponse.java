@@ -40,6 +40,8 @@ public class FoundItemSummaryResponse {
 
     private String storedAt;
 
+    private String status;
+
     private LocalDateTime createdAt;
 
     private Boolean bookmarked;

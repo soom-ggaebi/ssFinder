@@ -68,7 +68,7 @@ public class FoundItemElasticsearchQueryService {
         StringQuery query = new StringQuery(queryJson);
         query.setPageable(pageable);
         query.addSourceFilter(FetchSourceFilter.of(
-                new String[]{"mysql_id", "image", "category_major", "category_minor", "name", "location", "stored_at", "created_at", "management_id"},
+                new String[]{"mysql_id", "image", "category_major", "category_minor", "name", "location", "stored_at", "created_at", "management_id", "status"},
                 null));
         SearchHits<FoundItemDocument> searchHits = elasticsearchOperations.search(query, FoundItemDocument.class);
         List<FoundItemSummaryResponse> content = searchHits.getSearchHits().stream()
@@ -83,7 +83,7 @@ public class FoundItemElasticsearchQueryService {
         StringQuery query = new StringQuery(queryJson);
         query.setPageable(pageable);
         query.addSourceFilter(FetchSourceFilter.of(
-                new String[]{"mysql_id", "image", "category_major", "category_minor", "name", "location", "stored_at", "created_at", "management_id"},
+                new String[]{"mysql_id", "image", "category_major", "category_minor", "name", "location", "stored_at", "created_at", "management_id", "status"},
                 null));
         SearchHits<FoundItemDocument> searchHits = elasticsearchOperations.search(query, FoundItemDocument.class);
         List<FoundItemSummaryResponse> content = searchHits.getSearchHits().stream()
