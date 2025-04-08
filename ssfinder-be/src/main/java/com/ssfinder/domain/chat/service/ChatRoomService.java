@@ -149,6 +149,7 @@ public class ChatRoomService {
                     ActiveChatRoomListResponse.builder()
                             .foundItem(chatRoomFoundItem)
                             .chatRoomId(chatRoom.getId())
+                            .hasUnread(hasUnRead(participant, chatRoom))
                             .notificationEnabled(participant.getNotificationEnabled())
                             .opponentNickname(opponent.getNickname())
                             .latestMessage(chatRoom.getLatestMessage())
@@ -175,6 +176,10 @@ public class ChatRoomService {
     public void updateNotificationEnabled(Integer userId, Integer chatRoomId, boolean enabled) {
         ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
         chatRoomParticipant.setNotificationEnabled(enabled);
+    }
+
+    private boolean hasUnRead(ChatRoomParticipant participant, ChatRoom chatRoom) {
+        return chatRoom.getLatestSentAt().isAfter(participant.getLastReadAt());
     }
 
     private void deactivate(ChatRoomParticipant participant) {

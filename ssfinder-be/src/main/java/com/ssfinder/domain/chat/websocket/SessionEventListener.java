@@ -25,7 +25,7 @@ public class SessionEventListener {
 
     @EventListener
     public void handleSessionConnect(SessionConnectedEvent event) {
-        log.info("Session connecte event: {}", event);
+        log.info("Session connect event: {}", event);
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
         StompHeaderAccessor connectAccessor = StompHeaderAccessor.wrap(
                 (Message<?>) accessor.getHeader(

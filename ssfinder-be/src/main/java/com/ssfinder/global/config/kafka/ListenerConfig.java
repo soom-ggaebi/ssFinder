@@ -78,7 +78,7 @@ public class ListenerConfig {
                         .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
                         .put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class)
                         .put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer)
-                        .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+                        .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
                         .build();
 
         return new DefaultKafkaConsumerFactory<>(consumerConfigurations, new StringDeserializer(), deserializer);
