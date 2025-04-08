@@ -1,10 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/models/lost_item_model.dart';
+import 'package:sumsumfinder/models/lost_items_model.dart';
+import 'package:sumsumfinder/services/lost_items_api_service.dart';
+import '../../widgets/map_widget.dart';
+import '../../widgets/lost/items_popup.dart';
 
-class LostItemDetail extends StatelessWidget {
-  final LostItemModel item;
+class LostItemDetail extends StatefulWidget {
+  final int itemId;
 
-  const LostItemDetail({Key? key, required this.item}) : super(key: key);
+  const LostItemDetail({Key? key, required this.itemId}) : super(key: key);
+
+  @override
+  _LostItemDetailState createState() => _LostItemDetailState();
+}
+
+class _LostItemDetailState extends State<LostItemDetail> {
+  final LostItemsApiService _apiService = LostItemsApiService();
+  LostItemModel? _item;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadItemDetails();
+  }
+
+  Future<void> _loadItemDetails() async {
+    try {
+      final response = await _apiService.getLostItemDetail(
+        lostId: widget.itemId,
+      );
+      setState(() {
+        _item = LostItemModel.fromJson(response);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('상세 정보를 불러오는데 실패했습니다: $e')));
+    }
+  }
 
   Color getBackgroundColor(String colorName) {
     const colorMapping = [
@@ -31,64 +66,181 @@ class LostItemDetail extends StatelessWidget {
     return Colors.blue[100]!;
   }
 
+  String extractLocation(String location) {
+    List<String> parts = location.split(" ");
+    if (parts.length >= 4) {
+      return parts.sublist(2, 4).join(" ");
+    }
+    return location;
+  }
+
+  String extractLocation2(String location) {
+    List<String> parts = location.split(" ");
+    if (parts.length >= 4) {
+      return parts.sublist(1, 4).join(" ");
+    }
+    return location;
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            '분실 상세 정보',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_item == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('분실 상세 정보')),
+        body: Center(child: Text('정보를 불러올 수 없습니다.')),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('분실 상세 정보'),
+        title: const Text(
+          '분실 상세 정보',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_horiz, color: Color(0xFF3D3D3D)),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (context) => MainOptionsPopup(),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 이미지 영역
-            Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(16),
-                image: DecorationImage(
-                  image: AssetImage(item.photo),
-                  fit: BoxFit.cover,
+            Stack(
+              children: [
+                // 이미지 영역
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(16),
+                    image:
+                        _item!.image != null
+                            ? DecorationImage(
+                              image: NetworkImage(_item!.image!),
+                              fit: BoxFit.cover,
+                            )
+                            : null,
+                  ),
+                  child:
+                      _item!.image == null
+                          ? const Center(
+                            child: Icon(
+                              Icons.image_not_supported,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          )
+                          : null,
                 ),
-              ),
+                // 상태 정보
+                Positioned(
+                  right: 16,
+                  top: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          _item!.status == "LOST"
+                              ? Colors.red[100]
+                              : Colors.green[100],
+                      borderRadius: BorderRadius.circular(50.0),
+                    ),
+                    child: Text(
+                      _item!.status == "LOST" ? "찾는 중" : "찾음",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color:
+                            _item!.status == "LOST" ? Colors.red : Colors.green,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             // 색상 표시
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
               decoration: BoxDecoration(
-                color: getBackgroundColor(item.color),
+                color: getBackgroundColor(_item!.color),
                 borderRadius: BorderRadius.circular(50.0),
               ),
               child: Text(
-                item.color,
+                _item!.color,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
               ),
             ),
             const SizedBox(height: 8),
-            // 카테고리, 품목명 및 채팅방 버튼
+            // 카테고리
+            Text(
+              "${_item!.majorCategory} > ${_item!.minorCategory}",
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            // 이름 및 위치, 시간
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 카테고리 및 품목명
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item.category,
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                      Text(
-                        item.itemName,
+                        _item!.title,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            extractLocation(_item!.location),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const Text(
+                            ' · ',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          Text(
+                            _item!.createdAt.substring(0, 10),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -107,14 +259,14 @@ class LostItemDetail extends StatelessWidget {
                   onPressed: () {
                     // 대화중인 채팅방으로 이동하는 로직
                   },
-                  child: const Text(
-                    '대화중인 채팅방',
-                    style: TextStyle(fontSize: 14),
-                  ),
+                  child: const Text('찾는 중', style: TextStyle(fontSize: 14)),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
+            // 상세 설명
+            Text(_item!.detail, style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 16),
             // 분실 일자 표시
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -130,35 +282,63 @@ class LostItemDetail extends StatelessWidget {
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.only(left: 8.0),
-              child: Text(
-                item.lostDate,
-                style: const TextStyle(fontSize: 14),
-              ),
+              child: Text(_item!.lostAt, style: const TextStyle(fontSize: 14)),
             ),
             const SizedBox(height: 8),
             // 분실 장소 표시
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.blue[100],
-                borderRadius: BorderRadius.circular(50.0),
-              ),
-              child: const Text(
-                '분실 장소',
-                style: TextStyle(fontSize: 14, color: Colors.blue),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blue[100],
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Text(
+                      '분실 장소',
+                      style: TextStyle(fontSize: 14, color: Colors.blue),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      extractLocation2(_item!.location),
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => MapWidget(
+                                  latitude: _item!.latitude,
+                                  longitude: _item!.longitude,
+                                ),
+                          ),
+                        );
+                      },
+                      child: const Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             // 지도 영역
             Container(
               height: 200,
               width: double.infinity,
-              color: Colors.grey[200],
-              child: const Center(
-                child: Text(
-                  '분실 장소 지도 영역',
-                  style: TextStyle(fontSize: 14),
-                ),
+              child: MapWidget(
+                latitude: _item!.latitude,
+                longitude: _item!.longitude,
               ),
             ),
           ],

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../widgets/map_widget.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'found_item_form.dart';
+import 'found_map.dart';
+import 'found_items_list.dart';
 import 'found_item_filter.dart';
-import 'found_items_list.dart'; // 수정된 FoundItemsList 위젯 import
-import 'package:sumsumfinder/models/found_item_model.dart';
-import 'package:sumsumfinder/services/api_service.dart';
+import 'found_item_form.dart';
+import 'package:sumsumfinder/models/found_items_model.dart';
+import 'package:sumsumfinder/services/found_items_api_service.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class FoundPage extends StatefulWidget {
   FoundPage({Key? key}) : super(key: key);
@@ -20,24 +21,45 @@ class _FoundPageState extends State<FoundPage> {
   String _searchQuery = "";
 
   // 추가: API에서 가져온 데이터와 로딩 상태 변수
-  List<FoundItemModel> foundItems = [];
+  List<FoundItemCoordinatesModel> foundItems = [];
   bool isLoading = true;
+
+  GoogleMapController? _mapController;
 
   @override
   void initState() {
     super.initState();
     _getLocationData();
-    _loadFoundItems(); // 페이지가 생성될 때 API 호출
   }
 
   Future<void> _getLocationData() async {
     try {
       Position pos = await getLocationData();
-      setState(() {
-        _currentPosition = pos;
-      });
+      if (mounted) {
+        setState(() {
+          _currentPosition = pos;
+        });
+        _loadFoundItems();
+      }
     } catch (e) {
-      // 위치 데이터 에러 처리
+      print('위치 권한 없음: $e');
+      if (mounted) {
+        setState(() {
+          _currentPosition = Position(
+            latitude: 35.160121, // FoundMap.companyLatLng의 위도
+            longitude: 126.851317, // FoundMap.companyLatLng의 경도
+            timestamp: DateTime.now(),
+            accuracy: 0,
+            altitude: 0,
+            heading: 0,
+            speed: 0,
+            speedAccuracy: 0,
+            altitudeAccuracy: 0,
+            headingAccuracy: 0,
+          );
+        });
+        _loadFoundItems();
+      }
     }
   }
 
@@ -73,20 +95,32 @@ class _FoundPageState extends State<FoundPage> {
 
   /// API를 호출하여 습득물 데이터를 가져오는 함수
   Future<void> _loadFoundItems() async {
+    if (_mapController == null || !mounted) return;
+
     try {
-      List<FoundItemModel> items = await FoundItemsListApiService.getApiData();
-      setState(() {
-        foundItems = items;
-        isLoading = false;
-      });
+      final bounds = await _mapController!.getVisibleRegion();
+      final items = await FoundItemsApiService().getFoundItemCoordinates(
+        maxLat: bounds.northeast.latitude,
+        maxLng: bounds.northeast.longitude,
+        minLat: bounds.southwest.latitude,
+        minLng: bounds.southwest.longitude,
+      );
+      
+      if (mounted) { // 위젯이 여전히 트리에 있는지 확인
+        setState(() {
+          foundItems = items;
+          isLoading = false;
+        });
+      }
     } catch (e) {
-      // API 호출 실패 시 에러 처리
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('데이터 로딩에 실패했습니다.')));
+      if (mounted) { // 위젯이 여전히 트리에 있는지 확인
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('데이터 로딩에 실패했습니다.'))
+        );
+      }
     }
   }
 
@@ -95,34 +129,22 @@ class _FoundPageState extends State<FoundPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // 지도 영역: 현재 위치가 있으면 해당 좌표로, 없으면 FutureBuilder로 가져옴.
-          _currentPosition != null
-              ? MapWidget(
-                latitude: _currentPosition!.latitude,
-                longitude: _currentPosition!.longitude,
-              )
-              : FutureBuilder<Position>(
-                future: getLocationData(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData &&
-                      snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasData) {
-                    Position pos = snapshot.data!;
-                    return MapWidget(
-                      latitude: pos.latitude,
-                      longitude: pos.longitude,
-                    );
-                  } else {
-                    return MapWidget();
-                  }
-                },
-              ),
+          FoundMap(
+            latitude: _currentPosition?.latitude ?? 35.160121, // 기본 위치(광주)
+            longitude: _currentPosition?.longitude ?? 126.851317, // 기본 위치(광주)
+            onMapCreated: (controller) {
+              _mapController = controller;
+              _loadFoundItems();
+            },
+            onCameraIdle: _loadFoundItems,
+            foundItems: foundItems,
+            onClusterTap: (List<int> itemIds) {
+            },
+          ),
           // 하단 드래그 시트 영역: API 데이터 로딩 여부에 따라 처리
           isLoading
               ? Center(child: CircularProgressIndicator())
-              : FoundItemsList(foundItems: foundItems),
+              : FoundItemsList(itemIds: foundItems.map((item) => item.id).toList()),
           // 검색창 및 필터 버튼 영역
           Positioned(
             top: 48,
