@@ -225,10 +225,14 @@ async def clean_hdfs_images(
         from hdfs import InsecureClient
         import re
         import os
-        from config.config import ES_HOST, ES_PORT, ES_INDEX, HDFS_URL
+        from config.config import ES_HOST, ES_PORT, ES_INDEX, HDFS_URL, ES_USERNAME, ES_PASSWORD
 
         # Elasticsearch 클라이언트 생성
-        es = Elasticsearch([{'host': ES_HOST, 'port': ES_PORT, 'scheme': 'http'}])
+        es = Elasticsearch(
+            hosts=[{'host': ES_HOST, 'port': ES_PORT, 'scheme': 'http'}],
+            http_auth=(ES_USERNAME, ES_PASSWORD) if ES_USERNAME and ES_PASSWORD else None,
+            timeout=30
+        )
         
         # HDFS 클라이언트 생성
         hdfs_client = InsecureClient(HDFS_URL, user='ubuntu')
@@ -342,11 +346,15 @@ async def clean_hdfs_csv_file(
         import io
         import csv
         import re
-        from config.config import ES_HOST, ES_PORT, ES_INDEX, HDFS_URL
+        from config.config import ES_HOST, ES_PORT, ES_INDEX, HDFS_URL, ES_USERNAME, ES_PASSWORD
         
         # Elasticsearch 클라이언트 생성
-        es = Elasticsearch([{'host': ES_HOST, 'port': ES_PORT, 'scheme': 'http'}])
-        
+        es = Elasticsearch(
+            hosts=[{'host': ES_HOST, 'port': ES_PORT, 'scheme': 'http'}],
+            http_auth=(ES_USERNAME, ES_PASSWORD) if ES_USERNAME and ES_PASSWORD else None,
+            timeout=30
+        )
+
         # HDFS 클라이언트 생성
         hdfs_client = InsecureClient(HDFS_URL, user='ubuntu')
         
@@ -568,11 +576,15 @@ async def restore_hdfs_csv_fixed(
         import io
         import json
         import time
-        from config.config import ES_HOST, ES_PORT, ES_INDEX, HDFS_URL
+        from config.config import ES_HOST, ES_PORT, ES_INDEX, HDFS_URL, ES_USERNAME, ES_PASSWORD
         
         # Elasticsearch 클라이언트 생성
-        es = Elasticsearch([{'host': ES_HOST, 'port': ES_PORT, 'scheme': 'http'}])
-        
+        es = Elasticsearch(
+            hosts=[{'host': ES_HOST, 'port': ES_PORT, 'scheme': 'http'}],
+            http_auth=(ES_USERNAME, ES_PASSWORD) if ES_USERNAME and ES_PASSWORD else None,
+            timeout=30
+        )
+
         # HDFS 클라이언트 생성
         hdfs_client = InsecureClient(HDFS_URL, user='ubuntu')
         
@@ -746,7 +758,7 @@ async def restore_hdfs_csv_fixed(
 
 @router.post("/sync-missing-data", response_model=Dict[str, Any])
 async def sync_missing_data(
-    batch_size: int = Query(100, description="한 번에 처리할 최대 레코드 수", ge=10, le=500),
+    batch_size: int = Query(100, description="한 번에 처리할 최대 레코드 수", ge=10, le=5000),
     dry_run: bool = Query(True, description="테스트 모드 (true일 경우 실제 저장하지 않음)")
 ):
     """
@@ -764,15 +776,15 @@ async def sync_missing_data(
         import requests
         import uuid
         import threading
+        import math
         from hdfs import InsecureClient
         from config.config import (
             DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME,
             ES_HOST, ES_PORT, ES_INDEX, HDFS_URL, HDFS_NAMENODE, HDFS_PORT,
             S3_BUCKET, AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_REGION,
-            IMAGE_RESIZE_WIDTH, IMAGE_RESIZE_HEIGHT
+            IMAGE_RESIZE_WIDTH, IMAGE_RESIZE_HEIGHT, ES_USERNAME, ES_PASSWORD
         )
         
-        # 결과 초기화
         result = {
             "start_time": time.time(),
             "total_mysql_records": 0,
@@ -788,7 +800,7 @@ async def sync_missing_data(
             "message": ""
         }
         
-        # 데이터베이스 연결
+        # MySQL 연결
         db_conn = pymysql.connect(
             host=DB_HOST,
             port=DB_PORT,
@@ -799,65 +811,57 @@ async def sync_missing_data(
             cursorclass=DictCursor
         )
         
-        # Elasticsearch 클라이언트 생성
-        es = Elasticsearch([{'host': ES_HOST, 'port': ES_PORT, 'scheme': 'http'}])
-        
-        # HDFS 클라이언트 생성
+        # Elasticsearch 클라이언트 생성 (인증정보 적용)
+        es = Elasticsearch(
+            hosts=[{'host': ES_HOST, 'port': ES_PORT, 'scheme': 'http'}],
+            http_auth=(ES_USERNAME, ES_PASSWORD) if ES_USERNAME and ES_PASSWORD else None,
+            timeout=30
+        )
         hdfs_client = InsecureClient(HDFS_URL, user="root")
-        
-        # CSV 쓰기 작업을 위한 락 생성
         hdfs_write_lock = threading.Lock()
         
-        # 데이터베이스에서 총 레코드 수 확인
         with db_conn.cursor() as cursor:
             cursor.execute("SELECT COUNT(*) as count FROM found_item")
             mysql_count = cursor.fetchone()["count"]
             result["total_mysql_records"] = mysql_count
         
-        # Elasticsearch에서 총 레코드 수 확인
         es_count = es.count(index=ES_INDEX)["count"]
         result["total_elasticsearch_records"] = es_count
         
-        # Elasticsearch에서 모든 mysql_id 가져오기
+        # Elasticsearch에서 모든 mysql_id 수집
         es_ids = set()
         query = {
             "query": {"match_all": {}},
             "_source": ["mysql_id"],
             "size": 10000
         }
-        
-        # 스크롤 API 사용
         response = es.search(index=ES_INDEX, body=query, scroll="2m")
         scroll_id = response["_scroll_id"]
-        
-        # 첫 페이지 처리
         for hit in response["hits"]["hits"]:
             if "mysql_id" in hit["_source"]:
                 es_ids.add(str(hit["_source"]["mysql_id"]))
-        
-        # 나머지 페이지 처리
         while True:
             response = es.scroll(scroll_id=scroll_id, scroll="2m")
             hits = response["hits"]["hits"]
             if not hits:
                 break
-                
             for hit in hits:
                 if "mysql_id" in hit["_source"]:
                     es_ids.add(str(hit["_source"]["mysql_id"]))
-            
             scroll_id = response["_scroll_id"]
         
-        logger.info(f"MySQL 레코드 수: {mysql_count}, Elasticsearch 레코드 수: {es_count}, Elasticsearch의 MySQL ID 수: {len(es_ids)}")
+        logger.info(f"MySQL 레코드 수: {mysql_count}, Elasticsearch 레코드 수: {es_count}, "
+                    f"Elasticsearch의 MySQL ID 수: {len(es_ids)}")
         
-        # MySQL에서 Elasticsearch에 없는 레코드 가져오기 (MINOR 카테고리)
+        # MySQL 데이터 조회 (POINT 좌표 추출)
         all_records = []
         with db_conn.cursor() as cursor:
-            # MINOR 카테고리 정보를 포함하여 조회
             cursor.execute("""
                 SELECT f.*, 
-                       child_cat.name as category_minor,
-                       parent_cat.name as category_major
+                       ST_X(f.coordinates) AS db_longitude, 
+                       ST_Y(f.coordinates) AS db_latitude,
+                       child_cat.name AS category_minor,
+                       parent_cat.name AS category_major
                 FROM found_item f
                 LEFT JOIN item_category child_cat ON f.item_category_id = child_cat.id
                 LEFT JOIN item_category parent_cat ON child_cat.parent_id = parent_cat.id AND parent_cat.level = 'MAJOR'
@@ -865,13 +869,13 @@ async def sync_missing_data(
                 ORDER BY f.id DESC
             """)
             all_records = cursor.fetchall()
-        
-        # MAJOR 카테고리만 있는 레코드 조회
         with db_conn.cursor() as cursor:
             cursor.execute("""
                 SELECT f.*, 
-                       cat.name as category_major,
-                       NULL as category_minor
+                       ST_X(f.coordinates) AS db_longitude, 
+                       ST_Y(f.coordinates) AS db_latitude,
+                       cat.name AS category_major,
+                       NULL AS category_minor
                 FROM found_item f
                 INNER JOIN item_category cat ON f.item_category_id = cat.id
                 WHERE cat.level = 'MAJOR'
@@ -879,13 +883,13 @@ async def sync_missing_data(
             """)
             major_records = cursor.fetchall()
             all_records.extend(major_records)
-        
-        # 카테고리 정보 없는 레코드도 조회
         with db_conn.cursor() as cursor:
             cursor.execute("""
                 SELECT f.*, 
-                       NULL as category_major,
-                       NULL as category_minor
+                       ST_X(f.coordinates) AS db_longitude, 
+                       ST_Y(f.coordinates) AS db_latitude,
+                       NULL AS category_major,
+                       NULL AS category_minor
                 FROM found_item f
                 LEFT JOIN item_category cat ON f.item_category_id = cat.id
                 WHERE cat.id IS NULL
@@ -894,31 +898,24 @@ async def sync_missing_data(
             no_category_records = cursor.fetchall()
             all_records.extend(no_category_records)
         
-        # Elasticsearch에 없는 레코드 필터링
         missing_records = [record for record in all_records if str(record["id"]) not in es_ids]
         result["missing_records_count"] = len(missing_records)
         
         logger.info(f"Elasticsearch에 없는 MySQL 레코드 수: {len(missing_records)}")
         
-        # 처리할 최대 레코드 수 제한
         records_to_process = missing_records[:batch_size]
         result["processed_records_count"] = len(records_to_process)
         
-        # HDFS CSV 파일을 위한 경로 정의
         hdfs_csv_path = "/found_items/processed/found_item.csv"
-        
-        # CSV 헤더 정의
         csv_headers = [
             "management_id", "color", "stored_at", "image", "name", "found_at", 
             "status", "location", "phone", "detail", "image_hdfs", "latitude", 
             "longitude", "category_major", "category_minor", "mysql_id", "location_geo"
         ]
         
-        # 테스트 모드에서는 실제 처리하지 않음
         if dry_run:
-            # 테스트 모드에서도 카테고리 정보 제공
             category_info = []
-            for record in records_to_process[:10]:  # 처음 10개만 샘플로 제공
+            for record in records_to_process[:10]:
                 category_info.append({
                     "id": record["id"],
                     "management_id": record["management_id"],
@@ -927,7 +924,6 @@ async def sync_missing_data(
                     "category_minor": record.get("category_minor") or "",
                     "name": record["name"]
                 })
-            
             result["category_samples"] = category_info
             result["message"] = f"테스트 모드: {len(records_to_process)}개 레코드를 처리할 예정입니다. 실제 처리하려면 dry_run=false로 설정하세요."
             result["success"] = True
@@ -935,19 +931,14 @@ async def sync_missing_data(
             db_conn.close()
             return result
         
-        # 이미지 처리 함수
+        # 이미지 처리 함수 (변경 없음)
         def process_image(image_url):
-            """이미지 다운로드, 처리 및 업로드 함수"""
             if not image_url or not isinstance(image_url, str) or not image_url.startswith("http"):
                 return {"s3_url": None, "hdfs_url": None}
-            
-            # 기본 이미지인 경우 처리하지 않음
             if "img02_no_img.gif" in image_url:
                 logger.info(f"기본 이미지 감지됨: {image_url} → 전처리 건너뜀")
                 return {"s3_url": None, "hdfs_url": None}
-            
             try:
-                # 1. 이미지 다운로드
                 logger.debug(f"이미지 다운로드 시작: {image_url}")
                 response = requests.get(image_url, stream=True, timeout=10)
                 response.raise_for_status()
@@ -956,156 +947,117 @@ async def sync_missing_data(
                 if img is None:
                     raise ValueError("이미지 디코딩 실패")
                 logger.debug(f"이미지 다운로드 완료: {image_url}")
-                
-                # 2. 이미지 전처리
-                # LAB 색 공간 변환 및 CLAHE 적용 (명암 조정)
                 lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
                 l_channel, a_channel, b_channel = cv2.split(lab)
                 clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
                 l_channel_eq = clahe.apply(l_channel)
                 lab_eq = cv2.merge((l_channel_eq, a_channel, b_channel))
                 enhanced = cv2.cvtColor(lab_eq, cv2.COLOR_LAB2BGR)
-                
-                # 언샤프 마스킹을 통한 선명도 개선
                 gaussian = cv2.GaussianBlur(enhanced, (0, 0), sigmaX=3)
                 sharpened = cv2.addWeighted(enhanced, 1.5, gaussian, -0.5, 0)
-                
-                # 밝기 조절 (어둡게)
                 processed = cv2.convertScaleAbs(sharpened, alpha=1.0, beta=-20)
-                
-                # 리사이징
                 processed_resized = cv2.resize(processed, (IMAGE_RESIZE_WIDTH, IMAGE_RESIZE_HEIGHT))
-                
-                # 3. 이미지 인코딩
                 success, buffer = cv2.imencode('.jpg', processed_resized, [cv2.IMWRITE_JPEG_QUALITY, 90])
                 if not success:
                     raise ValueError("이미지 인코딩 실패")
                 image_bytes = buffer.tobytes()
-                
-                # 4. HDFS에 업로드
                 hdfs_filename = f"{uuid.uuid4().hex}.jpg"
                 hdfs_path = f"/found_items/images/{hdfs_filename}"
-                
                 try:
-                    # HDFS 디렉토리 확인 및 생성
                     hdfs_dir = "/found_items/images"
                     if not hdfs_client.status(hdfs_dir, strict=False):
                         hdfs_client.makedirs(hdfs_dir)
-                    
-                    # 이미지 업로드
                     hdfs_client.write(hdfs_path, data=image_bytes, overwrite=True)
                     hdfs_url = f"hdfs://{HDFS_NAMENODE}:{HDFS_PORT}{hdfs_path}"
                     logger.info(f"이미지 HDFS 저장 성공: {hdfs_url}")
                 except Exception as hdfs_err:
                     logger.error(f"HDFS 업로드 에러: {hdfs_err}")
                     hdfs_url = None
-                
-                # S3 업로드는 선택적으로 수행
-                s3_url = image_url  # 기본값으로 원래 URL 유지
-                
+                s3_url = image_url  # 원래 URL 유지
                 return {"s3_url": s3_url, "hdfs_url": hdfs_url}
             except Exception as e:
                 logger.error(f"이미지 처리 및 업로드 에러 ({image_url}): {e}")
                 return {"s3_url": image_url, "hdfs_url": None}
         
-        # 사전에 HDFS CSV 파일 준비
-        # 파일 존재 여부 확인
-        csv_file_exists = False
         try:
             csv_file_exists = hdfs_client.status(hdfs_csv_path, strict=False) is not None
         except:
-            pass
-        
-        # 파일이 없으면 헤더와 함께 생성
+            csv_file_exists = False
         if not csv_file_exists:
             header_row = ",".join([f'"{h}"' for h in csv_headers]) + "\n"
             hdfs_client.write(hdfs_csv_path, data=header_row.encode('utf-8'), overwrite=True)
             logger.info(f"HDFS CSV 파일 초기화 완료: {hdfs_csv_path}")
         
-        # CSV 행 데이터를 모을 리스트 - 한 번에 업데이트하기 위함
         csv_rows = []
-        
-        # CSV 필드 이스케이프 함수
         def escape_csv_field(field):
             if field is None:
                 return ""
-            
-            # 딕셔너리나 리스트는 JSON 문자열로 변환
             if isinstance(field, (dict, list)):
                 field = json.dumps(field, ensure_ascii=False)
-            
-            # 문자열로 변환
-            field = str(field)
-            
-            # 줄바꿈 문자를 공백으로 대체
-            field = field.replace("\n", " ").replace("\r", " ")
-            
-            # CSV 이스케이프 규칙에 따라 처리
+            field = str(field).replace("\n", " ").replace("\r", " ")
             if '"' in field:
                 field = field.replace('"', '""')
-            
-            # 필드 전체를 따옴표로 감싸기
             return f'"{field}"'
         
-        # 실제 처리 로직
         successfully_processed = []
         errors = []
         processed_details = []
-        
-        # 카테고리 정보 확인용 데이터 수집
         category_mapping = {}
         
-        # 레코드 처리 함수
         def process_record(record):
             try:
                 record_id = record["id"]
                 management_id = record["management_id"]
-                
-                # 카테고리 정보 기록
                 category_info = {
                     "item_category_id": record["item_category_id"],
                     "category_major": record.get("category_major") or "",
                     "category_minor": record.get("category_minor") or ""
                 }
                 category_mapping[record_id] = category_info
-                
-                # 이미지 처리
                 image_url = record["image"]
                 image_urls = process_image(image_url)
                 
-                # 위치 정보 처리
-                latitude = 0.0
-                longitude = 0.0
-                if "coordinates" in record and record["coordinates"]:
-                    # ST_X, ST_Y 함수 결과 처리
-                    try:
-                        if "ST_X(coordinates)" in record and record["ST_X(coordinates)"]:
-                            longitude = float(record["ST_X(coordinates)"])
-                        if "ST_Y(coordinates)" in record and record["ST_Y(coordinates)"]:
-                            latitude = float(record["ST_Y(coordinates)"])
-                    except (TypeError, ValueError):
-                        pass
+                # 위도/경도 값 가져오기
+                try:
+                    latitude = float(str(record.get("db_latitude", "0")).strip())
+                    longitude = float(str(record.get("db_longitude", "0")).strip())
+                except Exception:
+                    logger.info(f"위도/경도 값 가져오기 실패: {record.get('db_latitude')}")
+                    latitude, longitude = 0.0, 0.0
+                
+                # 위도/경도 값이 있으면 location_geo에 적용, 아니면 0,0으로 설정
+                if abs(latitude) > 90 and abs(longitude) <= 90:
+                    # 위도와 경도가 바뀐 것으로 보임
+                    tmp = latitude
+                    latitude = longitude
+                    longitude = tmp
+
+                # 값이 유효한지 최종 확인
+                if -90 <= latitude <= 90 and -180 <= longitude <= 180 and not (latitude == 0 and longitude == 0):
+                    location_geo = {"lat": latitude, "lon": longitude}
                 else:
-                    # 단순 latitude, longitude 필드 사용
-                    try:
-                        if "latitude" in record and record["latitude"]:
-                            latitude = float(record["latitude"])
-                        if "longitude" in record and record["longitude"]:
-                            longitude = float(record["longitude"])
-                    except (TypeError, ValueError):
-                        pass
+                    # 유효하지 않은 좌표는 0,0으로 설정
+                    location_geo = {"lat": 0.0, "lon": 0.0}
                 
-                # 중첩된 좌표 객체 추가
-                location_geo = {"lat": latitude, "lon": longitude}
+                # created_at: found_at 값이 "YYYY-MM-DD" 형식이면 "T00:00:00" 추가
+                created_at_raw = record.get("created_at")
+                if created_at_raw:
+                    if isinstance(created_at_raw, str) and len(created_at_raw.strip()) == 10:
+                        created_at = created_at_raw.strip() + "T00:00:00"
+                    elif hasattr(created_at_raw, "isoformat"):
+                        created_at = created_at_raw.isoformat()
+                    else:
+                        created_at = str(created_at_raw)
+                else:
+                    created_at = None
                 
-                # Elasticsearch 문서 생성
                 es_doc = {
                     "management_id": management_id,
                     "color": record.get("color", ""),
                     "stored_at": record.get("stored_at", ""),
                     "image": record.get("image", ""),
                     "name": record.get("name", ""),
-                    "found_at": record.get("found_at").isoformat() if record.get("found_at") else None,
+                    "found_at": record.get("found_at"),  # 예: "2024-09-01"
                     "status": record.get("status", "STORED"),
                     "location": record.get("location", ""),
                     "phone": record.get("phone", ""),
@@ -1117,25 +1069,20 @@ async def sync_missing_data(
                     "category_minor": record.get("category_minor") or "",
                     "mysql_id": str(record_id),
                     "location_geo": location_geo,
-                    "created_at": record.get("created_at").isoformat() if record.get("created_at") else None
+                    "created_at": created_at,
+                    "updated_at": None
                 }
                 
-                # Elasticsearch에 저장
+                # 디버깅을 위한 로그 추가
+                logger.debug(f"Record {record_id} - 좌표: lat={latitude}, lon={longitude}, location_geo={location_geo}")
+                
                 es.index(index=ES_INDEX, id=str(record_id), document=es_doc)
                 
-                # CSV 행 생성
-                row_values = []
-                for key in csv_headers:
-                    value = es_doc.get(key, "")
-                    row_values.append(escape_csv_field(value))
-                
+                row_values = [escape_csv_field(es_doc.get(key, "")) for key in csv_headers]
                 csv_row = ",".join(row_values) + "\n"
-                
-                # CSV 행 정보 저장 (나중에 일괄 처리를 위해)
                 with hdfs_write_lock:
                     csv_rows.append(csv_row)
                 
-                # 처리 세부 정보 기록
                 process_detail = {
                     "id": record_id,
                     "management_id": management_id,
@@ -1145,7 +1092,6 @@ async def sync_missing_data(
                     "image_hdfs": image_urls.get("hdfs_url"),
                     "status": "success"
                 }
-                
                 return process_detail
             except Exception as e:
                 import traceback
@@ -1159,10 +1105,8 @@ async def sync_missing_data(
                     "error": str(e)
                 }
         
-        # 멀티스레드로 레코드 처리
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(process_record, record) for record in records_to_process]
-            
             for future in concurrent.futures.as_completed(futures):
                 result_item = future.result()
                 if result_item["status"] == "success":
@@ -1172,16 +1116,13 @@ async def sync_missing_data(
                     errors.append(result_item)
                     processed_details.append(result_item)
         
-        # 모든 스레드 처리가 완료된 후 CSV 파일에 일괄 저장
         if csv_rows:
             try:
-                # CSV 데이터 일괄 저장
                 all_csv_data = "".join(csv_rows)
                 hdfs_client.write(hdfs_csv_path, data=all_csv_data.encode('utf-8'), append=True)
                 logger.info(f"CSV 데이터 {len(csv_rows)}개 행 일괄 저장 완료")
             except Exception as csv_err:
                 logger.error(f"CSV 데이터 일괄 저장 중 오류: {csv_err}")
-                # 실패 시 개별 파일에 저장
                 try:
                     backup_path = f"/found_items/processed/found_item_backup_{int(time.time())}.csv"
                     hdfs_client.write(backup_path, data=all_csv_data.encode('utf-8'), overwrite=True)
@@ -1189,7 +1130,6 @@ async def sync_missing_data(
                 except Exception as backup_err:
                     logger.error(f"백업 CSV 생성 중 오류: {backup_err}")
         
-        # 결과 업데이트
         result["successfully_processed"] = len(successfully_processed)
         result["errors"] = errors
         result["processed_details"] = processed_details
@@ -1197,24 +1137,17 @@ async def sync_missing_data(
         result["elapsed_time_seconds"] = time.time() - result["start_time"]
         result["message"] = f"{len(successfully_processed)}개 레코드가 성공적으로 처리되었습니다. {len(errors)}개 오류 발생."
         
-        # 데이터베이스 연결 종료
         db_conn.close()
         
         return result
-            
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
         logger.error(f"데이터 동기화 중 오류: {str(e)}\n{error_details}")
-        
         if "result" in locals():
             result["error"] = str(e)
             result["elapsed_time_seconds"] = time.time() - result["start_time"]
             result["success"] = False
             return result
         else:
-            return {
-                "success": False,
-                "message": "데이터 동기화 중 오류 발생",
-                "error": str(e)
-            }
+            return {"success": False, "message": "데이터 동기화 중 오류 발생", "error": str(e)}

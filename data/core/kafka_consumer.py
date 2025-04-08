@@ -1,8 +1,15 @@
+"""
+Kafka 컨슈머 모듈
+큐 기반 순차 처리를 통해 MySQL 저장의 안정성 향상
+빈 메시지 수신 시 전체 파이프라인 종료와 종료 후 추가 로그 발생 방지를 구현함.
+"""
+
 import json
 import os
 import time
 import threading
 import logging
+import queue
 import pymysql
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -10,6 +17,7 @@ from confluent_kafka import Consumer, KafkaException
 from elasticsearch import Elasticsearch, helpers  # helpers.bulk 사용
 from pymysql.cursors import DictCursor
 from dbutils.pooled_db import PooledDB  # DBUtils
+
 from core.image_processing import process_and_upload_image_opencv
 from core.geocoding import geocode_location
 from core.color_matching import match_color_fuzzy
@@ -23,12 +31,16 @@ from config.config import (
     HDFS_NAMENODE, HDFS_PORT, HDFS_URL,
     ES_HOST, ES_PORT, ES_INDEX,
     HDFS_BATCH_SIZE, HDFS_FLUSH_INTERVAL,
-    ES_BULK_BATCH_SIZE, ES_BULK_FLUSH_INTERVAL  # Bulk 관련 설정 (예: 100, 10초)
+    ES_BULK_BATCH_SIZE, ES_BULK_FLUSH_INTERVAL 
 )
+
+# Elasticsearch 인증정보 (환경변수 설정)
+ES_USERNAME = os.getenv("ES_USERNAME")
+ES_PASSWORD = os.getenv("ES_PASSWORD")
 
 logger = logging.getLogger(__name__)
 
-# HDFS 배치 관련 설정 (기존 코드 유지)
+# HDFS 배치 관련 설정
 hdfs_lock = threading.Lock()
 hdfs_batch_buffer = []
 last_flush_time = time.time()
@@ -38,11 +50,17 @@ es_bulk_queue = []
 es_bulk_lock = threading.Lock()
 last_es_flush_time = time.time()
 
-# DBUtils PooledDB를 사용한 MySQL 연결 풀 (한 번만 초기화)
+# MySQL 작업 큐와 워커 스레드 제어 이벤트
+mysql_queue = queue.Queue()
+mysql_worker_stop_event = threading.Event()
+
+# DBUtils PooledDB를 사용한 MySQL 연결 풀 
 pool = PooledDB(
     creator=pymysql,
-    maxconnections=20,
-    mincached=5,
+    maxconnections=10,      # 동시 연결 수 제한
+    mincached=2,            # 최소 캐시 연결 수
+    maxcached=5,            # 최대 캐시 연결 수
+    maxshared=5,            # 최대 공유 연결 수
     blocking=True,
     host=DB_HOST,
     port=DB_PORT,
@@ -55,9 +73,11 @@ pool = PooledDB(
     connect_timeout=10,
     read_timeout=30,
     write_timeout=30,
+    ping=1                 
 )
 
 def get_db_connection():
+    """데이터베이스 연결 획득"""
     try:
         conn = pool.connection()
         with conn.cursor() as cursor:
@@ -69,6 +89,7 @@ def get_db_connection():
         raise
 
 def get_default_category_id(conn):
+    """기본 카테고리 ID 조회 또는 생성"""
     try:
         with conn.cursor() as cursor:
             cursor.execute("SELECT id FROM item_category WHERE name = '기타' AND level = 'MAJOR'")
@@ -89,11 +110,9 @@ def get_default_category_id(conn):
                 pass
         return 1
 
-@run_in_thread_pool(pool_type='processing')
-def get_or_create_category(category_name, parent_id, level):
-    conn = None
+def get_or_create_category(conn, category_name, parent_id, level):
+    """카테고리 조회 또는 생성 (conn을 파라미터로 받음)"""
     try:
-        conn = get_db_connection()
         with conn.cursor() as cursor:
             select_sql = """
                 SELECT id 
@@ -110,227 +129,167 @@ def get_or_create_category(category_name, parent_id, level):
             """
             cursor.execute(insert_sql, (parent_id, category_name, level))
             category_id = cursor.lastrowid
-            conn.commit()
             return category_id
     except Exception as e:
         logger.error(f"카테고리 조회/생성 에러: {e}")
-        import traceback
-        logger.error(f"상세 오류: {traceback.format_exc()}")
-        if conn:
-            try:
-                conn.rollback()
-            except:
-                pass
         raise
-    finally:
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
 
-@run_in_thread_pool(pool_type='processing')
-def insert_into_mysql(message):
+def process_category(conn, message):
+    """카테고리 처리 함수 (conn을 파라미터로 받음)"""
+    default_category_id = get_default_category_id(conn)
+    try:
+        prdtClNm = message.get('prdtClNm', '')
+        if not prdtClNm:
+            return default_category_id
+        category_parts = [part.strip() for part in prdtClNm.split('>') if part.strip()]
+        if not category_parts:
+            return default_category_id
+        parent_name = category_parts[0]
+        parent_id = get_or_create_category(conn, parent_name, None, "MAJOR")
+        message['category_major'] = parent_name
+        if len(category_parts) == 1:
+            message['category_minor'] = None
+            return parent_id
+        child_name = category_parts[1]
+        category_id = get_or_create_category(conn, child_name, parent_id, "MINOR")
+        message['category_minor'] = child_name
+        return category_id
+    except Exception as e:
+        logger.error(f"카테고리 처리 중 예외 발생: {e}")
+        return default_category_id
+
+def insert_into_mysql_directly(message):
+    """
+    MySQL에 직접 저장하는 함수
+    (mysql_worker_thread에서만 호출되며, 큐를 통한 순차 처리를 위함)
+    """
     conn = None
     try:
         management_id = message.get('management_id')
-        logger.info(f"MySQL 연결 시도: {DB_HOST}:{DB_PORT} (management_id={management_id})")
+        logger.info(f"MySQL 연결 시도: {management_id}")
         conn = get_db_connection()
-        logger.info(f"MySQL 연결 성공 (management_id={management_id})")
-        
+        logger.info(f"MySQL 연결 성공: {management_id}")
         if not management_id:
             logger.error("management_id가 없어 MySQL에 저장할 수 없습니다.")
             return None
-        
         if not message.get('name'):
             message['name'] = '미확인 물품'
-            logger.warning(f"{management_id}: 물품명이 없어 기본값 설정")
-            
         if not message.get('stored_at'):
             message['stored_at'] = '미확인 위치'
-            logger.warning(f"{management_id}: 보관장소가 없어 기본값 설정")
-            
         if not message.get('status'):
             message['status'] = 'STORED'
-            logger.warning(f"{management_id}: 상태가 없어 기본값 설정")
-        
-        try:
-            with conn.cursor() as cursor:
-                select_sql = "SELECT id FROM found_item WHERE management_id = %s"
-                logger.info(f"중복 확인 SQL 실행 (management_id={management_id}): {select_sql}")
-                cursor.execute(select_sql, (management_id,))
-                row = cursor.fetchone()
-                if row:
-                    logger.info(f"이미 존재하는 관리번호: {management_id}, mysql_id: {row['id']}")
-                    message['mysql_id'] = row['id']
-                    return row['id']
-                logger.info(f"중복 확인 완료: 신규 레코드 (management_id={management_id})")
-        except Exception as e:
-            logger.error(f"중복 확인 중 오류 발생 ({management_id}): {e}")
-            import traceback
-            logger.error(f"상세 오류: {traceback.format_exc()}")
-            raise
-
-        logger.info(f"카테고리 처리 시작 (management_id={management_id})")
-        category_id = None
-        try:
-            prdtClNm = message.get('prdtClNm', '')
-            if prdtClNm:
-                logger.info(f"상품 카테고리: {prdtClNm} (management_id={management_id})")
-                category_parts = [part.strip() for part in prdtClNm.split('>') if part.strip()]
-                if category_parts:
-                    parent_name = category_parts[0]
-                    logger.info(f"상위 카테고리 조회/생성: {parent_name} (management_id={management_id})")
-                    parent_id = get_or_create_category(parent_name, None, "MAJOR")
-                    logger.info(f"상위 카테고리 ID: {parent_id} (management_id={management_id})")
-                    message['category_major'] = parent_name
-                    if len(category_parts) > 1:
-                        child_name = category_parts[1]
-                        logger.info(f"하위 카테고리 조회/생성: {child_name} (parent_id={parent_id}, management_id={management_id})")
-                        category_id = get_or_create_category(child_name, parent_id, "MINOR")
-                        logger.info(f"하위 카테고리 ID: {category_id} (management_id={management_id})")
-                        message['category_minor'] = child_name
-                    else:
-                        message['category_minor'] = None
-                        category_id = parent_id
-                        logger.info(f"하위 카테고리 없음, 상위 카테고리 ID 사용: {category_id} (management_id={management_id})")
-        except Exception as e:
-            logger.error(f"카테고리 처리 에러 ({management_id}): {e}")
-            import traceback
-            logger.error(f"상세 오류: {traceback.format_exc()}")
-            logger.info(f"기본 카테고리 조회 시도 (management_id={management_id})")
-            category_id = get_default_category_id(conn)
-            logger.info(f"기본 카테고리({category_id})를 사용합니다. (management_id={management_id})")
-        
-        if category_id is None:
-            logger.info(f"카테고리 ID가 없어 기본 카테고리 조회 시도 (management_id={management_id})")
-            category_id = get_default_category_id(conn)
-            logger.info(f"카테고리 ID가 없어 기본 카테고리({category_id})를 사용합니다. (management_id={management_id})")
-            
-        logger.info(f"위치 정보 처리 시작 (management_id={management_id})")
-        latitude = message.get('latitude')
-        longitude = message.get('longitude')
-        
-        logger.info(f"원본 위도/경도: {latitude}, {longitude} (management_id={management_id})")
-        if latitude is not None and longitude is not None:
-            if abs(latitude) > 90:
-                temp = latitude
-                latitude = longitude
-                longitude = temp
-                message['latitude'] = latitude
-                message['longitude'] = longitude
-                logger.warning(f"SQL 실행 전 위도/경도 교정: 위도={latitude}, 경도={longitude} (management_id={management_id})")
-            
-            if abs(latitude) > 90 or abs(longitude) > 180:
-                logger.warning(f"최종 위도/경도({latitude}, {longitude})가 유효하지 않아 기본값으로 설정 (management_id={management_id})")
-                latitude = 37.5665
-                longitude = 126.9780
-                message['latitude'] = latitude
-                message['longitude'] = longitude
-        else:
-            logger.warning(f"위도/경도 정보 없음, 기본값 설정 (management_id={management_id})")
-            latitude = 37.5665
-            longitude = 126.9780
-            message['latitude'] = latitude
-            message['longitude'] = longitude
-        
-        logger.info(f"최종 위도/경도: {latitude}, {longitude} (management_id={management_id})")
-
-        try:
-            with conn.cursor() as cursor:
-                sql = """
-                    INSERT INTO found_item 
-                    (management_id, name, color, stored_at, image, found_at, item_category_id, status, location, coordinates, phone, detail, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, ST_PointFromText(CONCAT('POINT(', %s, ' ', %s, ')'), 4326), %s, %s, %s)
-                """
-                params = (
-                    message.get('management_id'),
-                    message.get('name'),
-                    message.get('color'),
-                    message.get('stored_at'),
-                    message.get('image'),
-                    message.get('found_at'),
-                    category_id,
-                    message.get('status'),
-                    message.get('location'),
-                    latitude,
-                    longitude,
-                    message.get('phone'),
-                    message.get('detail'),
-                    datetime.utcnow()
-                )
-                
-                # 로그 메시지가 너무 길어지지 않도록 일부 내용만 로깅
-                param_log = f"management_id={params[0]}, name={params[1]}, category_id={params[6]}, status={params[7]}, lat={params[9]}, lon={params[10]}"
-                logger.info(f"SQL 실행 시도 (management_id={management_id}): {sql}")
-                logger.info(f"SQL 파라미터 주요 정보: {param_log}")
-                
-                try:
-                    cursor.execute(sql, params)
-                    auto_id = cursor.lastrowid
-                    logger.info(f"SQL 실행 성공, lastrowid={auto_id} (management_id={management_id})")
-                except Exception as sql_error:
-                    logger.error(f"SQL 실행 오류 ({management_id}): {sql_error}")
-                    import traceback
-                    logger.error(f"SQL 오류 상세: {traceback.format_exc()}")
-                    # SQL 예외 정보 더 자세히 로깅
-                    if hasattr(sql_error, 'args'):
-                        logger.error(f"SQL 오류 인자: {sql_error.args}")
-                    raise
-            
-            logger.info(f"MySQL commit 시도 (management_id={management_id})")
-            try:
-                conn.commit()
-                logger.info(f"MySQL commit 성공 (management_id={management_id})")
-            except Exception as commit_error:
-                logger.error(f"MySQL commit 오류 ({management_id}): {commit_error}")
-                import traceback
-                logger.error(f"Commit 오류 상세: {traceback.format_exc()}")
-                if conn:
-                    try:
-                        conn.rollback()
-                        logger.info(f"MySQL 롤백 완료 (commit 실패로 인한): {management_id}")
-                    except Exception as rollback_error:
-                        logger.error(f"MySQL 롤백 실패: {rollback_error}")
-                raise commit_error
-            
-            message['mysql_id'] = auto_id
-            logger.info(f"MySQL 저장 완료: management_id={management_id}, id={auto_id}")
-            return auto_id
-        except Exception as e:
-            logger.error(f"데이터 삽입 에러 ({management_id}): {e}")
-            import traceback
-            logger.error(f"상세 오류: {traceback.format_exc()}")
-            if conn:
-                try:
-                    conn.rollback()
-                    logger.info(f"MySQL 롤백 완료: {management_id}")
-                except Exception as rollback_error:
-                    logger.error(f"MySQL 롤백 실패: {rollback_error}")
-            raise
+        with conn.cursor() as cursor:
+            select_sql = "SELECT id FROM found_item WHERE management_id = %s"
+            cursor.execute(select_sql, (management_id,))
+            row = cursor.fetchone()
+            if row:
+                logger.info(f"이미 존재하는 관리번호: {management_id}, mysql_id: {row['id']}")
+                return row['id']
+        category_id = process_category(conn, message)
+        latitude = message.get('latitude', 37.5665)
+        longitude = message.get('longitude', 126.9780)
+        current_time = datetime.utcnow()
+        with conn.cursor() as cursor:
+            sql = """
+                INSERT INTO found_item 
+                (management_id, name, color, stored_at, image, found_at, item_category_id, status, location, coordinates, phone, detail, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, ST_PointFromText(CONCAT('POINT(', %s, ' ', %s, ')'), 4326), %s, %s, %s)
+            """
+            cursor.execute(sql, (
+                management_id,
+                message.get('name'),
+                message.get('color'),
+                message.get('stored_at'),
+                message.get('image'),
+                message.get('found_at'),
+                category_id,
+                message.get('status'),
+                message.get('location'),
+                latitude,
+                longitude,
+                message.get('phone'),
+                message.get('detail'),
+                current_time
+            ))
+            auto_id = cursor.lastrowid
+        conn.commit()
+        logger.info(f"MySQL 저장 성공: {management_id}, id={auto_id}")
+        message['created_at'] = current_time
+        return auto_id
     except Exception as e:
         logger.error(f"MySQL 저장 에러: {e}")
-        import traceback
-        logger.error(f"상세 오류: {traceback.format_exc()}")
         if conn:
             try:
                 conn.rollback()
-                logger.info(f"최상위 예외 처리에서 롤백 완료")
-            except Exception as rollback_error:
-                logger.error(f"최상위 예외 처리에서 롤백 실패: {rollback_error}")
+            except:
+                pass
         raise
     finally:
         if conn:
             try:
                 conn.close()
-                logger.info(f"MySQL 연결 닫힘 (management_id={management_id if 'management_id' in message else 'unknown'})")
-            except Exception as conn_close_error:
-                logger.error(f"MySQL 연결 닫기 실패: {conn_close_error}")
+            except:
+                pass
+
+def mysql_worker_thread():
+    """MySQL 저장 작업만 처리하는 전용 워커 스레드"""
+    logger.info("MySQL 워커 스레드 시작")
+    consecutive_errors = 0
+    while not mysql_worker_stop_event.is_set():
+        try:
+            try:
+                message, result_callback = mysql_queue.get(timeout=1.0)
+            except queue.Empty:
+                continue
+            management_id = message.get('management_id')
+            logger.info(f"MySQL 작업 시작: {management_id}")
+            try:
+                mysql_id = insert_into_mysql_directly(message)
+                consecutive_errors = 0
+                if result_callback:
+                    result_callback(True, mysql_id, message)
+            except Exception as e:
+                consecutive_errors += 1
+                logger.error(f"MySQL 저장 실패 ({consecutive_errors}번째 연속 오류): {e}")
+                if consecutive_errors >= 5:
+                    wait_time = min(consecutive_errors * 2, 60)
+                    logger.warning(f"{consecutive_errors}번 연속 실패로 {wait_time}초 대기 후 재개")
+                    time.sleep(wait_time)
+                if result_callback:
+                    result_callback(False, None, message)
+            mysql_queue.task_done()
+        except Exception as e:
+            logger.error(f"MySQL 워커 스레드 오류: {e}")
+            import traceback
+            logger.error(f"상세 오류: {traceback.format_exc()}")
+            time.sleep(5)
+
+def handle_mysql_result(success, mysql_id, message):
+    """MySQL 저장 작업 결과 처리 콜백"""
+    management_id = message.get('management_id')
+    if success:
+        message['mysql_id'] = mysql_id
+        if 'created_at' in message and hasattr(message['created_at'], 'isoformat'):
+            message['created_at'] = message['created_at'].isoformat()
+        else:
+            message['created_at'] = datetime.utcnow().isoformat()
+        message['updated_at'] = None
+        logger.info(f"MySQL 저장 성공에 따른 후속 처리: {management_id}")
+        try:
+            insert_into_elasticsearch(message)
+        except Exception as e:
+            logger.error(f"Elasticsearch 저장 중 에러: {e}")
+        with hdfs_lock:
+            hdfs_batch_buffer.append(message)
+            if len(hdfs_batch_buffer) >= HDFS_BATCH_SIZE:
+                threading.Thread(target=flush_hdfs_batch).start()
+    else:
+        logger.error(f"MySQL 저장 실패로 후속 처리 건너뜀: {management_id}")
 
 def prepare_message_for_elasticsearch(message):
+    """Elasticsearch에 저장할 형식으로 메시지 변환"""
     if 'mysql_id' in message and message['mysql_id'] is not None:
         message['mysql_id'] = str(message['mysql_id'])
-    
     lat = None
     lon = None
     for field in ['latitude', 'longitude']:
@@ -344,33 +303,31 @@ def prepare_message_for_elasticsearch(message):
                     lon = value
             except ValueError:
                 message[field] = None
-    
     if lat is not None and lon is not None:
          message['location_geo'] = {"lat": lat, "lon": lon}
     else:
          message['location_geo'] = None
-    
-    if 'created_at' in message and hasattr(message['created_at'], 'isoformat'):
-        message['created_at'] = message['created_at'].isoformat()
-    
-    if 'fdSn' in message:
-        del message['fdSn']
-    
+    if 'created_at' in message:
+        if hasattr(message['created_at'], 'isoformat'):
+            message['created_at'] = message['created_at'].isoformat()
+    message['updated_at'] = None
     if 'found_at' in message and message['found_at'] is not None:
         try:
-            if isinstance(message['found_at'], str):
+            if len(message['found_at']) == 10:
+                found_at_date = datetime.strptime(message['found_at'], '%Y-%m-%d')
+            else:
                 found_at_date = datetime.strptime(message['found_at'], '%Y-%m-%d %H:%M:%S')
-                message['found_at'] = found_at_date.isoformat()
+            message['found_at'] = found_at_date.isoformat()
         except ValueError:
             message['found_at'] = None
-    
+    if 'fdSn' in message:
+        del message['fdSn']
     if 'prdtClNm' in message:
          del message['prdtClNm']
-    
     return message
 
-# Bulk API를 위한 Elasticsearch 저장 함수
 def flush_es_bulk():
+    """Elasticsearch Bulk 큐의 데이터를 일괄 처리"""
     global es_bulk_queue, last_es_flush_time
     with es_bulk_lock:
         if not es_bulk_queue:
@@ -383,7 +340,7 @@ def flush_es_bulk():
         doc_id = message.get('mysql_id') if message.get('mysql_id') is not None else message.get('management_id')
         doc_id = str(doc_id)
         actions.append({
-            "_op_type": "index",  # 문서가 이미 존재하면 실패합니다.
+            "_op_type": "index",  
             "_index": ES_INDEX,
             "_id": doc_id,
             "_source": message
@@ -391,6 +348,7 @@ def flush_es_bulk():
     try:
         es = Elasticsearch(
             hosts=[{'host': ES_HOST, 'port': ES_PORT, 'scheme': 'http'}],
+            http_auth=(ES_USERNAME, ES_PASSWORD) if ES_USERNAME and ES_PASSWORD else None,
             timeout=30
         )
         success, failed = helpers.bulk(es, actions, stats_only=True)
@@ -398,7 +356,6 @@ def flush_es_bulk():
         last_es_flush_time = time.time()
     except Exception as e:
         logger.error(f"Bulk Elasticsearch 저장 에러: {e}")
-        # 실패 시 문서들을 다시 큐에 추가할 수 있습니다.
         with es_bulk_lock:
             es_bulk_queue.extend(documents)
 
@@ -411,6 +368,7 @@ def insert_into_elasticsearch(message):
     return True
 
 def flush_hdfs_batch():
+    """HDFS 배치 버퍼의 데이터를 HDFS에 저장"""
     global hdfs_batch_buffer, last_flush_time
     logger.debug("flush_hdfs_batch 시작")
     with hdfs_lock:
@@ -431,7 +389,6 @@ def flush_hdfs_batch():
         except Exception as e:
             logger.info(f"디렉토리 확인 중 예외 발생, 생성 시도: {e}")
             client.makedirs(directory)
-        
         def escape_csv_field(field):
             if field is None:
                 return ""
@@ -441,7 +398,6 @@ def flush_hdfs_batch():
             if '"' in field:
                 field = field.replace('"', '""')
             return f'"{field}"'
-        
         headers = list(buffer_copy[0].keys())
         header_line = ",".join([f'"{h}"' for h in headers])
         lines = []
@@ -454,7 +410,6 @@ def flush_hdfs_batch():
             content_to_write = batch_content if file_exists else header_line + "\n" + batch_content
         except:
             content_to_write = header_line + "\n" + batch_content
-        
         try:
             with client.write(file_path, append=file_exists, encoding='utf-8') as writer:
                 writer.write(content_to_write)
@@ -477,6 +432,7 @@ def flush_hdfs_batch():
         return False
 
 def flush_hdfs_periodically():
+    """주기적으로 HDFS 배치 버퍼를 비우는 백그라운드 스레드"""
     while True:
         time.sleep(10)
         try:
@@ -486,11 +442,16 @@ def flush_hdfs_periodically():
 
 @run_in_thread_pool(pool_type='processing')
 def process_message(message):
+    """
+    메시지 처리 로직 (병렬 처리를 위해 스레드 풀에서 실행)
+    1. 이미지 처리
+    2. 지오코딩
+    3. 색상 매칭
+    4. MySQL 저장 작업을 큐에 추가 (순차 처리를 위해)
+    """
     try:
         management_id = message.get('management_id')
         logger.info(f"메시지 처리 시작: {management_id}")
-        
-        # 1. 이미지 처리
         image_url = message.get('image')
         if image_url and image_url.startswith("http"):
             if "img02_no_img.gif" in image_url:
@@ -506,8 +467,6 @@ def process_message(message):
                     logger.error(f"이미지 처리 에러 ({management_id}): {e}")
                     message['image'] = image_url
                     message['image_hdfs'] = None
-        
-        # 2. 지오코딩 처리
         location = message.get('stored_at')
         if location:
             try:
@@ -527,22 +486,20 @@ def process_message(message):
                             message['longitude'] = swapped_lon
                             logger.warning(f"비정상 좌표 교정: ({lat}, {lon}) -> ({swapped_lat}, {swapped_lon})")
                         else:
-                            message['latitude'] = 0
-                            message['longitude'] = 0
-                            logger.warning(f"비정상 위치 좌표, 기본값(0,0) 사용: ({lat}, {lon})")
+                            message['latitude'] = 37.5665
+                            message['longitude'] = 126.9780
+                            logger.warning(f"비정상 위치 좌표, 기본값 사용: ({lat}, {lon})")
                 else:
-                    message['latitude'] = 0
-                    message['longitude'] = 0
+                    message['latitude'] = 37.5665
+                    message['longitude'] = 126.9780
                     logger.warning("지오코딩 결과 없음, 기본값 사용")
             except Exception as e:
                 logger.error(f"지오코딩 에러 ({management_id}): {e}")
-                message['latitude'] = 0
-                message['longitude'] = 0
+                message['latitude'] = 37.5665
+                message['longitude'] = 126.9780
         else:
-            message['latitude'] = 0
-            message['longitude'] = 0
-
-        # 3. 색상 처리
+            message['latitude'] = 37.5665
+            message['longitude'] = 126.9780
         original_color = message.get('color', '')
         if original_color:
             try:
@@ -551,34 +508,19 @@ def process_message(message):
                 logger.debug(f"색상 처리: {original_color} -> {matched_color}")
             except Exception as e:
                 logger.error(f"색상 매칭 에러 ({management_id}): {e}")
-        
-        # 4. MySQL 저장
-        try:
-            mysql_id = insert_into_mysql(message)
-            if mysql_id:
-                message['mysql_id'] = mysql_id
-        except Exception as e:
-            logger.error(f"MySQL 저장 중 에러 ({management_id}): {e}")
-        
-        # 5. Elasticsearch 저장 (Bulk API 방식으로 저장 큐에 추가)
-        try:
-            insert_into_elasticsearch(message)
-        except Exception as e:
-            logger.error(f"Elasticsearch 저장 중 에러 ({management_id}): {e}")
-        
-        # 6. HDFS 배치 버퍼에 추가
-        with hdfs_lock:
-            hdfs_batch_buffer.append(message)
-            if len(hdfs_batch_buffer) >= HDFS_BATCH_SIZE:
-                threading.Thread(target=flush_hdfs_batch).start()
-        
-        logger.info(f"메시지 처리 완료: {management_id}")
+        mysql_queue.put((message, handle_mysql_result))
+        logger.info(f"MySQL 저장 작업 큐에 추가됨: {management_id}")
+        logger.info(f"메시지 전처리 완료 및 MySQL 큐에 추가됨: {management_id}")
         return True
     except Exception as e:
         logger.error(f"메시지 처리 중 에러 발생: {e}")
         return False
 
 def run_kafka_consumer_continuous():
+    """Kafka 소비자 실행: 상세 정보가 포함된 메시지를 소비하고 처리"""
+    mysql_thread = threading.Thread(target=mysql_worker_thread, daemon=True)
+    mysql_thread.start()
+    
     consumer_conf = {
         'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
         'group.id': 'lost_items_consumer_group_continuous',
@@ -590,14 +532,12 @@ def run_kafka_consumer_continuous():
         'max.partition.fetch.bytes': 1048576,
         'queued.max.messages.kbytes': 102400
     }
-    
     consumer = Consumer(consumer_conf)
     consumer.subscribe([KAFKA_TOPIC_DETAIL])
     
     flush_thread = threading.Thread(target=flush_hdfs_periodically, daemon=True)
     flush_thread.start()
     
-    # Elasticsearch Bulk 작업을 위한 별도 플러시 스레드
     def es_bulk_flush_loop():
         while True:
             time.sleep(ES_BULK_FLUSH_INTERVAL if 'ES_BULK_FLUSH_INTERVAL' in globals() else 10)
@@ -608,7 +548,7 @@ def run_kafka_consumer_continuous():
     message_queue = BackpressureQueue(max_size=1000, blocking=True)
     futures = []
     processing_count = 0
-    max_concurrent_tasks = min(os.cpu_count() * 4, 20)
+    max_concurrent_tasks = min(os.cpu_count() * 2, 10)
     
     def consume_tasks():
         nonlocal processing_count
@@ -657,12 +597,15 @@ def run_kafka_consumer_continuous():
                 continue
             try:
                 message_value = msg.value().decode('utf-8')
+                # 빈 메시지(또는 공백만 있는 경우)가 오면 파이프라인 종료를 시작합니다.
+                if not message_value.strip():
+                    logger.info("빈 메시지 감지됨 – 파이프라인 종료 시작")
+                    break
                 message = json.loads(message_value)
                 management_id = message.get('management_id')
                 message_queue.put(message)
-                logger.debug(f"메시지 큐에 추가: {management_id}")
                 if message_queue.size() % 100 == 0:
-                    logger.info(f"현재 큐 크기: {message_queue.size()}, 처리 중 작업: {processing_count}")
+                    logger.info(f"현재 큐 크기: {message_queue.size()}, 처리 중: {processing_count}, MySQL 큐: {mysql_queue.qsize()}")
                 consumer.commit(asynchronous=True)
             except Exception as e:
                 logger.error(f"메시지 처리 중 에러 발생: {e}")
@@ -671,17 +614,26 @@ def run_kafka_consumer_continuous():
     except KeyboardInterrupt:
         logger.info("소비자 중단 요청 감지")
     finally:
-        logger.info("Kafka 소비자 종료 및 리소스 정리 중...")
+        logger.info("Kafka 소비자 종료 및 리소스 정리 시작")
+        mysql_worker_stop_event.set()
+        if not mysql_queue.empty():
+            logger.info(f"남은 MySQL 작업 {mysql_queue.qsize()}개 처리 대기 중...")
+            mysql_queue.join()
         flush_hdfs_batch()
+        flush_es_bulk()
         consumer.close()
+        ThreadPoolManager().shutdown()
         for f in futures:
             try:
                 f.result(timeout=10)
             except Exception:
                 pass
         logger.info("Kafka 소비자 종료 완료")
+        # 필요시 아래와 같이 명시적 프로세스 종료를 호출할 수 있습니다.
+        # import sys
+        # sys.exit(0)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
-                       format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                      format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     run_kafka_consumer_continuous()

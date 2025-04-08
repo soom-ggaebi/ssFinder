@@ -6,7 +6,7 @@ from models.common.date_util import get_date_range_for_api
 def fetch_lost_items(page_no=1, num_of_rows=1000, start_date=None, end_date=None):
     """
     API 호출로 분실물 요약 데이터를 수집합니다.
-    시작일과 종료일이 제공되면 이를 사용하고, 제공되지 않으면 기본값(최근 6개월 전)을 사용합니다.
+    시작일과 종료일이 제공되면 이를 사용
     """
     if not start_date or not end_date:
         start_ymd, end_ymd = get_date_range_for_api()

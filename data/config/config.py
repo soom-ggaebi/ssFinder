@@ -16,7 +16,7 @@ FAST_API_PORT = int(os.getenv("FAST_API_PORT", 8000))
 API_SERVICE_KEY = os.getenv("API_SERVICE_KEY", "")
 
 # Kafka 설정
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
 KAFKA_TOPIC_SUMMARY = os.getenv("KAFKA_TOPIC_SUMMARY", "summary_topic")
 KAFKA_TOPIC_ID = os.getenv("KAFKA_TOPIC_ID", "id_topic")
 KAFKA_TOPIC_DETAIL = os.getenv("KAFKA_TOPIC_DETAIL", "detail_topic")
@@ -25,20 +25,17 @@ KAFKA_TOPIC_PROCESSED_DATA = "processed_data"
 KAFKA_TOPIC_IMAGE_METADATA = "image_metadata"
 KAFKA_TOPIC_COMPLETE_DATA = "complete_data"
 
-# Spark 설정
-SPARK_MASTER = os.getenv("SPARK_MASTER", "local[*]")
-
 # MySQL 데이터베이스 설정
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = int(os.getenv("DB_PORT", 3306))
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_NAME = os.getenv("DB_NAME", "ssfinder")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = int(os.getenv("DB_PORT"))
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
 
 # HDFS 설정
-HDFS_NAMENODE = os.getenv("HDFS_NAMENODE", "localhost")
-HDFS_PORT = int(os.getenv("HDFS_PORT", 9000))
-HDFS_URL = os.getenv("HDFS_URL", "http://localhost:9870/webhdfs/v1")
+HDFS_NAMENODE = os.getenv("HDFS_NAMENODE")
+HDFS_PORT = int(os.getenv("HDFS_PORT"))
+HDFS_URL = os.getenv("HDFS_URL")
 
 # S3 설정
 S3_BUCKET = os.getenv("S3_BUCKET", "")
@@ -48,8 +45,10 @@ AWS_REGION = os.getenv("AWS_REGION", "")
 
 # Elasticsearch 설정
 ES_HOST = os.getenv("ES_HOST", "localhost")
-ES_PORT = int(os.getenv("ES_PORT", 9200))
+ES_PORT = int(os.getenv("ES_PORT", 9400))
 ES_INDEX = os.getenv("ES_INDEX", "found-items")
+ES_USERNAME = os.getenv("ES_USERNAME")
+ES_PASSWORD = os.getenv("ES_PASSWORD")
 
 # 지오코딩 API 설정
 GEOCODING_API_KEY = os.getenv("GEOCODING_API_KEY", "")

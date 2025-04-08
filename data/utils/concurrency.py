@@ -9,7 +9,10 @@ import threading
 import asyncio
 from functools import wraps
 from typing import Callable, Any
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 class ThreadPoolManager:
     """
@@ -187,7 +190,7 @@ def batch_process(batch_size: int = 100):
 def run_in_thread_pool(pool_type: str = 'processing'):
     """
     함수를 지정된 스레드 풀에서 실행하는 데코레이터
-    
+
     @run_in_thread_pool(pool_type='api')
     def fetch_data(url):
         # API 호출 로직
@@ -196,6 +199,7 @@ def run_in_thread_pool(pool_type: str = 'processing'):
     def decorator(func: Callable):
         @wraps(func)
         def wrapper(*args, **kwargs):
+            logger.info(f"함수 '{func.__name__}' 호출됨")
             pool_manager = ThreadPoolManager()
             
             if pool_type == 'api':
@@ -208,12 +212,18 @@ def run_in_thread_pool(pool_type: str = 'processing'):
                 pool = pool_manager.get_upload_pool()
             else:  # default to processing
                 pool = pool_manager.get_processing_pool()
-                
+            
+            logger.info(f"선택된 스레드 풀: {pool} (pool_type={pool_type})")
             future = pool.submit(func, *args, **kwargs)
-            return future.result()
-        
+            logger.info(f"'{func.__name__}' 함수가 스레드 풀에 제출되었습니다. 결과를 기다립니다...")
+            try:
+                result = future.result()
+                logger.info(f"'{func.__name__}' 함수 실행 완료. 결과: ")
+            except Exception as e:
+                logger.error(f"'{func.__name__}' 함수 실행 중 오류 발생: {e}")
+                raise
+            return result
         return wrapper
-    
     return decorator
 
 

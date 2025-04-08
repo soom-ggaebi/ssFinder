@@ -72,13 +72,6 @@ def run_pipeline(start_date: Optional[str] = None, end_date: Optional[str] = Non
       1. 요약 데이터 수집 및 Kafka 전송 (프로듀서) - 시작일과 종료일 사용
       2. 상세 정보 조회 서비스 실행 (비동기)
       3. Kafka 소비 및 이미지 전처리+지오코딩 후 DB/S3/HDFS/ES 저장 (소비자)
-      
-    Args:
-        start_date: 데이터 수집 시작일 (YYYYMMDD 형식, 선택사항)
-        end_date: 데이터 수집 종료일 (YYYYMMDD 형식, 선택사항)
-        sequential_mode: 순차 실행 모드 여부 (기본값: False) 
-                         True면 프로듀서 완료 후 다른 서비스 시작
-        register_signals: 시그널 핸들러 등록 여부 (메인 스레드에서만 True로 설정)
     """
     # 시그널 핸들러 등록 (메인 스레드에서만)
     if register_signals:

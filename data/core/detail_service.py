@@ -25,7 +25,7 @@ from config.config import (
 logger = logging.getLogger(__name__)
 
 # 데이터 지연 도착을 고려한 설정
-SUMMARY_CACHE_RETENTION = 18000  # 요약 데이터를 5시간 동안 보관 (초 단위)
+SUMMARY_CACHE_RETENTION = 18000  # 요약 데이터를 1시간 동안 보관 (초 단위)
 PROCESSING_START_DELAY = 120     # 초기 처리 시작 전 대기 시간 (초)
 BATCH_PROCESSING_INTERVAL = 10  # 배치 처리 간격 (초)
 
@@ -179,7 +179,7 @@ summary_cache = DataCache("summary", max_size=500000, retention_seconds=SUMMARY_
 id_cache = DataCache("id", max_size=500000)
 
 # 처리 중인 관리번호와 시작 시간을 기록
-processing_ids = {}  
+processing_ids = {}  # management_id -> start_time
 processing_lock = threading.Lock()
 
 # 처리 완료된 관리번호 세트 (추가 처리 방지)
@@ -221,7 +221,7 @@ def create_retry_session():
 api_session = create_retry_session()
 
 def cleanup_processing_ids():
-    """오래된 처리 중 항목 정리 - 더 적극적인 방식으로 개선"""
+    """오래된 처리 중 항목 정리"""
     current_time = time.time()
     timed_out_count = 0
     

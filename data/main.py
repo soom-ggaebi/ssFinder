@@ -127,16 +127,25 @@ async def start_pipeline(
 
 @app.post("/pipeline/stop", response_model=PipelineStatus, tags=["파이프라인"])
 async def stop_pipeline():
-    """현재 실행 중인 파이프라인 중지 (미구현)"""
+    """현재 실행 중인 파이프라인 중지"""
+    from core.pipeline import shutdown_event  # import 추가
+    
     status_data = get_pipeline_status()
     
     if not status_data["is_running"]:
         raise HTTPException(status_code=400, detail="현재 실행 중인 파이프라인이 없습니다.")
     
-    # 파이프라인 중지 기능은 현재 버전에서 구현되지 않음
+    # 파이프라인 중지 이벤트 설정
+    shutdown_event.set()
+    
+    # 상태 업데이트
+    pipeline_status["status"] = "stopping"
+    pipeline_status["message"] = "파이프라인 중지 중..."
+    
     return {
         **status_data,
-        "message": "파이프라인 중지 기능은 현재 버전에서 지원되지 않습니다."
+        "status": "stopping",
+        "message": "파이프라인 중지 요청을 보냈습니다. 현재 실행 중인 작업이 완료되면 종료됩니다."
     }
 
 if __name__ == "__main__":
