@@ -364,6 +364,12 @@ class FoundItemsApiService {
     required double maxLng,
     required double minLat,
     required double minLng,
+    String? status,
+    String? type,
+    String? foundAt,
+    String? majorCategory,
+    String? minorCategory,
+    String? color,
   }) async {
     try {
       final token = await _getAccessToken();
@@ -378,10 +384,18 @@ class FoundItemsApiService {
         'max_longitude': maxLng,
         'min_latitude': minLat,
         'min_longitude': minLng,
+        'status': status,
+        'type': type,
+        'foundAt': foundAt,
+        'major_category': majorCategory,
+        'minor_category': minorCategory,
+        'color': color,
       };
 
+      print('### ${requestBody}');
+
       final response = await _dio.get(
-        '${EnvironmentConfig.baseUrl}/api/found-items/viewport/coordinates',
+        '${EnvironmentConfig.baseUrl}/api/found-items/filter',
         options: Options(headers: headers),
         data: requestBody,
       );
@@ -592,9 +606,7 @@ class FoundItemsApiService {
         if (token != null) 'Authorization': 'Bearer $token',
       };
 
-      final requestBody = {
-        'ids': ids,
-      };
+      final requestBody = {'ids': ids};
       print(requestBody);
 
       final response = await _dio.get(
@@ -606,7 +618,7 @@ class FoundItemsApiService {
           'size': size.toString(),
           'sortBy': sortBy,
           'sortDirection': sortDirection,
-        }
+        },
       );
 
       if (response.statusCode == 200) {
@@ -664,9 +676,11 @@ class FoundItemsApiService {
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
-        final List<dynamic> categoriesJson = responseData['data'] as List<dynamic>;
-        
+        final Map<String, dynamic> responseData =
+            response.data as Map<String, dynamic>;
+        final List<dynamic> categoriesJson =
+            responseData['data'] as List<dynamic>;
+
         return categoriesJson
             .map((json) => CategoryModel.fromJson(json))
             .toList();

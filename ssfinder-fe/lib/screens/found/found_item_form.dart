@@ -144,22 +144,23 @@ class _FoundItemFormState extends State<FoundItemForm> {
 
   Future<void> _submitForm() async {
     if (!_validateForm()) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
-      final formattedDate = "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
+      final formattedDate =
+          "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
       final categories = await _apiService.getCategories();
       final selectedCategoryName = _selectedCategory?.split(' > ').last.trim();
       final matchingCategory = categories.firstWhere(
         (category) => category.name == selectedCategoryName,
         orElse: () => throw Exception('선택한 카테고리를 찾을 수 없습니다.'),
       );
-    
+
       final categoryId = matchingCategory.id;
-      
+
       if (widget.itemToEdit != null) {
         // 수정
         print('수정');
@@ -215,7 +216,7 @@ class _FoundItemFormState extends State<FoundItemForm> {
 
   void _initFormWithExistingData() {
     final item = widget.itemToEdit;
-    
+
     // 텍스트 필드 초기화
     _itemNameController.text = item.name;
     _detailController.text = item.detail;
@@ -223,23 +224,23 @@ class _FoundItemFormState extends State<FoundItemForm> {
     if (item.image != null) {
       _imageUrl = item.imageUrl;
     }
-    
+
     // 선택 값 초기화
     setState(() {
       _selectedCategory = "${item.majorCategory} > ${item.minorCategory}";
       _selectedCategoryId = item.minorCategory;
       _selectedColor = item.color;
       _selectedLocation = item.location;
-      
+
       // 날짜 변환 (문자열 -> DateTime)
       if (item.foundAt != null) {
         _selectedDate = DateTime.parse(item.foundAt);
       }
-      
+
       // 위치 정보
       _latitude = item.latitude;
       _longitude = item.longitude;
-      
+
       // 이미지는 URL에서 File로 변환이 필요하므로 별도 처리 필요
       // 실제 구현 시에는 이미지 URL을 저장하고 UI에서만 표시하는 방식으로 처리할 수 있음
     });
@@ -288,30 +289,39 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(16),
-                      image: _selectedImage != null
-                          ? DecorationImage(
-                              image: FileImage(_selectedImage!),
-                              fit: BoxFit.cover,
-                            )
-                          : _imageUrl != null
+                      image:
+                          _selectedImage != null
                               ? DecorationImage(
-                                  image: NetworkImage(_imageUrl!),
-                                  fit: BoxFit.cover,
-                                )
+                                image: FileImage(_selectedImage!),
+                                fit: BoxFit.cover,
+                              )
+                              : _imageUrl != null
+                              ? DecorationImage(
+                                image: NetworkImage(_imageUrl!),
+                                fit: BoxFit.cover,
+                              )
                               : null,
                     ),
-                    child: (_selectedImage == null && _imageUrl == null)
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.image, size: 50, color: Colors.grey),
-                                SizedBox(height: 8),
-                                Text('이미지 선택하기', style: TextStyle(color: Colors.grey)),
-                              ],
-                            ),
-                          )
-                        : null,
+                    child:
+                        (_selectedImage == null && _imageUrl == null)
+                            ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(
+                                    Icons.image,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    '이미지 선택하기',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            )
+                            : null,
                   ),
                 ),
                 SizedBox(height: 20),
