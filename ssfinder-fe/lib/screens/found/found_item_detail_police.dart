@@ -3,7 +3,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:sumsumfinder/models/found_items_model.dart';
 import '../../services/found_items_api_service.dart';
 import '../../widgets/map_widget.dart';
-import '../../widgets/found/items_popup.dart';
 
 class FoundItemDetailPolice extends StatelessWidget {
   final int id;
@@ -78,22 +77,6 @@ class FoundItemDetailPolice extends StatelessWidget {
               '습득 상세 정보',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.more_horiz, color: Color(0xFF3D3D3D)),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
-                    ),
-                    builder: (context) => MainOptionsPopup(item: item),
-                  );
-                },
-              ),
-            ],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),

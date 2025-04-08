@@ -74,9 +74,6 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
           return const Scaffold(body: Center(child: Text('데이터가 없습니다')));
         }
 
-        // 디버깅용 출력
-        print('snap: ${snapshot.data!}');
-
         final item = FoundItemModel.fromJson(snapshot.data!);
 
         return Scaffold(
@@ -86,20 +83,35 @@ class FoundItemDetailSumsumfinder extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.more_horiz, color: Color(0xFF3D3D3D)),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
-                    ),
-                    builder: (context) => MainOptionsPopup(item: item),
-                  );
+              FutureBuilder<String?>(
+                future: AuthService.getUserId(),
+                builder: (context, userSnapshot) {
+                  if (userSnapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox.shrink();
+                  }
+                  final currentUserId = userSnapshot.data;
+                  final isMyPost = currentUserId != null &&
+                      item.userId.toString() == currentUserId;
+                  if (isMyPost) {
+                    return IconButton(
+                      icon: const Icon(Icons.more_horiz, color: Color(0xFF3D3D3D)),
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(20),
+                            ),
+                          ),
+                          builder: (context) => MainOptionsPopup(item: item),
+                        );
+                      },
+                    );
+                  } else {
+                    return const SizedBox.shrink();
+                  }
                 },
-              ),
+              )
             ],
           ),
           body: SingleChildScrollView(

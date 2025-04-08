@@ -65,9 +65,29 @@ class FoundItemCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "${item.majorCategory} > ${item.minorCategory}",
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "${item.majorCategory} > ${item.minorCategory}",
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  if (isLoggedIn)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: IconButton(
+                      icon: Icon(
+                        item.bookmarked! ? Icons.bookmark : Icons.bookmark_border,
+                        color: item.bookmarked! ? Colors.blue : Colors.grey,
+                      ),
+                      onPressed: () {
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                    ),
+                  ),
+                ],
               ),
               Text(
                 item.name,
@@ -96,19 +116,6 @@ class FoundItemCard extends StatelessWidget {
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],
-              ),
-            if (isLoggedIn)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: IconButton(
-                  icon: Icon(
-                    item.bookmarked! ? Icons.bookmark : Icons.bookmark_border,
-                    color: item.bookmarked! ? Colors.blue : Colors.grey,
-                  ),
-                  onPressed: () {
-                  },
-                ),
               ),
             ],
           ),
