@@ -46,8 +46,8 @@ public class ChatRoomParticipant {
     @Column(name = "left_at")
     private LocalDateTime leftAt;
 
-    @Column(name = "recreated_at")
-    private LocalDateTime recreatedAt;
+    @Column(name = "rejoined_at")
+    private LocalDateTime rejoinedAt;
 
     @Column(length = 8, nullable = false)
     @Enumerated(EnumType.STRING)

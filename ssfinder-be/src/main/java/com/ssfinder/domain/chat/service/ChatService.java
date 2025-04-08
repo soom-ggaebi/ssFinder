@@ -5,26 +5,28 @@ import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
 import com.ssfinder.domain.chat.dto.kafka.KafkaChatReadMessage;
 import com.ssfinder.domain.chat.dto.mapper.ChatMessageMapper;
 import com.ssfinder.domain.chat.dto.request.MessageSendRequest;
-import com.ssfinder.domain.chat.entity.ChatMessage;
-import com.ssfinder.domain.chat.entity.ChatMessageStatus;
-import com.ssfinder.domain.chat.entity.ChatRoom;
+import com.ssfinder.domain.chat.dto.response.ChatMessageGetResponse;
+import com.ssfinder.domain.chat.entity.*;
 import com.ssfinder.domain.chat.kafka.producer.ChatMessageProducer;
 import com.ssfinder.domain.chat.kafka.producer.ChatMessageReadProducer;
 import com.ssfinder.domain.chat.repository.ChatMessageRepository;
 import com.ssfinder.domain.chat.repository.ChatRoomParticipantRepository;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
-import com.ssfinder.global.common.exception.CustomException;
-import com.ssfinder.global.common.exception.ErrorCode;
+import com.ssfinder.global.common.pagination.CursorScrollResponse;
+import com.ssfinder.global.common.service.S3Service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -47,6 +49,7 @@ import java.util.List;
 public class ChatService {
     private final UserService userService;
     private final ChatRoomService chatRoomService;
+    private final S3Service s3Service;
     private final ChatMessageProducer chatMessageProducer;
     private final ChatMessageReadProducer chatMessageReadProducer;
     private final ChatMessageMapper chatMessageMapper;
@@ -83,6 +86,31 @@ public class ChatService {
         chatMessageProducer.publish(KAFKA_MESSAGE_SENT_TOPIC, kafkaChatMessage);
     }
 
+    public KafkaChatMessage sendFile(Integer userId, Integer chatRoomId, MultipartFile image) {
+        preCheckBeforeSend(userId, chatRoomId);
+
+        User user = userService.findUserById(userId);
+        User opponentUser = getOpponentUser(userId, chatRoomId);
+
+        String newImage = s3Service.uploadChatFile(image);
+
+        ChatMessage chatMessage = ChatMessage.builder()
+                .chatRoomId(chatRoomId)
+                .senderId(user.getId())
+                .content(newImage)
+                .status(checkStatus(opponentUser.getId(), chatRoomId))
+                .type(MessageType.IMAGE)
+                .build();
+
+        ChatMessage message = chatMessageRepository.save(chatMessage);
+
+        KafkaChatMessage kafkaChatMessage = chatMessageMapper.mapToMessageSendResponse(message, user.getNickname());
+        log.info("message sent: {}", kafkaChatMessage);
+        chatMessageProducer.publish(KAFKA_MESSAGE_SENT_TOPIC, kafkaChatMessage);
+
+        return kafkaChatMessage;
+    }
+
     public User getOpponentUser(Integer userId, Integer chatRoomId) {
         ChatRoom chatRoom = chatRoomService.findById(chatRoomId);
         User user = userService.findUserById(userId);
@@ -110,14 +138,44 @@ public class ChatService {
         chatMessageReadProducer.publish(KAFKA_CHAT_READ_TOPIC, readMessage);
     }
 
+    public ChatMessageGetResponse getMessages(Integer userId, Integer chatRoomId, int size, @Nullable String lastMessageId) {
+        chatRoomService.getChatRoomParticipant(chatRoomId, userId);
+
+        Query query = new Query(
+                Criteria.where("chat_room_id").is(chatRoomId)
+        );
+
+        if(lastMessageId != null) {
+            query.addCriteria(Criteria.where("_id").lt(lastMessageId));
+        }
+
+        query.with(Sort.by(Sort.Direction.DESC, "_id"))
+                .limit(size + 1);
+
+        List<ChatMessage> messages = mongoTemplate.find(query, ChatMessage.class);
+
+        CursorScrollResponse<ChatMessage> messageCursor = CursorScrollResponse.of(messages, size);
+
+        long count = mongoTemplate.count(new Query(Criteria.where("chat_room_id").is(chatRoomId)), ChatMessage.class);
+
+        return ChatMessageGetResponse.of(messageCursor, count);
+    }
+
     private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {
-        if(!chatRoomService.isInChatRoom(chatRoomId, userId)) {
-            throw new CustomException(ErrorCode.CHAT_ROOM_ACCESS_DENIED);
+        chatRoomService.getChatRoomParticipant(chatRoomId, userId);
+        ChatRoomParticipant opponentChatRoomParticipant = chatRoomService.getChatRoomParticipant(chatRoomId, getOpponentUser(userId, chatRoomId).getId());
+
+        if(opponentChatRoomParticipant.getStatus() == ChatRoomStatus.INACTIVE) {
+            chatRoomService.activate(opponentChatRoomParticipant);
         }
     }
 
     private ChatMessageStatus checkStatus(Integer userId, Integer chatRoomId) {
-        boolean isViewing = Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(REDIS_CHAT_USERS_KEY + chatRoomId, userId.toString()));
-        return isViewing ? ChatMessageStatus.READ : ChatMessageStatus.UNREAD;
+        return isViewingChatRoom(userId, chatRoomId) ?
+                ChatMessageStatus.READ : ChatMessageStatus.UNREAD;
+    }
+
+    public boolean isViewingChatRoom(Integer userId, Integer chatRoomId) {
+        return Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(REDIS_CHAT_USERS_KEY + chatRoomId, userId.toString()));
     }
 }

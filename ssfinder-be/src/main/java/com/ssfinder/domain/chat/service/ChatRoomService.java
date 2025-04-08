@@ -1,6 +1,8 @@
 package com.ssfinder.domain.chat.service;
 
 import com.ssfinder.domain.chat.dto.ChatRoomFoundItem;
+import com.ssfinder.domain.chat.dto.ChatRoomListDetail;
+import com.ssfinder.domain.chat.dto.response.ActiveChatRoomListResponse;
 import com.ssfinder.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.ssfinder.domain.chat.dto.response.ChatRoomEntryResponse;
 import com.ssfinder.domain.chat.entity.ChatRoom;
@@ -22,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -35,6 +39,7 @@ import java.util.Objects;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-28          nature1216          최초생성<br>
+ * 2025-04-07          okeio               채팅방 별 알림 설정 메서드 추가<br>
  * <br>
  */
 @Slf4j
@@ -49,18 +54,20 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
 
+    @Transactional(readOnly = true)
     public ChatRoom findById(Integer id) {
         return chatRoomRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_NOT_FOUND));
     }
 
-    public boolean isInChatRoom(Integer chatRoomId, Integer UserId) {
+    @Transactional(readOnly = true)
+    public ChatRoomParticipant getChatRoomParticipant(Integer chatRoomId, Integer UserId) {
         User user = userService.findUserById(UserId);
         ChatRoom chatRoom = findById(chatRoomId);
-        List<ChatRoomParticipant> participants = chatRoomParticipantRepository
-                .findChatRoomParticipantByChatRoomAndUser(chatRoom, user);
 
-        return !participants.isEmpty();
+        return chatRoomParticipantRepository
+                .findChatRoomParticipantByChatRoomAndUser(chatRoom, user)
+                .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_PARTICIPANT_NOT_FOUND));
     }
 
     public ChatRoomEntryResponse getOrCreateChatRoom(Integer userId, Integer foundItemId) {
@@ -81,25 +88,31 @@ public class ChatRoomService {
                         () -> createChatRoom(user, foundItem)
                 );
 
+        ChatRoomParticipant participant = getChatRoomParticipant(chatRoom.getId(), userId);
+
+        if(participant.getStatus() == ChatRoomStatus.INACTIVE) {
+            activate(participant);
+        }
+
         return ChatRoomEntryResponse.builder()
                 .chatRoomId(chatRoom.getId())
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public ChatRoomDetailResponse getChatRoomDetail(Integer userId, Integer chatRoomId) {
         ChatRoom chatRoom = findById(chatRoomId);
         FoundItem foundItem = chatRoom.getFoundItem();
-        User user = userService.findUserById(userId);
 
-        if(!isInChatRoom(chatRoomId, userId)) {
-            throw new CustomException(ErrorCode.CHAT_ROOM_ACCESS_DENIED);
-        }
+        ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
 
-        ChatRoomParticipant chatRoomParticipant = chatRoomParticipantRepository.getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user);
-        ItemCategoryInfo itemCategoryInfo = itemCategoryService.findWithParentById(foundItem.getItemCategory().getId());
+        ItemCategoryInfo itemCategoryInfo = itemCategoryService
+                .findWithParentById(foundItem.getItemCategory().getId());
 
         User opponentUser = chatRoomParticipant.getUser();
-        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper.mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
+
+        ChatRoomFoundItem chatRoomFoundItem = foundItemMapper
+                .mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
 
         return ChatRoomDetailResponse.builder()
                 .chatRoomId(chatRoomId)
@@ -107,6 +120,66 @@ public class ChatRoomService {
                 .opponentNickname(opponentUser.getNickname())
                 .foundItem(chatRoomFoundItem)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActiveChatRoomListResponse> getActiveChatRoomList(Integer userId) {
+        List<ChatRoomListDetail> chatRooms = chatRoomRepository.findByUserAndStatusIsActive(userId);
+        User user = userService.findUserById(userId);
+
+        List<ActiveChatRoomListResponse> response = new ArrayList<>();
+
+        for(ChatRoomListDetail item : chatRooms) {
+            ChatRoom chatRoom = item.chatRoom();
+            ChatRoomParticipant participant = item.chatRoomParticipant();
+
+            FoundItem foundItem = chatRoom.getFoundItem();
+
+            ItemCategoryInfo itemCategoryInfo = itemCategoryService
+                    .findWithParentById(foundItem.getItemCategory().getId());
+
+            ChatRoomFoundItem chatRoomFoundItem = foundItemMapper
+                    .mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
+
+            User opponent = chatRoomParticipantRepository
+                    .getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user)
+                    .getUser();
+
+            response.add(
+                    ActiveChatRoomListResponse.builder()
+                            .foundItem(chatRoomFoundItem)
+                            .chatRoomId(chatRoom.getId())
+                            .notificationEnabled(participant.getNotificationEnabled())
+                            .opponentNickname(opponent.getNickname())
+                            .latestMessage(chatRoom.getLatestMessage())
+                            .latestSentAt(chatRoom.getLatestSentAt())
+                            .build()
+            );
+        }
+
+        return response;
+    }
+
+    public void leave(Integer userId, Integer chatRoomId) {
+        ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
+
+        deactivate(chatRoomParticipant);
+    }
+
+    public void activate(ChatRoomParticipant participant) {
+        participant.setLeftAt(null);
+        participant.setRejoinedAt(LocalDateTime.now());
+        participant.setStatus(ChatRoomStatus.ACTIVE);
+    }
+
+    public void updateNotificationEnabled(Integer userId, Integer chatRoomId, boolean enabled) {
+        ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
+        chatRoomParticipant.setNotificationEnabled(enabled);
+    }
+
+    private void deactivate(ChatRoomParticipant participant) {
+        participant.setLeftAt(LocalDateTime.now());
+        participant.setStatus(ChatRoomStatus.INACTIVE);
     }
 
     private ChatRoom createChatRoom(User user, FoundItem foundItem) {

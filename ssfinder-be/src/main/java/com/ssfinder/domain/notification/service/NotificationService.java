@@ -1,10 +1,18 @@
 package com.ssfinder.domain.notification.service;
 
+import com.ssfinder.domain.chat.dto.kafka.KafkaChatMessage;
+import com.ssfinder.domain.chat.entity.MessageType;
+import com.ssfinder.domain.chat.service.ChatRoomService;
+import com.ssfinder.domain.chat.service.ChatService;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.service.FoundItemService;
+import com.ssfinder.domain.lostitem.entity.LostItem;
+import com.ssfinder.domain.lostitem.service.LostItemService;
+import com.ssfinder.domain.notification.dto.request.AiMatchNotificationRequest;
 import com.ssfinder.domain.notification.entity.NotificationType;
 import com.ssfinder.domain.notification.entity.WeatherCondition;
 import com.ssfinder.domain.notification.event.NotificationHistoryEvent;
+import com.ssfinder.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -27,6 +35,8 @@ import java.util.Map;
  * -----------------------------------------------------------<br>
  * 2025-03-25          okeio          최초생성<br>
  * 2025-04-02          okeio          알림 이력 관리를 위한 EventPublisher 추가<br>
+ * 2025-04-06          okeio          메세지 타입에 따른 채팅 알림 메세지 변경<br>
+ * 2025-04-07          okeio          리팩토링<br>
  * <br>
  */
 @Slf4j
@@ -38,9 +48,15 @@ public class NotificationService {
     private final FcmMessageService fcmMessageService;
     private final FoundItemService foundItemService;
     private final UserNotificationSettingService userNotificationSettingService;
+    private final ChatService chatService;
+    private final ChatRoomService chatRoomService;
+    private final LostItemService lostItemService;
     private final ApplicationEventPublisher eventPublisher;
 
     private final static String NOTIFICATION_TITLE = "숨숨파인더";
+    private final static String CHAT_PLACEHOLDER_IMAGE_MESSAGE = "사진을 보냈습니다.";
+    private final static String CHAT_PLACEHOLDER_LOCATION_MESSAGE = "위치를 공유했습니다.";
+    private final static String AI_MATCH_PLACEHOLDER_MESSAGE = "찾고 계신 물건과 비슷한 습득물이 등록되었습니다!";
 
     // 1. 습득물 게시글 최초 등록일로부터 6일차, 7일차 알림
     @Scheduled(cron = "0 0 10 * * *")
@@ -68,21 +84,22 @@ public class NotificationService {
             if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.TRANSFER))
                 continue;
 
+            List<String> tokens = fcmTokenService.getFcmTokens(userId);
+
             String notificationContent = String.format(messageTemplate, item.getName());
 
-            List<String> tokens = fcmTokenService.getFcmTokens(userId);
-            if (!tokens.isEmpty()) {
-                Map<String, String> data = new HashMap<>();
-                data.put("type", NotificationType.TRANSFER.name());
-                data.put("itemId", item.getId().toString());
+            Map<String, String> data = new HashMap<>();
+            data.put("type", NotificationType.TRANSFER.name());
+            data.put("itemId", String.valueOf(item.getId()));
 
-                fcmMessageService.sendNotificationToUsers(
-                        tokens,
-                        NOTIFICATION_TITLE,
-                        notificationContent,
-                        data
-                );
+            boolean notificationSent = fcmMessageService.sendNotificationToDevices(
+                    tokens,
+                    NOTIFICATION_TITLE,
+                    notificationContent,
+                    data
+            );
 
+            if (notificationSent) {
                 eventPublisher.publishEvent(new NotificationHistoryEvent(
                         this, userId, NOTIFICATION_TITLE, notificationContent, NotificationType.TRANSFER
                 ));
@@ -91,47 +108,82 @@ public class NotificationService {
     }
 
     // 2. 채팅 알림
-    // TODO 채팅 로직에서 채팅 DB 저장 시 트리거
-    public void sendChatNotification(Integer userId, String senderName, String message) {
+    public void sendChatNotification(KafkaChatMessage kafkaChatMessage) {
+        int chatRoomId = kafkaChatMessage.chatRoomId();
+        User opponentUser = chatService.getOpponentUser(kafkaChatMessage.senderId(), chatRoomId);
+        int userId = opponentUser.getId();
+
         // 알림 설정 확인
-        if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.CHAT))
+        if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.CHAT) ||
+                !chatRoomService.getChatRoomParticipant(chatRoomId, userId).getNotificationEnabled() ||
+                chatService.isViewingChatRoom(userId, chatRoomId))
             return;
 
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
-        if (!tokens.isEmpty()) {
-            Map<String, String> data = new HashMap<>();
-            data.put("type", NotificationType.CHAT.name());
-            data.put("senderName", senderName);
 
-            fcmMessageService.sendNotificationToUsers(
-                    tokens,
-                    senderName + "님의 메시지",
-                    message,
-                    data
-            );
+        // 메시지 타입 분류
+        MessageType messageType = kafkaChatMessage.type();
+        String content = kafkaChatMessage.content();
+
+        if (messageType.equals(MessageType.IMAGE)) {
+            content = CHAT_PLACEHOLDER_IMAGE_MESSAGE;
+        } else if (messageType.equals(MessageType.LOCATION)) {
+            content = CHAT_PLACEHOLDER_LOCATION_MESSAGE;
+        } else if (messageType.equals(MessageType.NORMAL)) {
+            content = kafkaChatMessage.nickname() + "님의 메시지";
+        }
+
+        boolean notificationSent = fcmMessageService.sendNotificationToDevices(
+                tokens,
+                NOTIFICATION_TITLE,
+                content,
+                kafkaChatMessage.toChatNotificationMap()
+        );
+
+        if (notificationSent) {
+            eventPublisher.publishEvent(new NotificationHistoryEvent
+                    (this, userId, NOTIFICATION_TITLE, content, NotificationType.CHAT));
         }
     }
 
-    // 3. 물건 매칭 알림
-    @Transactional(readOnly = true)
-    public void sendItemMatchingNotifications() {
-        // TODO: AI 기능 완성 시, 매칭된 회원 목록 조회
-        //List<User> usersWithNewMatches;
+    // 3. 습득물 게시된 경우 분실자에게 AI 매칭 알림
+    // TODO 쿼리 중복 호출 개선
+    public void sendItemMatchingNotifications(List<AiMatchNotificationRequest> aiMatchNotificationRequests) {
+        List<AiMatchNotificationRequest> enabledNotifications = aiMatchNotificationRequests.stream()
+                .filter(request -> {
+                    LostItem lostItem = lostItemService.findLostItemById(request.lostItemId());
+                    Integer userId = lostItem.getUser().getId();
+                    return userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.AI_MATCH)
+                            && lostItem.getNotificationEnabled();
+                })
+                .toList();
 
-//        for (User user : usersWithNewMatches) {
-//            List<String> tokens = fcmTokenService.getFcmTokens(user.getId());
-//            if (!tokens.isEmpty()) {
-//                Map<String, String> data = new HashMap<>();
-//                data.put("type", NotificationType.AI_MATCH.toString());
-//
-//                fcmService.sendNotificationToUsers(
-//                        tokens,
-//                        "새로운 매칭 물건 알림",
-//                        "찾고 계신 물건과 일치하는 습득물이 등록되었습니다!",
-//                        data
-//                );
-//            }
-//        }
+        for (AiMatchNotificationRequest request : enabledNotifications) {
+            LostItem lostItem = lostItemService.findLostItemById(request.lostItemId());
+            Integer userId = lostItem.getUser().getId();
+            List<String> tokens = fcmTokenService.getFcmTokens(userId);
+
+            if (tokens.isEmpty()) {
+                continue;
+            }
+
+            boolean notificationSent = fcmMessageService.sendNotificationToDevices(
+                    tokens,
+                    NOTIFICATION_TITLE,
+                    AI_MATCH_PLACEHOLDER_MESSAGE,
+                    request.toAiMatchNotificationMap()
+            );
+
+            if (notificationSent) {
+                eventPublisher.publishEvent(new NotificationHistoryEvent(
+                        this,
+                        userId,
+                        NOTIFICATION_TITLE,
+                        AI_MATCH_PLACEHOLDER_MESSAGE,
+                        NotificationType.AI_MATCH
+                ));
+            }
+        }
     }
 
     // 4. 소지품 알림
@@ -140,20 +192,21 @@ public class NotificationService {
             return;
 
         List<String> tokens = fcmTokenService.getFcmTokens(userId);
-        if (!tokens.isEmpty()) {
-            Map<String, String> data = new HashMap<>();
-            data.put("type", NotificationType.ITEM_REMINDER.name());
 
-            fcmMessageService.sendNotificationToUsers(
-                    tokens,
-                    NOTIFICATION_TITLE,
-                    weatherCondition.getNotificationContent(),
-                    data
-            );
+        Map<String, String> data = new HashMap<>();
+        data.put("type", NotificationType.ITEM_REMINDER.name());
+
+        boolean notificationSent = fcmMessageService.sendNotificationToDevices(
+                tokens,
+                NOTIFICATION_TITLE,
+                weatherCondition.getNotificationContent(),
+                data
+        );
+
+        if (notificationSent) {
+            eventPublisher.publishEvent(
+                    new NotificationHistoryEvent(this, userId, NOTIFICATION_TITLE,
+                            weatherCondition.getNotificationContent(), NotificationType.ITEM_REMINDER));
         }
-
-        eventPublisher.publishEvent(
-                new NotificationHistoryEvent(this, userId, NOTIFICATION_TITLE,
-                        weatherCondition.getNotificationContent(), NotificationType.ITEM_REMINDER));
     }
 }

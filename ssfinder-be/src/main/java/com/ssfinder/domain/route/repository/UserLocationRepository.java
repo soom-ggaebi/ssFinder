@@ -1,9 +1,6 @@
 package com.ssfinder.domain.route.repository;
 
 import com.ssfinder.domain.route.entity.UserLocation;
-import org.springframework.data.geo.Distance;
-import org.springframework.data.geo.GeoResults;
-import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.time.LocalDateTime;
@@ -27,6 +24,4 @@ public interface UserLocationRepository extends MongoRepository<UserLocation, St
             LocalDateTime startOfDay,
             LocalDateTime endOfDay
     );
-
-    GeoResults<UserLocation> findByUserIdAndLocationNear(Integer userId, Point location, Distance distance);
 }

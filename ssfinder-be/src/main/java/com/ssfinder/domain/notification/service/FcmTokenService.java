@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-03-24          okeio           최초생성<br>
+ * 2025-04-04          okeio           fcm 토큰 삭제 메서드 추가<br>
  * <br>
  */
 
@@ -50,12 +51,13 @@ public class FcmTokenService {
         }
     }
 
-    public void deleteFcmToken(int userId, FcmTokenRequest fcmTokenRequest) {
-        User user = userService.findUserById(userId);
-        String token = fcmTokenRequest.token();
+    public void deleteFcmTokenByUser(int userId, FcmTokenRequest fcmTokenRequest) {
+        fcmTokenRepository.findByUserAndToken(userService.findUserById(userId), fcmTokenRequest.token())
+                .ifPresent(fcmTokenRepository::delete);
+    }
 
-        Optional<FcmToken> fcmTokenOpt = fcmTokenRepository.findByUserAndToken(user, token);
-
+    public void deleteFcmToken(String token) {
+        Optional<FcmToken> fcmTokenOpt = fcmTokenRepository.findByToken(token);
         fcmTokenOpt.ifPresent(fcmTokenRepository::delete);
     }
 
