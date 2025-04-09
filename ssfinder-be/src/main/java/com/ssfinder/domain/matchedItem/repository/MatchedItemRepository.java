@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 /**
- * packageName    : com.ssfinder.domain.aimatching.repository<br>
+ * packageName    : com.ssfinder.domain.matchedItem.repository<br>
  * fileName       : MatchedItemRepository.java<br>
  * author         : sonseohy<br>
  * date           : 2025-04-09<br>

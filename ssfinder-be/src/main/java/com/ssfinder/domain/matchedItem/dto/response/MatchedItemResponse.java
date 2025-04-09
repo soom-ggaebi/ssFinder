@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.time.LocalDateTime;
 
 /**
  * packageName    : com.ssfinder.domain.matchedItem.dto.response<br>
