@@ -13,3 +13,4 @@ rapidfuzz==3.4.0
 pydantic==2.4.2
 pandas
 DBUtils==2.0
+cryptography
