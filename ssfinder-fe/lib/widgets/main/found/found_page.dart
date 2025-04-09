@@ -62,20 +62,42 @@ class _FoundPageState extends State<FoundPage> {
         title: '나의 습득물',
         isFromBottomNav: true,
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : FoundItemsList(
-              items: _foundItems,
-              onItemStatusChanged: _handleItemStatusChanged,
+      body: Stack(
+        children: [
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : FoundItemsList(
+                  items: _foundItems,
+                  onItemStatusChanged: _handleItemStatusChanged,
+                ),
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: Material(
+              elevation: 2,
+              shape: const CircleBorder(),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const FoundItemForm()),
+                  );
+                },
+                customBorder: const CircleBorder(),
+                child: Container(
+                  height: 50,
+                  width: 50,
+                  decoration: const BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.add, color: Colors.white),
+                ),
+              ),
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const FoundItemForm()),
-          );
-        },
-        child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }
