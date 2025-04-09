@@ -2,7 +2,6 @@ package com.ssfinder.domain.founditem.service;
 
 import com.ssfinder.domain.founditem.dto.mapper.FoundItemBookmarkMapper;
 import com.ssfinder.domain.founditem.dto.response.FoundItemBookmarkResponse;
-import com.ssfinder.domain.founditem.dto.response.FoundItemSummaryResponse;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.entity.FoundItemBookmark;
 import com.ssfinder.domain.founditem.repository.FoundItemBookmarkRepository;
