@@ -9,8 +9,9 @@ import 'lost_item_detail.dart';
 
 class LostItemsList extends StatelessWidget {
   final List<LostItemListModel> items;
+  final Function(int, String) onItemStatusChanged;
 
-  const LostItemsList({Key? key, required this.items}) : super(key: key);
+  const LostItemsList({Key? key, required this.items, required this.onItemStatusChanged}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -40,14 +41,21 @@ class LostItemsList extends StatelessWidget {
           children: [
             // 분실물 카드
             GestureDetector(
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                // 결과를 기다리고 상태가 변경되었으면 콜백 호출
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    // item 전체가 아닌 itemId만 전달
                     builder: (_) => LostItemDetail(itemId: lostItem.id),
                   ),
                 );
+                
+                // 결과가 있고 상태가 변경되었으면 콜백 호출
+                if (result != null && result is Map<String, dynamic>) {
+                  if (result.containsKey('id') && result.containsKey('status')) {
+                    onItemStatusChanged(result['id'], result['status']);
+                  }
+                }
               },
               child: LostItemCard(item: lostItem),
             ),

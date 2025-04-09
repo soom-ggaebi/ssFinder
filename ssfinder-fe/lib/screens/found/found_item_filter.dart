@@ -1,47 +1,112 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/widgets/selects/storage_location.dart';
-import '../../widgets/selects/category_select.dart';
-import '../../widgets/selects/color_select.dart';
-import '../../widgets/selects/location_select.dart';
-import '../../widgets/selects/date_select.dart';
+import 'package:intl/intl.dart';
+import 'package:sumsumfinder/widgets/selects/category_select.dart';
+import 'package:sumsumfinder/widgets/selects/color_select.dart';
+import 'package:sumsumfinder/widgets/selects/date_select.dart';
 
 class FilterPage extends StatefulWidget {
-  const FilterPage({Key? key}) : super(key: key);
+  final Map<String, dynamic> initialFilter;
+  const FilterPage({Key? key, required this.initialFilter}) : super(key: key);
 
   @override
   _FilterPageState createState() => _FilterPageState();
 }
 
 class _FilterPageState extends State<FilterPage> {
-  /// 상태 (전체, 보관중, 전달완료) 중 하나를 선택
   String _selectedState = '전체';
-
-  /// 보관 장소
-  String? _storageLocation;
-
-  /// 습득 장소
-  String? _foundLocation;
-
-  /// 습득 일자
-  String? _foundDate;
-
-  /// 카테고리
+  String _storageLocation = '전체';
+  DateTime? _foundAt;
   String? _selectedCategory;
-
-  /// 색상
   String? _selectedColor;
+
+  String _mapStatus(String state) {
+    switch (state) {
+      case '전체':
+        return 'ALL';
+      case '보관중':
+        return 'STORED';
+      case '전달완료':
+        return 'RECEIVED';
+      default:
+        return 'ALL';
+    }
+  }
+
+  String _mapStorage(String storage) {
+    switch (storage) {
+      case '전체':
+        return '전체';
+      case '숨숨파인더':
+        return '숨숨파인더';
+      case '경찰청':
+        return '경찰청';
+      default:
+        return '전체';
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    String status = widget.initialFilter['status'] ?? 'ALL';
+    switch (status) {
+      case 'ALL':
+        _selectedState = '전체';
+        break;
+      case 'STORED':
+        _selectedState = '보관중';
+        break;
+      case 'RECEIVED':
+        _selectedState = '전달완료';
+        break;
+      default:
+        _selectedState = '전체';
+    }
+
+    String type = widget.initialFilter['type'] ?? '전체';
+    if (type == '숨숨파인더' || type == '경찰청') {
+      _storageLocation = type;
+    } else {
+      _storageLocation = '전체';
+    }
+
+    String apifoundAt = widget.initialFilter['foundAt'] ?? '';
+    if (apifoundAt != '' && apifoundAt.trim().isNotEmpty) {
+      try {
+        _foundAt = DateTime.parse(apifoundAt);
+      } catch (e) {
+        _foundAt = null;
+      }
+    } else {
+      _foundAt = null;
+    }
+
+    String major = widget.initialFilter['majorCategory'] ?? '';
+    String minor = widget.initialFilter['minorCategory'] ?? '';
+
+    if (major != '' || minor != '') {
+      _selectedCategory = major + ' > ' + minor;
+    } else {
+      _selectedCategory = '';
+    }
+
+    _selectedColor = widget.initialFilter['color'] ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {
+    String foundAtDisplay =
+        _foundAt != null ? DateFormat('yyyy년 M월 d일').format(_foundAt!) : '';
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // 상단 헤더
               _buildHeader(context),
-              // 본문 스크롤 가능 영역
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
@@ -51,72 +116,33 @@ class _FilterPageState extends State<FilterPage> {
                       const SizedBox(height: 8),
                       _buildStateSelector(),
                       const SizedBox(height: 16),
-
                       _buildLabel('보관 장소'),
                       const SizedBox(height: 8),
-                      _buildSelectionItem(
-                        value: _storageLocation ?? '',
-                        hintText: '보관 장소를 선택하세요',
-                        onTap: () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => StorageLocation(),
-                            ),
-                          );
-                          if (result != null) {
-                            setState(() {
-                              _storageLocation = result;
-                            });
-                          }
-                        },
-                      ),
+                      _buildStorageLocationSelector(),
                       const SizedBox(height: 16),
-
-                      _buildLabel('습득 장소'),
-                      const SizedBox(height: 8),
-                      _buildSelectionItem(
-                        value: _foundLocation ?? '',
-                        hintText: '습득 장소를 선택하세요',
-                        onTap: () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => LocationSelect()),
-                          );
-                          if (result != null) {
-                            setState(() {
-                              _foundLocation = result;
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
                       _buildLabel('습득 일자'),
                       const SizedBox(height: 8),
                       _buildSelectionItem(
-                        value: _foundDate ?? '',
+                        value: foundAtDisplay,
                         hintText: '습득 일자를 선택하세요',
                         onTap: () async {
                           final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (_) => DateSelect(
-                                    headerLine1: '찾으시는',
-                                    headerLine2: '날짜를 알려주세요!',
-                                  ),
+                              builder: (_) => DateSelect(
+                                headerLine1: '찾으시는',
+                                headerLine2: '날짜를 알려주세요',
+                              ),
                             ),
                           );
-                          if (result != null) {
+                          if (result != null && result is DateTime) {
                             setState(() {
-                              _foundDate = result;
+                              _foundAt = result;
                             });
                           }
                         },
                       ),
                       const SizedBox(height: 16),
-
                       _buildLabel('카테고리'),
                       const SizedBox(height: 8),
                       _buildSelectionItem(
@@ -126,22 +152,21 @@ class _FilterPageState extends State<FilterPage> {
                           final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (_) => CategorySelect(
-                                    headerLine1: '찾으시는 물건의',
-                                    headerLine2: '종류를 알려주세요!',
-                                  ),
+                              builder: (_) => CategorySelect(
+                                headerLine1: '찾으시는 물건의',
+                                headerLine2: '종류를 알려주세요',
+                              ),
                             ),
                           );
                           if (result != null) {
                             setState(() {
-                              _selectedCategory = result;
+                              _selectedCategory =
+                                  result['category'].toString();
                             });
                           }
                         },
                       ),
                       const SizedBox(height: 16),
-
                       _buildLabel('색상'),
                       const SizedBox(height: 8),
                       _buildSelectionItem(
@@ -151,16 +176,15 @@ class _FilterPageState extends State<FilterPage> {
                           final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (_) => ColorSelect(
-                                    headerLine1: '찾으시는 물건의',
-                                    headerLine2: '색상을 알려주세요!',
-                                  ),
+                              builder: (_) => ColorSelect(
+                                headerLine1: '찾으시는 물건의',
+                                headerLine2: '색상을 알려주세요',
+                              ),
                             ),
                           );
                           if (result != null) {
                             setState(() {
-                              _selectedColor = result;
+                              _selectedColor = result.toString();
                             });
                           }
                         },
@@ -180,13 +204,18 @@ class _FilterPageState extends State<FilterPage> {
                   ),
                 ),
                 onPressed: () {
+                  final apiStatus = _mapStatus(_selectedState);
+                  final apiType = _mapStorage(_storageLocation);
+                  String apiFoundAt = _foundAt != null
+                      ? DateFormat('yyyy-MM-dd').format(_foundAt!)
+                      : '';
+
                   Navigator.pop(context, {
-                    'state': _selectedState,
-                    'storageLocation': _storageLocation,
-                    'foundLocation': _foundLocation,
-                    'foundDate': _foundDate,
-                    'category': _selectedCategory,
-                    'color': _selectedColor,
+                    'state': apiStatus,
+                    'type': apiType,
+                    'foundAt': apiFoundAt,
+                    'category': _selectedCategory ?? '',
+                    'color': _selectedColor?.toString() ?? '',
                   });
                 },
                 child: const Text('필터 적용'),
@@ -198,7 +227,6 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  /// 상단 헤더
   Widget _buildHeader(BuildContext context) {
     return Container(
       height: 56,
@@ -216,7 +244,6 @@ class _FilterPageState extends State<FilterPage> {
               ),
             ),
           ),
-          // 닫기 버튼
           IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.pop(context),
@@ -226,7 +253,6 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  /// 상태(전체, 보관중, 전달완료)
   Widget _buildStateSelector() {
     return Container(
       height: 50,
@@ -237,22 +263,48 @@ class _FilterPageState extends State<FilterPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildStateButton('전체'),
-          _buildStateButton('보관중'),
-          _buildStateButton('전달완료'),
+          _buildStateButton('전체', isFor: 'state'),
+          _buildStateButton('보관중', isFor: 'state'),
+          _buildStateButton('전달완료', isFor: 'state'),
         ],
       ),
     );
   }
 
-  /// 개별 상태 버튼
-  Widget _buildStateButton(String label) {
-    final bool isSelected = (label == _selectedState);
+  Widget _buildStorageLocationSelector() {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildStateButton('전체', isFor: 'storage'),
+          _buildStateButton('숨숨파인더', isFor: 'storage'),
+          _buildStateButton('경찰청', isFor: 'storage'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStateButton(String label, {required String isFor}) {
+    bool isSelected = false;
+    if (isFor == 'state') {
+      isSelected = (label == _selectedState);
+    } else if (isFor == 'storage') {
+      isSelected = (label == _storageLocation);
+    }
     return Expanded(
       child: InkWell(
         onTap: () {
           setState(() {
-            _selectedState = label;
+            if (isFor == 'state') {
+              _selectedState = label;
+            } else if (isFor == 'storage') {
+              _storageLocation = label;
+            }
           });
         },
         child: Container(
@@ -275,7 +327,6 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  /// 라벨 텍스트
   Widget _buildLabel(String text) {
     return Text(
       text,
@@ -283,7 +334,6 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  /// 선택형 항목 (InkWell + Icon)
   Widget _buildSelectionItem({
     required String value,
     required String hintText,

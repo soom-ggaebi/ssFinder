@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:sumsumfinder/screens/lost/lost_item_form.dart';
 import 'package:sumsumfinder/widgets/common/custom_button.dart';
+import 'package:sumsumfinder/services/lost_items_api_service.dart';
 
 class MainOptionsPopup extends StatelessWidget {
-  const MainOptionsPopup({Key? key}) : super(key: key);
+  final dynamic item;
+  final LostItemsApiService _apiService = LostItemsApiService();
+
+  MainOptionsPopup({Key? key, this.item}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -14,14 +19,19 @@ class MainOptionsPopup extends StatelessWidget {
             text: '수정하기',
             onTap: () {
               Navigator.pop(context);
-              // 수정하기 관련 로직 추가
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LostItemForm(itemToEdit: item),
+                ),
+              );
             },
           ),
           OptionItem(
             text: '삭제하기',
             onTap: () {
               Navigator.pop(context);
-              // 삭제하기 관련 로직 추가
+              _showDeleteConfirmDialog(context);
             },
           ),
           OptionItem(
@@ -51,5 +61,41 @@ class MainOptionsPopup extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _showDeleteConfirmDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('분실물 삭제'),
+          content: const Text('정말 이 분실물을 삭제하시겠습니까?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _deleteLostItem();
+              },
+              child: const Text('삭제', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  Future<void> _deleteLostItem() async {
+    try {
+      await _apiService.deleteLostItem(lostId: item.id);
+      
+      print('분실물 삭제에 성공했습니다');
+    }
+    catch (e) {
+      print('분실물 삭제에 실패했습니다: $e');
+    }
   }
 }

@@ -36,7 +36,7 @@ class Recommended extends StatelessWidget {
                   ),
                 );
               },
-              child: FoundItemCard(item: foundItem),
+              child: FoundItemCard(item: foundItem, isLoggedIn: true,),
             ),
           );
         },

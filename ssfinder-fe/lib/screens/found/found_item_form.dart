@@ -9,6 +9,10 @@ import '../../widgets/selects/location_select.dart';
 import '../../widgets/selects/date_select.dart';
 
 class FoundItemForm extends StatefulWidget {
+  final dynamic itemToEdit;
+
+  const FoundItemForm({Key? key, this.itemToEdit}) : super(key: key);
+
   @override
   _FoundItemFormState createState() => _FoundItemFormState();
 }
@@ -18,11 +22,12 @@ class _FoundItemFormState extends State<FoundItemForm> {
   final ImagePicker _picker = ImagePicker();
 
   String? _selectedCategory; // 카테고리
-  int? _selectedCategoryId; // 카테고리 ID
+  String? _selectedCategoryId; // 카테고리 ID
   String? _selectedColor; // 색상
   String? _selectedLocation; // 습득 장소
   DateTime? _selectedDate; // 습득 일자
   File? _selectedImage; // 선택된 이미지
+  String? _imageUrl;
 
   // 위치 정보
   double? _latitude;
@@ -37,6 +42,10 @@ class _FoundItemFormState extends State<FoundItemForm> {
   void initState() {
     super.initState();
     _getCurrentLocation();
+
+    if (widget.itemToEdit != null) {
+      _initFormWithExistingData();
+    }
   }
 
   // 현재 위치 가져오기
@@ -109,17 +118,17 @@ class _FoundItemFormState extends State<FoundItemForm> {
       return false;
     }
 
-    if (_selectedLocation == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('습득장소를 선택해주세요.')));
-      return false;
-    }
-
     if (_selectedDate == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('습득일자를 선택해주세요.')));
+      return false;
+    }
+
+    if (_selectedLocation == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('습득장소를 선택해주세요.')));
       return false;
     }
 
@@ -133,7 +142,6 @@ class _FoundItemFormState extends State<FoundItemForm> {
     return true;
   }
 
-  // 습득물 등록
   Future<void> _submitForm() async {
     if (!_validateForm()) return;
 
@@ -144,18 +152,44 @@ class _FoundItemFormState extends State<FoundItemForm> {
     try {
       final formattedDate =
           "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
-
-      await _apiService.postFoundItem(
-        itemCategoryId: _selectedCategoryId!,
-        name: _itemNameController.text,
-        foundAt: formattedDate,
-        location: _selectedLocation!,
-        color: _selectedColor!,
-        image: _selectedImage,
-        detail: _detailController.text,
-        latitude: _latitude!,
-        longitude: _longitude!,
+      final categories = await _apiService.getCategories();
+      final selectedCategoryName = _selectedCategory?.split(' > ').last.trim();
+      final matchingCategory = categories.firstWhere(
+        (category) => category.name == selectedCategoryName,
+        orElse: () => throw Exception('선택한 카테고리를 찾을 수 없습니다.'),
       );
+
+      final categoryId = matchingCategory.id;
+
+      if (widget.itemToEdit != null) {
+        // 수정
+        print('수정');
+        await _apiService.updateFoundItem(
+          foundId: widget.itemToEdit.id,
+          itemCategoryId: categoryId,
+          name: _itemNameController.text,
+          foundAt: formattedDate,
+          location: _selectedLocation!,
+          color: _selectedColor!,
+          image: _selectedImage,
+          detail: _detailController.text,
+          latitude: _latitude!,
+          longitude: _longitude!,
+        );
+      } else {
+        // 생성
+        await _apiService.postFoundItem(
+          itemCategoryId: categoryId,
+          name: _itemNameController.text,
+          foundAt: formattedDate,
+          location: _selectedLocation!,
+          color: _selectedColor!,
+          image: _selectedImage,
+          detail: _detailController.text,
+          latitude: _latitude!,
+          longitude: _longitude!,
+        );
+      }
 
       setState(() {
         _isLoading = false;
@@ -178,6 +212,35 @@ class _FoundItemFormState extends State<FoundItemForm> {
         context,
       ).showSnackBar(SnackBar(content: Text('습득물 등록에 실패했습니다.')));
     }
+  }
+
+  void _initFormWithExistingData() {
+    final item = widget.itemToEdit;
+
+    // 텍스트 필드 초기화
+    _itemNameController.text = item.name;
+    _detailController.text = item.detail;
+
+    if (item.image != null) {
+      _imageUrl = item.imageUrl;
+    }
+
+    // 선택 값 초기화
+    setState(() {
+      _selectedCategory = "${item.majorCategory} > ${item.minorCategory}";
+      _selectedCategoryId = item.minorCategory;
+      _selectedColor = item.color;
+      _selectedLocation = item.location;
+
+      // 날짜 변환 (문자열 -> DateTime)
+      if (item.foundAt != null) {
+        _selectedDate = DateTime.parse(item.foundAt);
+      }
+
+      // 위치 정보
+      _latitude = item.latitude;
+      _longitude = item.longitude;
+    });
   }
 
   @override
@@ -229,14 +292,19 @@ class _FoundItemFormState extends State<FoundItemForm> {
                                 image: FileImage(_selectedImage!),
                                 fit: BoxFit.cover,
                               )
+                              : _imageUrl != null
+                              ? DecorationImage(
+                                image: NetworkImage(_imageUrl!),
+                                fit: BoxFit.cover,
+                              )
                               : null,
                     ),
                     child:
-                        _selectedImage == null
+                        (_selectedImage == null && _imageUrl == null)
                             ? Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
+                                children: const [
                                   Icon(
                                     Icons.image,
                                     size: 50,
@@ -291,9 +359,8 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     );
                     if (result != null) {
                       setState(() {
-                        // result는 Map<String, dynamic> 형태로 category와 id를 포함
                         _selectedCategory = result['category'];
-                        _selectedCategoryId = result['id'];
+                        _selectedCategoryId = result['categoryId'];
                       });
                     }
                   },
@@ -325,27 +392,6 @@ class _FoundItemFormState extends State<FoundItemForm> {
                 ),
                 SizedBox(height: 20),
 
-                // 습득 장소 선택
-                Text('습득장소'),
-                SizedBox(height: 8),
-                _buildSelectionItem(
-                  value: _selectedLocation ?? '',
-                  onTap: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => LocationSelect()),
-                    );
-                    if (result != null) {
-                      setState(() {
-                        _selectedLocation = result['location'];
-                        _latitude = result['latitude'];
-                        _longitude = result['longitude'];
-                      });
-                    }
-                  },
-                ),
-                SizedBox(height: 20),
-
                 // 습득 일자 선택
                 Text('습득일자'),
                 SizedBox(height: 8),
@@ -368,6 +414,33 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     if (result != null) {
                       setState(() {
                         _selectedDate = result;
+                      });
+                    }
+                  },
+                ),
+                SizedBox(height: 20),
+
+                // 습득 장소 선택
+                Text('습득장소'),
+                SizedBox(height: 8),
+                _buildSelectionItem(
+                  value: _selectedLocation ?? '',
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => LocationSelect(
+                          date: _selectedDate != null
+                              ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}"
+                              : null,
+                        ),
+                      ),
+                    );
+                    if (result != null) {
+                      setState(() {
+                        _selectedLocation = result['location'];
+                        _latitude = result['latitude'];
+                        _longitude = result['longitude'];
                       });
                     }
                   },

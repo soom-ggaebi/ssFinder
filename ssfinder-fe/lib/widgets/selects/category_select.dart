@@ -316,7 +316,7 @@ class _CategorySelectState extends State<CategorySelect> {
                               '$selectedCategory > $_selectedSubItem';
                           Navigator.pop(context, {
                             'category': result,
-                            'id': _selectedCategoryIndex! + 20,
+                            'categoryId': _selectedSubItem,
                           });
                         },
                 child: const Text('현재 카테고리로 설정'),

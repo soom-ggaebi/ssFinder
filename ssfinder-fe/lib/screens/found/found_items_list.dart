@@ -172,7 +172,7 @@ class _FoundItemsListState extends State<FoundItemsList> {
     onTap: () => _navigateToDetail(item),
     child: Padding(
       padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-      child: FoundItemCard(item: item),
+      child: FoundItemCard(item: item ,isLoggedIn: true,),
     ),
   );
 

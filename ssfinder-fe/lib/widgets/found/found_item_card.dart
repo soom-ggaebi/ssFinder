@@ -3,8 +3,11 @@ import 'package:sumsumfinder/models/found_items_model.dart';
 
 class FoundItemCard extends StatelessWidget {
   final FoundItemListModel item;
+  final bool isLoggedIn; // 로그인 상태
 
-  const FoundItemCard({Key? key, required this.item}) : super(key: key);
+  const FoundItemCard({Key? key, 
+    required this.item, 
+    required this.isLoggedIn,}) : super(key: key);
 
   String extractLocation(String location) {
     List<String> parts = location.split(" ");
@@ -41,8 +44,8 @@ class FoundItemCard extends StatelessWidget {
                       image: DecorationImage(
                         image: NetworkImage(
                           item.image!,
-                        ), // NetworkImage로 이미지 로드
-                        fit: BoxFit.cover, // 이미지를 컨테이너에 맞게 채움
+                        ), 
+                        fit: BoxFit.cover,
                       ),
                     ),
                   )
@@ -62,17 +65,42 @@ class FoundItemCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "${item.majorCategory} > ${item.minorCategory}",
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-              Text(
-                item.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: Colors.black,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "${item.majorCategory} > ${item.minorCategory}",
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      Text(
+                        item.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ]
+                  ),
+                  if (isLoggedIn)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: IconButton(
+                      icon: Icon(
+                        item.bookmarked! ? Icons.bookmark : Icons.bookmark_border,
+                        color: item.bookmarked! ? Colors.blue : Colors.grey,
+                      ),
+                      onPressed: () {
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                    ),
+                  ),
+                ],
               ),
               Text(
                 item.type,

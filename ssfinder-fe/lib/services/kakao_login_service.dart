@@ -557,10 +557,13 @@ class KakaoLoginService {
   // 통합 로그아웃 프로세스 (카카오 로그아웃 + 백엔드 로그아웃)
   Future<bool> fullLogout() async {
     try {
-      // 1. 백엔드 로그아웃 (토큰 무효화)
+      // 1. FCM 토큰 삭제
+      await deleteFcmToken();
+
+      // 2. 백엔드 로그아웃 (토큰 무효화)
       final backendLogoutSuccess = await logoutFromBackend();
 
-      // 2. 카카오 로그아웃 (백엔드 로그아웃 성공 여부와 관계없이 진행)
+      // 3. 카카오 로그아웃 (백엔드 로그아웃 성공 여부와 관계없이 진행)
       await logout();
 
       // 로그인 상태 false로 변경
@@ -708,8 +711,16 @@ class KakaoLoginService {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
 
-        if (responseData['success'] == true) {
-          print('회원 정보 조회 성공');
+          if (responseData['success'] == true) {
+            print('회원 정보 조회 성공');
+            final userId = responseData['data']['id'];
+          if (userId != null) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('_userIdKey', userId.toString());
+          } else {
+            print('응답 데이터에 사용자 아이디가 없습니다.');
+          }
+
           return responseData['data'];
         } else {
           print('회원 정보 조회 실패: ${responseData['error']}');
@@ -928,6 +939,37 @@ class KakaoLoginService {
       return true;
     } catch (e) {
       print('인증 확인 중 오류 발생: $e');
+      return false;
+    }
+  }
+
+  // FCM 토큰 삭제 API
+  Future<bool> deleteFcmToken() async {
+    try {
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken == null) {
+        print('FCM 토큰이 없습니다.');
+        return true; // 토큰이 없으면 삭제할 필요가 없으므로 성공으로 간주
+      }
+
+      final response = await authenticatedRequest(
+        'DELETE',
+        '/api/notifications/token',
+        body: {'token': fcmToken},
+      );
+
+      print('FCM 토큰 삭제 응답 상태 코드: ${response.statusCode}');
+
+      // 성공적으로 삭제되면 204 No Content 응답
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        print('FCM 토큰 삭제 성공');
+        return true;
+      } else {
+        print('FCM 토큰 삭제 실패: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('FCM 토큰 삭제 중 오류 발생: $e');
       return false;
     }
   }

@@ -67,6 +67,7 @@ dependencies:
   flutter_foreground_task: ^8.17.0
   dio: ^5.8.0+1
   shared_preferences: ^2.5.3
+  url_launcher: ^6.3.1
 
   # 채팅
   stomp_dart_client: ^2.1.3

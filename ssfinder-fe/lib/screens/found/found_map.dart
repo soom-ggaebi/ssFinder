@@ -12,6 +12,7 @@ class FoundMap extends StatefulWidget {
   final Function(GoogleMapController)? onMapCreated;
   final Function()? onCameraIdle;
   final Function(List<int> itemIds)? onClusterTap;
+  final VoidCallback? onMapTap;
 
   const FoundMap({
     Key? key,
@@ -21,6 +22,7 @@ class FoundMap extends StatefulWidget {
     this.onMapCreated,
     this.onCameraIdle,
     this.onClusterTap,
+    this.onMapTap,
   }) : super(key: key);
 
   @override
@@ -30,6 +32,7 @@ class FoundMap extends StatefulWidget {
 class _FoundPageMapState extends State<FoundMap> {
   final Set<Marker> _markers = {};
   GoogleMapController? _mapController;
+  double _currentZoom = 16.0;
 
   @override
   void initState() {
@@ -45,6 +48,18 @@ class _FoundPageMapState extends State<FoundMap> {
     }
   }
 
+  int getPrecision() {
+    if (_currentZoom < 12) {
+      return 1;
+    } else if (_currentZoom < 14) {
+      return 2;
+    } else if (_currentZoom < 16) {
+      return 3;
+    } else {
+      return 4;
+    }
+  }
+
   void _createClusters() async {
     if (widget.foundItems.isEmpty) {
       setState(() {
@@ -52,12 +67,13 @@ class _FoundPageMapState extends State<FoundMap> {
       });
       return;
     }
-
-    // 클러스터링 로직: 근접한 아이템들을 그룹화
+    
+    int precision = getPrecision();
     Map<String, List<FoundItemCoordinatesModel>> clusters = {};
 
     for (var item in widget.foundItems) {
-      String key = '${item.latitude.toStringAsFixed(3)},${item.longitude.toStringAsFixed(3)}';
+      String key =
+          '${item.latitude.toStringAsFixed(precision)},${item.longitude.toStringAsFixed(precision)}';
       clusters.putIfAbsent(key, () => []).add(item);
     }
 
@@ -92,8 +108,9 @@ class _FoundPageMapState extends State<FoundMap> {
         isCluster ? 125 : 75,
         text: isCluster ? items.length.toString() : null,
       ),
-      onTap: () => widget.onClusterTap?.call(items.map((e) => e.id).toList()),
-    );
+      onTap: ()  {
+        widget.onClusterTap?.call(items.map((e) => e.id).toList());
+      });
   }
 
   Future<BitmapDescriptor> _getMarkerBitmap(int size, {String? text}) async {
@@ -136,7 +153,7 @@ class _FoundPageMapState extends State<FoundMap> {
             : FoundMap.companyLatLng;
 
     return GoogleMap(
-      initialCameraPosition: CameraPosition(target: targetLocation, zoom: 16),
+      initialCameraPosition: CameraPosition(target: targetLocation, zoom: _currentZoom),
       myLocationEnabled: true,
       myLocationButtonEnabled: true,
       markers: _markers,
@@ -144,7 +161,16 @@ class _FoundPageMapState extends State<FoundMap> {
         _mapController = controller;
         widget.onMapCreated?.call(controller);
       },
-      onCameraIdle: widget.onCameraIdle,
+      onCameraMove: (CameraPosition position) {
+        _currentZoom = position.zoom;
+      },
+      onCameraIdle: () {
+        _createClusters();
+        widget.onCameraIdle?.call();
+      },
+      onTap: (LatLng position) {
+        widget.onMapTap?.call();
+      },
     );
   }
 }

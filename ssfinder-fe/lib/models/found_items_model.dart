@@ -1,28 +1,30 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class FoundItemModel {
-  final int id; // 물품의 고유 식별자
-  final int? userId; // 물품을 등록한 사용자의 ID (null 가능)
-  final String? image; // 물품 이미지 (null 가능)
-  final String type; // 분실물 종류 (예: "경찰청")
-  final String color; // 물품의 색상
-  final String? majorCategory; // 주요 카테고리
-  final String? minorCategory; // 세부 카테고리
-  final String name; // 분실물 이름
-  final String location; // 물품이 분실된 장소
-  final String createdAt; // 등록(생성) 시간
-  final String detail; // 물품에 대한 상세 설명
-  final String foundAt; // 물품이 발견된 날짜 (예: "2025-03-25")
-  final String status; // 물품 상태 (예: "STORED")
-  final String? phone; // 연락처 (null 가능)
-  final String? storedAt; // 보관 장소 (null 가능)
-  final double latitude; // 분실 위치의 위도
-  final double longitude; // 분실 위치의 경도
-  final bool? bookmarked; // 즐겨찾기 여부 (null 가능)
+  final int id;
+  final int? userId;
+  final String? userName;
+  final String? image;
+  final String type;
+  final String color;
+  final String? majorCategory;
+  final String? minorCategory;
+  final String name;
+  final String location;
+  final String createdAt;
+  final String detail;
+  final String foundAt;
+  final String status;
+  final String? phone;
+  final String? storedAt;
+  final double latitude;
+  final double longitude;
+  final bool? bookmarked;
 
   FoundItemModel({
     required this.id,
     required this.userId,
+    required this.userName,
     this.image,
     required this.type,
     required this.color,
@@ -41,6 +43,50 @@ class FoundItemModel {
     this.bookmarked,
   });
 
+  FoundItemModel copyWith({
+    int? id,
+    int? userId,
+    String? userName,
+    String? image,
+    String? type,
+    String? color,
+    String? majorCategory,
+    String? minorCategory,
+    String? name,
+    String? location,
+    String? createdAt,
+    String? detail,
+    String? foundAt,
+    String? status,
+    String? phone,
+    String? storedAt,
+    double? latitude,
+    double? longitude,
+    bool? bookmarked,
+  }) {
+    return FoundItemModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      userName: userName ?? this.userName,
+      image: image ?? this.image,
+      type: type ?? this.type,
+      color: color ?? this.color,
+      majorCategory: majorCategory ?? this.majorCategory,
+      minorCategory: minorCategory ?? this.minorCategory,
+      name: name ?? this.name,
+      location: location ?? this.location,
+      createdAt: createdAt ?? this.createdAt,
+      detail: detail ?? this.detail,
+      foundAt: foundAt ?? this.foundAt,
+      status: status ?? this.status,
+      phone: phone ?? this.phone,
+      storedAt: storedAt ?? this.storedAt,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      bookmarked: bookmarked ?? this.bookmarked,
+    );
+  }
+
   factory FoundItemModel.fromJson(Map<String, dynamic> json) {
     final item = json['data'];
 
@@ -50,6 +96,7 @@ class FoundItemModel {
     return FoundItemModel(
       id: id,
       userId: userId, // null 가능
+      userName: item['userName'] as String?, // null 가능
       image: item['image'] as String?, // null 가능
       type: item['type'] as String,
       color: item['color'] as String,
@@ -77,9 +124,11 @@ class FoundItemListModel {
   final String? minorCategory; // 세부 카테고리 (문자열)
   final String name; // 아이템 이름
   final String type; // 출처 (예: "숨숨파인더")
+  final String status;
   final String? storageLocation; // 보관 위치 (예: "ㅇㅇ경찰청")
   final String foundLocation; // 분실된 위치 (예: "서울시 강남역 근처")
   final String createdTime; // 생성 시각
+  final bool? bookmarked;
 
   FoundItemListModel({
     required this.id,
@@ -88,9 +137,11 @@ class FoundItemListModel {
     required this.minorCategory,
     required this.name,
     required this.type,
+    required this.status,
     required this.storageLocation,
     required this.foundLocation,
     required this.createdTime,
+    this.bookmarked,
   });
 
   factory FoundItemListModel.fromJson(Map<String, dynamic> json) {
@@ -101,9 +152,11 @@ class FoundItemListModel {
       minorCategory: json['minor_category'] as String?,
       name: json['name'] as String,
       type: json['type'] as String,
+      status: json['status'] as String,
       storageLocation: json['stored_at'] as String?,
       foundLocation: json['location'] as String,
       createdTime: json['created_at'] as String,
+      bookmarked: json['bookmarked'] as bool?,
     );
   }
 }
@@ -130,6 +183,29 @@ class FoundItemCoordinatesModel {
       id: json['id'] as int,
       latitude: (json['latitude'] as num).toDouble(),
       longitude: (json['longitude'] as num).toDouble(),
+    );
+  }
+}
+
+class CategoryModel {
+  final int id;
+  final String name;
+  final int? parentId;
+  final String? parentName;
+
+  CategoryModel({
+    required this.id,
+    required this.name,
+    this.parentId,
+    this.parentName,
+  });
+
+  factory CategoryModel.fromJson(Map<String, dynamic> json) {
+    return CategoryModel(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      parentId: json['parent_id'] as int?,
+      parentName: json['parent_name'] as String?,
     );
   }
 }

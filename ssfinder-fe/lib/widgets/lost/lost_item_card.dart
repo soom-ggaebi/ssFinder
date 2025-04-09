@@ -56,7 +56,7 @@ class LostItemCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 카테고리 ID (카테고리 이름이 없으므로 ID로 대체)
+              // 카테고리 ID
               Text(
                 "${item.majorCategory} > ${item.minorCategory}",
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
@@ -73,13 +73,13 @@ class LostItemCard extends StatelessWidget {
               const SizedBox(height: 4),
               // 색상 정보
               Text(
-                '색상: ${item.color}',
+                '${item.color}',
                 style: TextStyle(fontSize: 12, color: Colors.grey[700]),
               ),
               const SizedBox(height: 4),
               // 분실일
               Text(
-                '분실일: ${item.lostAt}',
+                '${item.lostAt} 분실',
                 style: TextStyle(fontSize: 12, color: Colors.grey[700]),
               ),
               const SizedBox(height: 8),

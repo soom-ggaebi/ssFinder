@@ -118,7 +118,7 @@ class _LostItemDetailState extends State<LostItemDetail> {
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-                builder: (context) => MainOptionsPopup(),
+                builder: (context) => MainOptionsPopup(item: _item),
               );
             },
           ),
@@ -246,20 +246,46 @@ class _LostItemDetailState extends State<LostItemDetail> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // 채팅방 버튼
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: _item!.status == "LOST" ? Colors.blue : Colors.green,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(140, 40),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  onPressed: () {
-                    // 대화중인 채팅방으로 이동하는 로직
+                  onPressed: () async {
+                    try {
+                      // 현재 상태의 반대 상태로 변경
+                      String newStatus = _item!.status == "LOST" ? "FOUND" : "LOST";
+                      
+                      // API 호출하여 상태 업데이트
+                      await _apiService.updateLostItemStatus(
+                        lostId: _item!.id,
+                        status: newStatus,
+                      );
+                      
+                      // 상태 업데이트 성공 시 UI 갱신
+                      setState(() {
+                        _item = _item!.copyWith(status: newStatus);
+                      });
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('상태가 성공적으로 변경되었습니다.')),
+                      );
+
+                      Navigator.pop(context, {'id': _item!.id, 'status': newStatus});
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('상태 변경에 실패했습니다: $e')),
+                      );
+                    }
                   },
-                  child: const Text('찾는 중', style: TextStyle(fontSize: 14)),
+                  child: Text(
+                    _item!.status == "LOST" ? '찾는 중' : '찾음',
+                    style: TextStyle(fontSize: 14),
+                  ),
                 ),
               ],
             ),
