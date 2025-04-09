@@ -1780,8 +1780,9 @@ class _ChatPageState extends State<ChatPage> {
                         : null,
               ),
               InfoBannerWidget(
-                otherUserId: widget.otherUserName,
-                myId: widget.myName,
+                otherUserNickname: widget.otherUserName,
+                myNickname: widget.myName,
+                chatRoomId: widget.roomId,
               ),
               DateDividerWidget(date: '3월 23일'),
               // 디버그 패널 (토글 가능)
