@@ -14,7 +14,8 @@ import java.time.LocalDateTime;
  * fileName       : FcmToken.java<br>
  * author         : okeio<br>
  * date           : 2025-03-24<br>
- * description    :  <br>
+ * description    : 사용자별 FCM 토큰 정보를 저장하는 엔티티입니다.<br>
+ *                  토큰 문자열과 사용자 정보, 생성 및 수정 시간을 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

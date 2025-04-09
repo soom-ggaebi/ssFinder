@@ -8,10 +8,11 @@ import lombok.*;
 
 /**
  * packageName    : com.ssfinder.domain.notification.entity<br>
- * fileName       : *.java<br>
+ * fileName       : UserNotificationSetting.java<br>
  * author         : okeio<br>
  * date           : 2025-03-25<br>
- * description    :  <br>
+ * description    : 사용자별 알림 수신 설정을 저장하는 엔티티입니다.<br>
+ *                  알림 유형별 활성화 여부(소지품 전달, 채팅, 리마인더, AI 매칭)를 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

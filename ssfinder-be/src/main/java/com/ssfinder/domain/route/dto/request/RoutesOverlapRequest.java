@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
  * fileName       : RoutesOverlapRequest.java<br>
  * author         : okeio<br>
  * date           : 2025-03-28<br>
- * description    : 습득자와 분실자 간 이동 경로 크로스 체크에 대한 request DTO 입니다. <br>
+ * description    : 습득자와 분실자의 경로 겹침 여부를 확인하기 위한 요청 DTO입니다.<br>
+ *                  분실자 ID, 습득자 ID, 습득물 ID를 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

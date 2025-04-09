@@ -26,7 +26,7 @@ import java.util.Optional;
  * fileName       : AuthService.java<br>
  * author         : okeio<br>
  * date           : 2025-03-19<br>
- * description    :  <br>
+ * description    : 카카오 로그인, 로그아웃, 토큰 재발급 등의 인증 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
@@ -47,6 +47,17 @@ public class AuthService {
     @Value("${jwt.access-token-validity}")
     private long accessTokenValidity;
 
+    /**
+     * 카카오 로그인을 처리하거나 신규 회원을 등록합니다.
+     *
+     * <p>
+     * providerId를 기준으로 기존 사용자를 조회하고, 삭제된 사용자는 복구 여부에 따라 처리합니다.
+     * 신규 사용자 등록 또는 기존 사용자 정보 업데이트 후, 토큰을 발급하여 응답합니다.
+     * </p>
+     *
+     * @param kakaoLoginRequest 카카오 로그인 요청 정보
+     * @return 액세스 토큰, 리프레시 토큰, 만료 시간, 로그인 결과를 포함한 {@link KakaoLoginResponse}
+     */
     public KakaoLoginResponse kakaoLoginOrRegister(KakaoLoginRequest kakaoLoginRequest) {
         // providerId로 기존 사용자 검색
         Optional<User> existingUserOpt = userRepository.findByProviderId(kakaoLoginRequest.providerId());
@@ -87,7 +98,17 @@ public class AuthService {
         return new KakaoLoginResponse(tokenPair.accessToken(), tokenPair.refreshToken(), accessTokenValidity, resultType);
     }
 
-
+    /**
+     * 기존 사용자의 이메일 정보를 갱신합니다.
+     *
+     * <p>
+     * 사용자 정보를 수정한 뒤 저장하며, 실패 시 예외를 발생시킵니다.
+     * </p>
+     *
+     * @param existingUser 기존 사용자 엔티티
+     * @param kakaoLoginRequest 카카오 로그인 요청 정보
+     * @return 갱신된 사용자 엔티티
+     */
     private User updateKakaoUserInfo(User existingUser, KakaoLoginRequest kakaoLoginRequest) {
         try {
             existingUser.setEmail(kakaoLoginRequest.email());
@@ -98,6 +119,16 @@ public class AuthService {
         }
     }
 
+    /**
+     * 카카오 로그인 요청을 기반으로 새 사용자 계정을 등록합니다.
+     *
+     * <p>
+     * 전화번호는 암호화하여 저장되며, 실패 시 예외를 발생시킵니다.
+     * </p>
+     *
+     * @param kakaoLoginRequest 카카오 로그인 요청 정보
+     * @return 저장된 사용자 엔티티
+     */
     private User registerUser(KakaoLoginRequest kakaoLoginRequest) {
         User user = kakaoLoginRequest.toUserEntity();
 
@@ -112,10 +143,29 @@ public class AuthService {
         return userRepository.save(user);
     }
 
+    /**
+     * 사용자 로그아웃을 처리합니다.
+     *
+     * <p>
+     * 사용자 ID를 기반으로 저장된 리프레시 토큰을 삭제합니다.
+     * </p>
+     *
+     * @param userId 로그아웃할 사용자 ID
+     */
     public void logout(int userId) {
         tokenService.deleteRefreshToken(userId);
     }
 
+    /**
+     * 리프레시 토큰을 이용하여 새로운 액세스 토큰과 리프레시 토큰을 발급합니다.
+     *
+     * <p>
+     * 토큰 유효성 검증, 사용자 존재 여부 확인, Redis에 저장된 리프레시 토큰 일치 여부 등을 체크합니다.
+     * </p>
+     *
+     * @param refreshTokenRequest 리프레시 토큰 요청 정보
+     * @return 새로 발급된 {@link TokenPair}
+     */
     public TokenPair refreshAccessToken(RefreshTokenRequest refreshTokenRequest) {
         String refreshToken = refreshTokenRequest.refreshToken();
 

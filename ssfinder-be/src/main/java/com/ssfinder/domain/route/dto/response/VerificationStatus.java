@@ -8,7 +8,7 @@ import lombok.Getter;
  * fileName       : VerificationStatus.java<br>
  * author         : okeio<br>
  * date           : 2025-03-31<br>
- * description    : 회원 간 경로 검증 상태 Enum 클래스입니다. <br>
+ * description    : 습득자와 분실자의 경로 및 시간 일치 여부를 나타내는 검증 상태 열거형입니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

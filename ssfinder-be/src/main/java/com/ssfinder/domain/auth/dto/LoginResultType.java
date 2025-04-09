@@ -4,10 +4,10 @@ import lombok.Getter;
 
 /**
  * packageName    : com.ssfinder.domain.auth.dto<br>
- * fileName       : *.java<br>
+ * fileName       : LoginResultType.java<br>
  * author         : okeio<br>
  * date           : 2025-03-23<br>
- * description    :  <br>
+ * description    : 카카오 로그인 시 계정 처리 결과 유형을 나타내는 열거형입니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

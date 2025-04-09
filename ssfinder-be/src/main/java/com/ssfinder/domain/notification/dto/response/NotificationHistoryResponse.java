@@ -12,7 +12,8 @@ import java.time.LocalDateTime;
  * fileName       : NotificationHistoryResponse.java<br>
  * author         : okeio<br>
  * date           : 2025-04-01<br>
- * description    :  <br>
+ * description    : 알림 내역 조회 결과를 반환하기 위한 응답 DTO입니다.<br>
+ *                  알림 제목, 내용, 유형, 발송 시각, 읽음 여부 및 읽은 시각을 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

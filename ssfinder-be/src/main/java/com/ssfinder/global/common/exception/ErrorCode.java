@@ -9,7 +9,8 @@ import org.springframework.http.HttpStatus;
  * fileName       : ErrorCode.java<br>
  * author         : okeio<br>
  * date           : 2025-03-17<br>
- * description    :  <br>
+ * description    : 애플리케이션에서 발생 가능한 예외에 대한 에러 코드 정의 Enum 클래스입니다.<br>
+ *                  코드, HTTP 상태, 사용자 메시지를 함께 관리하며 {@link CustomException}, {@link com.ssfinder.global.common.dto.ExceptionDto} 등에서 사용됩니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

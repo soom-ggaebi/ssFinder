@@ -6,10 +6,10 @@ import com.ssfinder.domain.auth.dto.LoginResultType;
 
 /**
  * packageName    : com.ssfinder.domain.auth.dto.response<br>
- * fileName       : *.java<br>
+ * fileName       : KakaoLoginResponse.java<br>
  * author         : okeio<br>
  * date           : 2025-03-19<br>
- * description    :  <br>
+ * description    : 카카오 로그인 처리 결과를 담는 응답 DTO입니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
