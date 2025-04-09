@@ -7,10 +7,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 /**
- * packageName    : com.ssfinder.domain.aimatching.dto.response<br>
- * fileName       : AiMatchingResponse.java<br>
+ * packageName    : com.ssfinder.domain.matchedItem.dto.response<br>
+ * fileName       : MatchedItemResponse.java<br>
  * author         : sonseohy<br>
  * date           : 2025-04-09<br>
  * description    :  <br>
@@ -60,13 +61,15 @@ public class MatchedItemResponse {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class FoundItemInfo {
         private Integer id;                  // 습득물 ID
-        private String name;                 // 습득물 이름
-        private String category;             // 카테고리
-        private String color;                // 색상
-        private String location;             // 습득 장소
-        private String detail;               // 상세 설명
-        private String image;                // 이미지 URL
-        private String status;               // 상태
-        private String storedAt;             // 보관 장소
+        private Integer user_id;
+        private Integer item_category_id;
+        private String title;
+        private String color;
+        private String lost_at;
+        private String location;
+        private String detail;
+        private String image;
+        private String status;
+        private String storedAt;
     }
 }
