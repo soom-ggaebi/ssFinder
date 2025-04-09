@@ -97,26 +97,4 @@ public class FoundItemBookmarkService {
         return bookmarkRepository.existsByUserIdAndFoundItemId(userId, foundId);
     }
 
-    @Transactional(readOnly = true)
-    public void applyBookmarkInfoToItems(Integer userId, List<FoundItemSummaryResponse> items) {
-        if (items == null || items.isEmpty()) {
-            return;
-        }
-
-        try {
-            List<Integer> bookmarkedIds = getBookmarkedItemIdsByUser(userId);
-            for (FoundItemSummaryResponse item : items) {
-                boolean isBookmarked = bookmarkedIds.contains(item.getId());
-                item.setBookmarked(isBookmarked);
-            }
-        } catch (Exception e) {
-            log.error("북마크 정보 조회 중 오류: {}", e.getMessage());
-            items.forEach(item -> item.setBookmarked(false));
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public List<Integer> getBookmarkedItemIdsByUser(Integer userId) {
-        return bookmarkRepository.findFoundItemIdsByUserId(userId);
-    }
 }
