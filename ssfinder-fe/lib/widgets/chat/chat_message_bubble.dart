@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../models/chat_message.dart';
+import 'dart:io';
 
 class ChatMessagesList extends StatefulWidget {
   final List<ChatMessage> messages;
   final ScrollController scrollController;
+  final Function(ChatMessage)? onRetryMessage; // 재시도 콜백 추가
 
   const ChatMessagesList({
     Key? key,
     required this.messages,
     required this.scrollController,
+    this.onRetryMessage, // 콜백 추가
   }) : super(key: key);
 
   @override
@@ -18,178 +21,209 @@ class ChatMessagesList extends StatefulWidget {
 
 class _ChatMessagesListState extends State<ChatMessagesList> {
   @override
-  void initState() {
-    super.initState();
-    // 모든 메시지에 리스너 추가
-    for (var message in widget.messages) {
-      message.addListener(_onMessageChanged);
-    }
-  }
-
-  @override
-  void didUpdateWidget(ChatMessagesList oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    // 이전 메시지의 리스너 제거
-    for (var message in oldWidget.messages) {
-      message.removeListener(_onMessageChanged);
-    }
-
-    // 새 메시지에 리스너 추가
-    for (var message in widget.messages) {
-      message.addListener(_onMessageChanged);
-    }
-  }
-
-  void _onMessageChanged() {
-    // 메시지 상태가 변경되면 위젯을 다시 빌드
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  @override
-  void dispose() {
-    // 모든 리스너 제거
-    for (var message in widget.messages) {
-      message.removeListener(_onMessageChanged);
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ListView(
+    print('ChatMessagesList.build 호출됨');
+    print('전달받은 메시지 개수: ${widget.messages.length}');
+
+    // 메시지가 없을 때 처리
+    if (widget.messages.isEmpty) {
+      return const Center(child: Text('메시지가 없습니다. 대화를 시작해보세요.'));
+    }
+
+    return ListView.builder(
       controller: widget.scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        ...widget.messages.map((message) {
-          if (message.isSent) {
-            // 내가 보낸 메시지
-            if (message.type == 'IMAGE') {
-              return SentImageBubble(
-                imageUrl: message.imageUrl ?? '',
-                time: message.time,
-                status: message.status,
-              );
-            } else {
-              return SentMessageBubble(
-                message: message.text,
-                time: message.time,
-                status: message.status,
-              );
-            }
+      reverse: true, // 최신 메시지가 맨 아래(또는 화면 상으로는 맨 위)에 표시됨
+      itemCount: widget.messages.length,
+      itemBuilder: (context, index) {
+        final message = widget.messages[index];
+
+        // widget.onRetryMessage 콜백을 retryCallback으로 전달
+        if (message.isSent) {
+          if (message.type == 'IMAGE') {
+            return SentImageBubble(
+              imageUrl: message.imageUrl ?? '',
+              imageFile: message.imageFile,
+              time: message.time,
+              status: message.status,
+              onRetry:
+                  message.status == 'FAILED'
+                      ? () => widget.onRetryMessage?.call(message)
+                      : null,
+            );
+          } else if (message.type == 'LOCATION') {
+            return SentMessageBubble(
+              message: message.text,
+              time: message.time,
+              status: message.status,
+              onRetry:
+                  message.status == 'FAILED'
+                      ? () => widget.onRetryMessage?.call(message)
+                      : null,
+            );
           } else {
-            // 받은 메시지 (변경 없음)
-            if (message.type == 'IMAGE') {
-              return ReceivedImageBubble(
-                imageUrl: message.imageUrl ?? '',
-                time: message.time,
-              );
-            } else {
-              return ReceivedMessageBubble(
-                message: message.text,
-                time: message.time,
-              );
-            }
+            return SentMessageBubble(
+              message: message.text,
+              time: message.time,
+              status: message.status,
+              onRetry:
+                  message.status == 'FAILED'
+                      ? () => widget.onRetryMessage?.call(message)
+                      : null,
+            );
           }
-        }).toList(),
-      ],
+        } else {
+          // 받은 메시지
+          if (message.type == 'IMAGE') {
+            return ReceivedImageBubble(
+              imageUrl: message.imageUrl ?? '',
+              time: message.time,
+            );
+          } else if (message.type == 'LOCATION') {
+            // LOCATION 타입 처리
+            return ReceivedMessageBubble(
+              message: message.text,
+              time: message.time,
+            );
+          } else {
+            return ReceivedMessageBubble(
+              message: message.text,
+              time: message.time,
+            );
+          }
+        }
+      },
     );
   }
 }
 
 class SentImageBubble extends StatelessWidget {
-  final String imageUrl;
+  final String? imageUrl;
+  final File? imageFile;
   final String time;
-  final String status; // 읽음 상태 추가
+  final String status;
+  final Function()? onRetry; // 재시도 콜백 추가
 
   const SentImageBubble({
     Key? key,
-    required this.imageUrl,
+    this.imageUrl,
+    this.imageFile,
     required this.time,
-    this.status = 'UNREAD', // 기본값 설정
+    this.status = 'UNREAD',
+    this.onRetry, // 재시도 콜백 추가
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // 읽음 표시 (상태에 따라 다르게 표시)
-          Text(
-            status == 'READ' ? '읽음' : '',
-            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-          ),
-          const SizedBox(width: 4),
-          // 기존 시간 표시
-          Text(
-            time,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: Colors.grey[500]),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.6,
+      child: IntrinsicHeight(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // 읽음 표시 또는 재시도 버튼
+            if (status == 'READ')
+              Text(
+                '읽음',
+                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+              )
+            else if (status == 'FAILED' && onRetry != null)
+              GestureDetector(
+                onTap: onRetry,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red[100],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.refresh, size: 12, color: Colors.red[700]),
+                      const SizedBox(width: 2),
+                      Text(
+                        '재시도',
+                        style: TextStyle(fontSize: 10, color: Colors.red[700]),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(width: 4),
+            // 기존 시간 표시
+            Text(
+              time,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: Colors.grey[500]),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF619BF7),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(15),
-                topRight: Radius.circular(15),
-                bottomLeft: Radius.circular(15),
-                bottomRight: Radius.circular(0),
+            const SizedBox(width: 8),
+            Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.6,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color:
+                    status == 'FAILED'
+                        ? Colors.red[100]
+                        : const Color(0xFF619BF7),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(15),
+                  topRight: Radius.circular(15),
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(0),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child:
+                    imageFile != null
+                        ? Image.file(imageFile!, width: 200, fit: BoxFit.cover)
+                        : Image.network(
+                          imageUrl ?? '',
+                          width: 200,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            // 기존 코드
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              width: 200,
+                              height: 150,
+                              color: Colors.white.withOpacity(0.3),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value:
+                                      loadingProgress.expectedTotalBytes != null
+                                          ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
+                                          : null,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            // 기존 코드
+                            return Container(
+                              width: 200,
+                              height: 40,
+                              color: Colors.white.withOpacity(0.3),
+                              child: const Center(
+                                child: Text(
+                                  '이미지 로드 실패',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
               ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                imageUrl,
-                width: 200,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  // 기존 코드 유지
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    width: 200,
-                    height: 150,
-                    color: Colors.white.withOpacity(0.3),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        value:
-                            loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                                : null,
-                        color: Colors.white,
-                      ),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  // 기존 코드 유지
-                  return Container(
-                    width: 200,
-                    height: 40,
-                    color: Colors.white.withOpacity(0.3),
-                    child: const Center(
-                      child: Text(
-                        '이미지 로드 실패',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -209,8 +243,8 @@ class ReceivedMessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: SizedBox(
-        height: 85,
+      child: IntrinsicHeight(
+        // 고정 높이 대신 IntrinsicHeight 사용
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -284,8 +318,7 @@ class ReceivedImageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: SizedBox(
-        height: 200, // 이미지 크기에 맞게 조정
+      child: IntrinsicHeight(
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -469,63 +502,93 @@ class ReceivedMessageWithMap extends StatelessWidget {
   }
 }
 
+// SentMessageBubble 클래스 수정 (FAILED 상태일 때 재시도 버튼 표시)
 class SentMessageBubble extends StatelessWidget {
   final String message;
   final String time;
-  final String status; // 읽음 상태 추가
+  final String status;
+  final Function()? onRetry; // 재시도 콜백 추가
 
   const SentMessageBubble({
     Key? key,
     required this.message,
     required this.time,
-    this.status = 'UNREAD', // 기본값 설정
+    this.status = 'UNREAD',
+    this.onRetry,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // 읽음 표시 (상태에 따라 다르게 표시)
-          Text(
-            status == 'READ' ? '읽음' : '',
-            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-          ),
-          const SizedBox(width: 4),
-          // 시간 표시
-          Text(
-            time,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: Colors.grey[500]),
-          ),
-          const SizedBox(width: 8),
-          // 메시지 버블
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.6,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF619BF7),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(15),
-                topRight: Radius.circular(15),
-                bottomLeft: Radius.circular(15),
-                bottomRight: Radius.circular(0),
+      child: IntrinsicHeight(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // 읽음 표시 또는 재시도 버튼
+            if (status == 'READ')
+              Text(
+                '읽음',
+                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+              )
+            else if (status == 'FAILED' && onRetry != null)
+              GestureDetector(
+                onTap: onRetry,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red[100],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.refresh, size: 12, color: Colors.red[700]),
+                      const SizedBox(width: 2),
+                      Text(
+                        '재시도',
+                        style: TextStyle(fontSize: 10, color: Colors.red[700]),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            child: Text(
-              message,
+            const SizedBox(width: 4),
+            // 기존 시간 표시
+            Text(
+              time,
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.white),
+              ).textTheme.labelSmall?.copyWith(color: Colors.grey[500]),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            // 메시지 버블
+            Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.6,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color:
+                    status == 'FAILED'
+                        ? Colors.red[100]
+                        : const Color(0xFF619BF7),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(15),
+                  topRight: Radius.circular(15),
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(0),
+                ),
+              ),
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: status == 'FAILED' ? Colors.red[900] : Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

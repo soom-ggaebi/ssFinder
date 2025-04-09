@@ -940,6 +940,14 @@ class KakaoLoginService {
     }
   }
 
+  // KakaoLoginService 클래스에 추가
+  Future<int?> getUserId() async {
+    // SharedPreferences나 다른 저장소에서 사용자 ID를 가져오는 코드
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_id');
+  }
+
+  // FCM 토큰 삭제 API
   Future<bool> deleteFcmToken() async {
     try {
       final fcmToken = await FirebaseMessaging.instance.getToken();
