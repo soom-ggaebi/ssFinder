@@ -20,28 +20,29 @@ public class ChatMessageGetResponse {
     private long count;
     private String nextCursor;
 
-    public static ChatMessageGetResponse of(CursorScrollResponse<ChatMessage> messageScroll, long count) {
+    public static ChatMessageGetResponse of(CursorScrollResponse<ChatMessage> messageScroll, Integer userId, long count) {
         if(messageScroll.isLastScroll()) {
-            return ChatMessageGetResponse.newLastScroll(messageScroll.getCurrentScrollItems(), count);
+            return ChatMessageGetResponse.newLastScroll(messageScroll.getCurrentScrollItems(), userId, count);
         }
-        return ChatMessageGetResponse.newScrollHasNext(messageScroll.getCurrentScrollItems(), count, messageScroll.getNextCursor().getId());
+        return ChatMessageGetResponse.newScrollHasNext(messageScroll.getCurrentScrollItems(), userId, count, messageScroll.getNextCursor().getId());
     }
 
-    private static ChatMessageGetResponse newLastScroll(List<ChatMessage> messageScroll, long count) {
-        return newScrollHasNext(messageScroll, count, LAST_CURSOR);
+    private static ChatMessageGetResponse newLastScroll(List<ChatMessage> messageScroll, Integer userId, long count) {
+        return newScrollHasNext(messageScroll, userId, count, LAST_CURSOR);
     }
 
-    private static ChatMessageGetResponse newScrollHasNext(List<ChatMessage> messageScroll, long count, String nextCursor) {
-        return new ChatMessageGetResponse(getContents(messageScroll), count, nextCursor);
+    private static ChatMessageGetResponse newScrollHasNext(List<ChatMessage> messageScroll, Integer userId, long count, String nextCursor) {
+        return new ChatMessageGetResponse(getContents(messageScroll, userId), count, nextCursor);
     }
 
-    private static List<ChatMessageInfo> getContents(List<ChatMessage> messageScroll) {
+    private static List<ChatMessageInfo> getContents(List<ChatMessage> messageScroll, Integer userId) {
         return messageScroll.stream()
                 .map(
                         message ->
                                 ChatMessageInfo.builder()
                                         .messageId(message.getId())
                                         .senderId(message.getSenderId())
+                                        .isMine(message.getSenderId() == userId)
                                         .chatRoomId(message.getChatRoomId())
                                         .content(message.getContent())
                                         .type(message.getType())
