@@ -1,80 +1,140 @@
 import 'package:flutter/material.dart';
+import 'package:sumsumfinder/services/weather_service.dart';
+import 'package:sumsumfinder/widgets/main/location_search_bar.dart';
+import 'package:sumsumfinder/services/location_service.dart';
 
-class WeatherWidget extends StatelessWidget {
+import 'package:geolocator/geolocator.dart';
+
+class WeatherWidget extends StatefulWidget {
   const WeatherWidget({Key? key}) : super(key: key);
 
   @override
+  _WeatherWidgetState createState() => _WeatherWidgetState();
+}
+
+class _WeatherWidgetState extends State<WeatherWidget> {
+  Future<Map<String, dynamic>> _getCurrentWeather() async {
+    Position position = await LocationService().getCurrentPosition();
+
+    return await WeatherService.getWeather(position.latitude, position.longitude);
+  }
+
+  Map<String, String> _getWeatherAssets(Map<String, dynamic> weatherData) {
+    final weatherList = weatherData['weather'] as List<dynamic>;
+    final weatherMain = weatherList.isNotEmpty ? weatherList[0]['main'] as String : '';
+
+    String backgroundImage;
+    String weatherMessage;
+    String weatherTip;
+
+    switch (weatherMain) {
+      case "Rain":
+        backgroundImage = 'assets/images/main/weather_rain.png';
+        weatherMessage = '💧비💧';
+        weatherTip = '우산 꼭 챙기세요!';
+        break;
+      case "Clear":
+        backgroundImage = 'assets/images/main/weather_clear.png';
+        weatherMessage = '맑은 날씨입니다!';
+        weatherTip = '화창한 날엔 선글라스로 눈부심을 막으세요!';
+        break;
+      case "Clouds":
+        backgroundImage = 'assets/images/main/weather_cloudy.png';
+        weatherMessage = '구름이 많아요!';
+         weatherTip = '흐린 날에도 필요할 때 우산 준비하세요!';
+        break;
+      default:
+        backgroundImage = 'assets/images/main/weather_default.png';
+        weatherMessage = '오늘의 날씨를 확인해보세요!';
+        weatherTip = '날씨에 맞게 준비해보세요!';
+        break;
+    }
+    return {'image': backgroundImage, 'message': weatherMessage, 'tip': weatherTip,};
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 120,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.0)),
-      child: Stack(
-        children: [
-          // 배경 이미지
-          ClipRRect(
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _getCurrentWeather(),
+      builder: (context, snapshot) {
+        // 기본 배경 및 멘트
+        String backgroundImage = 'assets/images/main/weather_default.png';
+        String weatherMessage = '오늘의 날씨를 확인해보세요!';
+        String weatherTip = '날씨에 맞게 준비해보세요!';
+        if (snapshot.hasData) {
+          final assets = _getWeatherAssets(snapshot.data!);
+          backgroundImage = assets['image']!;
+          weatherMessage = assets['message']!;
+          weatherTip = assets['tip']!;
+        }
+        return Container(
+          width: double.infinity,
+          height: 210,
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12.0),
-            child: Image.asset(
-              'assets/images/main/weather_rain.png',
-              width: double.infinity,
-              height: double.infinity,
-              fit: BoxFit.cover,
-            ),
           ),
-          // 오버레이
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
+          child: Stack(
+            children: [
+              // 배경 이미지
+              ClipRRect(
                 borderRadius: BorderRadius.circular(12.0),
-                color: Colors.black.withOpacity(0.6),
+                child: Image.asset(
+                  backgroundImage,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-          ),
-          // 내용 컨테이너
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: const [
-                      Text('오늘의 날씨는? ', style: TextStyle(color: Colors.white)),
-                      Text('💧비💧', style: TextStyle(color: Colors.white)),
+              // 오버레이 (어둡게 처리)
+              // Positioned.fill(
+              //   child: Container(
+              //     decoration: BoxDecoration(
+              //       borderRadius: BorderRadius.circular(12.0),
+              //       color: Colors.black.withOpacity(0.6),
+              //     ),
+              //   ),
+              // ),
+              // 내용 컨테이너: 날씨 텍스트와 검색창 포함
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    // Column 안의 위젯들을 세로 방향으로 아래쪽에 배치합니다.
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 날씨 정보 텍스트
+                      Row(
+                        children: [
+                          const Text(
+                            '오늘의 날씨는? ',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          Text(
+                            weatherMessage,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5.0),
+                      Text(
+                        weatherTip,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 12.0),
+                      // 검색창
+                      const LocationSearchBar(),
                     ],
                   ),
-                  const SizedBox(height: 5.0),
-                  const Text(
-                    '우산 챙기는 거 잊지 마세요!',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  const SizedBox(height: 12.0),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0,
-                      vertical: 9.0,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Color(0xFFD1D1D1).withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: const [
-                        Icon(Icons.search, color: Colors.white, size: 18),
-                        SizedBox(width: 6.0),
-                        Text(
-                          '내 주변 분실물을 검색해보세요!',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              // 데이터 로딩 중일 때 표시되는 로딩 인디케이터
+              if (snapshot.connectionState == ConnectionState.waiting)
+                const Center(child: CircularProgressIndicator()),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

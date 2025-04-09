@@ -13,7 +13,9 @@ import 'package:sumsumfinder/models/found_items_model.dart';
 import 'package:sumsumfinder/services/found_items_api_service.dart';
 
 class FoundPage extends StatefulWidget {
-  FoundPage({Key? key}) : super(key: key);
+  final String? initialSearchQuery;
+
+  FoundPage({Key? key, this.initialSearchQuery}) : super(key: key);
 
   @override
   _FoundPageState createState() => _FoundPageState();
@@ -38,7 +40,13 @@ class _FoundPageState extends State<FoundPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialSearchQuery != null && widget.initialSearchQuery!.isNotEmpty) {
+      _searchQuery = widget.initialSearchQuery!;
+      _searchPlaceByKakao(_searchQuery);
+    }
+    else {
     _getLocationData();
+    }
   }
 
   Future<void> _getLocationData() async {
