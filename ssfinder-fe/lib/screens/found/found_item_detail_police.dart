@@ -38,7 +38,7 @@ class FoundItemDetailPolice extends StatelessWidget {
   String extractLocation(String location) {
     List<String> parts = location.split(" ");
     if (parts.length >= 4) {
-      return parts.sublist(2, 4).join(" ");
+      return parts.sublist(1, 3).join(" ");
     }
     return location;
   }
@@ -156,7 +156,9 @@ class FoundItemDetailPolice extends StatelessWidget {
 
                 // 카테고리
                 Text(
-                  "${item.majorCategory} > ${item.minorCategory}",
+                  (item.minorCategory == null)
+                    ? "${item.majorCategory}"
+                    : "${item.majorCategory} > ${item.minorCategory}",
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 8),

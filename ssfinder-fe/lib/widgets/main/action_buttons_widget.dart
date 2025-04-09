@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:sumsumfinder/screens/home_page.dart';
 import 'package:sumsumfinder/widgets/common/app_text.dart';
+import 'package:sumsumfinder/screens/lost/lost_item_form.dart';
+import 'package:sumsumfinder/screens/found/found_item_form.dart';
 
 class ActionButtonsWidget extends StatelessWidget {
   final double availableHeight;
@@ -19,12 +20,12 @@ class ActionButtonsWidget extends StatelessWidget {
         Expanded(
           child: InkWell(
             onTap: () {
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder:
                       (context) =>
-                          const HomePage(initialIndex: 1), // LostPage 인덱스
+                          const LostItemForm(),
                 ),
               );
             },
@@ -52,12 +53,12 @@ class ActionButtonsWidget extends StatelessWidget {
         Expanded(
           child: InkWell(
             onTap: () {
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder:
                       (context) =>
-                          const HomePage(initialIndex: 2), // FoundPage 인덱스
+                          const FoundItemForm(),
                 ),
               );
             },

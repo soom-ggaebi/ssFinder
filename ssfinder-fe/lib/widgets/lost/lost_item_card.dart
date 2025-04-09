@@ -57,7 +57,9 @@ class LostItemCard extends StatelessWidget {
             children: [
               // 카테고리 ID
               Text(
-                "${item.majorCategory} > ${item.minorCategory}",
+                (item.minorCategory == null)
+                  ? "${item.majorCategory}"
+                  : "${item.majorCategory} > ${item.minorCategory}",
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               // 분실물 제목

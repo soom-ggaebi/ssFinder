@@ -117,7 +117,9 @@ class _FoundItemCardState extends State<FoundItemCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "${item.majorCategory} > ${item.minorCategory}",
+                        (item.minorCategory == null)
+                          ? "${item.majorCategory}"
+                          : "${item.majorCategory} > ${item.minorCategory}",
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,
