@@ -1,4 +1,4 @@
-package com.ssfinder.domain.aimatching.dto.response;
+package com.ssfinder.domain.matchedItem.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -25,7 +25,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AiMatchingResponse {
+public class MatchedItemResponse {
     private boolean success;           // 요청 성공 여부
     private String message;            // 응답 메시지
     private MatchingResult result;     // 매칭 결과

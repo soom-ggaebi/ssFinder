@@ -1,4 +1,4 @@
-package com.ssfinder.domain.aimatching.dto.request;
+package com.ssfinder.domain.matchedItem.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AiMatchingRequest {
+public class MatchedItemRequest {
     private Integer lostItemId;
     private String category;
     private String itemName;

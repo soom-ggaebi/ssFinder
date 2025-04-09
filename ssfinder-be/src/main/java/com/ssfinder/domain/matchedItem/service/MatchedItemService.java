@@ -1,12 +1,14 @@
-package com.ssfinder.domain.aimatching.service;
+package com.ssfinder.domain.matchedItem.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ssfinder.domain.aimatching.dto.request.AiMatchingRequest;
-import com.ssfinder.domain.aimatching.dto.response.AiMatchingResponse;
-import com.ssfinder.domain.aimatching.entity.MatchedItem;
-import com.ssfinder.domain.aimatching.repository.MatchedItemRepository;
+import com.ssfinder.domain.matchedItem.dto.request.MatchedItemRequest;
+import com.ssfinder.domain.matchedItem.dto.response.MatchedItemResponse;
+import com.ssfinder.domain.matchedItem.entity.MatchedItem;
+import com.ssfinder.domain.matchedItem.repository.MatchedItemRepository;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.repository.FoundItemRepository;
+import com.ssfinder.domain.lostitem.entity.LostItem;
+import com.ssfinder.domain.lostitem.repository.LostItemRepository;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -36,17 +38,18 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiMatchingService {
+public class MatchedItemService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final FoundItemRepository foundItemRepository;
     private final MatchedItemRepository matchedItemRepository;
+    private final LostItemRepository lostItemRepository;
 
     @Value("${matching.huggingface.url}")
     private String matchinghuggingFaceUrl;
 
     @Transactional
-    public AiMatchingResponse findSimilarItems(AiMatchingRequest request) {
+    public MatchedItemResponse findSimilarItems(MatchedItemRequest request) {
         log.info("AI 매칭 요청: {}", request);
 
         try {
@@ -69,14 +72,14 @@ public class AiMatchingService {
             log.debug("Hugging Face API 호출: {}", matchinghuggingFaceUrl);
 
             // Hugging Face API로 요청 전송 및 응답 수신
-            ResponseEntity<AiMatchingResponse> response = restTemplate.exchange(
+            ResponseEntity<MatchedItemResponse> response = restTemplate.exchange(
                     matchinghuggingFaceUrl + "?threshold=" + (request.getThreshold() != null ? request.getThreshold() : 0.7),
                     HttpMethod.POST,
                     entity,
-                    AiMatchingResponse.class
+                    MatchedItemResponse.class
             );
 
-            AiMatchingResponse matchingResponse = response.getBody();
+            MatchedItemResponse matchingResponse = response.getBody();
 
             // 매칭 결과 처리
             if (matchingResponse != null && matchingResponse.isSuccess() &&
@@ -93,30 +96,38 @@ public class AiMatchingService {
         }
     }
 
-    private void saveMatchingResults(Integer lostItemId, AiMatchingResponse response) {
+    private void saveMatchingResults(Integer lostItemId, MatchedItemResponse response) {
         if (lostItemId == null || response == null || response.getResult() == null) {
             return;
         }
 
+        // 분실물 엔티티 조회
+        LostItem lostItem = lostItemRepository.findById(lostItemId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ITEM_NOT_FOUND));
+
         // 유사도 70% 이상인 항목만 필터링
-        List<AiMatchingResponse.MatchItem> matches = response.getResult().getMatches().stream()
+        List<MatchedItemResponse.MatchItem> matches = response.getResult().getMatches().stream()
                 .filter(match -> match.getSimilarity() >= 0.7)
                 .collect(Collectors.toList());
 
         LocalDateTime now = LocalDateTime.now();
 
-        for (AiMatchingResponse.MatchItem match : matches) {
+        for (MatchedItemResponse.MatchItem match : matches) {
             Integer foundItemId = match.getItem().getId();
 
+            // 습득물 엔티티 조회
+            FoundItem foundItem = foundItemRepository.findById(foundItemId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.ITEM_NOT_FOUND));
+
             // 이미 매칭 정보가 있는지 확인
-            if (!matchedItemRepository.existsByLostItemIdAndFoundItemId(lostItemId, foundItemId)) {
+            if (!matchedItemRepository.existsByLostItemAndFoundItem(lostItem, foundItem)) {
                 // 유사도 소수점에서 정수로 변환 (0.85 -> 85)
                 int similarityScore = Math.round(match.getSimilarity() * 100);
 
                 // 매칭 정보 저장
                 MatchedItem matchedItem = MatchedItem.builder()
-                        .lostItemId(lostItemId)
-                        .foundItemId(foundItemId)
+                        .lostItem(lostItem)
+                        .foundItem(foundItem)
                         .score(similarityScore)
                         .matchedAt(now)
                         .build();
@@ -128,58 +139,57 @@ public class AiMatchingService {
         }
     }
 
-    public AiMatchingResponse getMatchedItems(Integer lostItemId) {
-        List<MatchedItem> matchedItems = matchedItemRepository.findByLostItemIdOrderByScoreDesc(lostItemId);
+    public MatchedItemResponse getMatchedItems(Integer lostItemId) {
+        // 분실물 엔티티 조회
+        LostItem lostItem = lostItemRepository.findById(lostItemId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ITEM_NOT_FOUND));
+
+        List<MatchedItem> matchedItems = matchedItemRepository.findByLostItemOrderByScoreDesc(lostItem);
 
         if (matchedItems.isEmpty()) {
-            return AiMatchingResponse.builder()
+            return MatchedItemResponse.builder()
                     .success(true)
                     .message("매칭된 습득물이 없습니다.")
                     .build();
         }
 
-        List<AiMatchingResponse.MatchItem> matchItems = new ArrayList<>();
+        List<MatchedItemResponse.MatchItem> matchItems = new ArrayList<>();
 
         for (MatchedItem matchedItem : matchedItems) {
-            Optional<FoundItem> foundItemOpt = foundItemRepository.findById(matchedItem.getFoundItemId());
+            FoundItem foundItem = matchedItem.getFoundItem();
 
-            if (foundItemOpt.isPresent()) {
-                FoundItem foundItem = foundItemOpt.get();
+            // 습득물 정보 변환
+            MatchedItemResponse.FoundItemInfo itemInfo = MatchedItemResponse.FoundItemInfo.builder()
+                    .id(foundItem.getId())
+                    .name(foundItem.getName())
+                    .category(foundItem.getItemCategory().getName())
+                    .color(foundItem.getColor())
+                    .location(foundItem.getLocation())
+                    .detail(foundItem.getDetail())
+                    .image(foundItem.getImage())
+                    .status(foundItem.getStatus().name())
+                    .storedAt(foundItem.getStoredAt())
+                    .build();
 
-                // 습득물 정보 변환
-                AiMatchingResponse.FoundItemInfo itemInfo = AiMatchingResponse.FoundItemInfo.builder()
-                        .id(foundItem.getId())
-                        .name(foundItem.getName())
-                        .category(foundItem.getItemCategory().getName())
-                        .color(foundItem.getColor())
-                        .location(foundItem.getLocation())
-                        .detail(foundItem.getDetail())
-                        .image(foundItem.getImage())
-                        .status(foundItem.getStatus().name())
-                        .storedAt(foundItem.getStoredAt())
-                        .build();
+            // 매치 아이템 생성
+            MatchedItemResponse.MatchItem matchItem = MatchedItemResponse.MatchItem.builder()
+                    .item(itemInfo)
+                    .similarity(matchedItem.getScore() / 100f) // 정수 점수를 소수점 유사도로 변환 (85 -> 0.85)
+                    .build();
 
-                // 매치 아이템 생성
-                AiMatchingResponse.MatchItem matchItem = AiMatchingResponse.MatchItem.builder()
-                        .item(itemInfo)
-                        .similarity(matchedItem.getScore() / 100f) // 정수 점수를 소수점 유사도로 변환 (85 -> 0.85)
-                        .build();
-
-                matchItems.add(matchItem);
-            }
+            matchItems.add(matchItem);
         }
 
-        AiMatchingResponse.MatchingResult result = AiMatchingResponse.MatchingResult.builder()
+        MatchedItemResponse.MatchingResult result = MatchedItemResponse.MatchingResult.builder()
                 .totalMatches(matchItems.size())
                 .similarityThreshold(0.7f)
                 .matches(matchItems)
                 .build();
 
-        return AiMatchingResponse.builder()
+        return MatchedItemResponse.builder()
                 .success(true)
                 .message(String.format("%d개의 매칭된 습득물을 찾았습니다.", matchItems.size()))
                 .result(result)
                 .build();
     }
-
 }

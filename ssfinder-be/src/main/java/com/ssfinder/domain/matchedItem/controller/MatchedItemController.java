@@ -1,8 +1,8 @@
-package com.ssfinder.domain.aimatching.controller;
+package com.ssfinder.domain.matchedItem.controller;
 
-import com.ssfinder.domain.aimatching.dto.request.AiMatchingRequest;
-import com.ssfinder.domain.aimatching.dto.response.AiMatchingResponse;
-import com.ssfinder.domain.aimatching.service.AiMatchingService;
+import com.ssfinder.domain.matchedItem.dto.request.MatchedItemRequest;
+import com.ssfinder.domain.matchedItem.dto.response.MatchedItemResponse;
+import com.ssfinder.domain.matchedItem.service.MatchedItemService;
 import com.ssfinder.global.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,23 +24,23 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/aimatching")
 @RequiredArgsConstructor
-public class AiMatchingController {
-    private final AiMatchingService aiMatchingService;
+public class MatchedItemController {
+    private final MatchedItemService matchedItemService;
 
     @PostMapping("/find-similar")
-    public ApiResponse<AiMatchingResponse> findSimilarItems(@RequestBody AiMatchingRequest request) {
+    public ApiResponse<MatchedItemResponse> findSimilarItems(@RequestBody MatchedItemRequest request) {
         log.info("유사 습득물 찾기 요청: {}", request);
 
-        AiMatchingResponse response = aiMatchingService.findSimilarItems(request);
+        MatchedItemResponse response = matchedItemService.findSimilarItems(request);
 
         return ApiResponse.ok(response);
     }
 
     @GetMapping("/matched-items/{lostItemId}")
-    public ApiResponse<AiMatchingResponse> getMatchedItems(@PathVariable Integer lostItemId) {
+    public ApiResponse<MatchedItemResponse> getMatchedItems(@PathVariable Integer lostItemId) {
         log.info("매칭된 습득물 목록 조회: lostItemId={}", lostItemId);
 
-        AiMatchingResponse response = aiMatchingService.getMatchedItems(lostItemId);
+        MatchedItemResponse response = matchedItemService.getMatchedItems(lostItemId);
 
         return ApiResponse.ok(response);
     }
