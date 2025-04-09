@@ -5,15 +5,12 @@ import com.ssfinder.domain.chat.service.ChatSessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
-
-import java.util.Objects;
 
 @Slf4j
 @Component
@@ -34,16 +31,22 @@ public class SessionEventListener {
         );
 
         Integer userId = Integer.parseInt(accessor.getUser().getName());
-        Integer chatRoomId = Integer.parseInt(Objects.requireNonNull(connectAccessor.getFirstNativeHeader("chat_room_id")));
+        String chatRoomIdHeader = connectAccessor.getFirstNativeHeader("chat_room_id");
         String sessionId = accessor.getSessionId();
 
-        log.info("[WebSocket CONNECT] userId={}, chatRoomId={}, sessionId={}", userId, chatRoomId, sessionId);
+        if(chatRoomIdHeader != null) { // 채팅방 화면 접속
+            Integer chatRoomId = Integer.parseInt(chatRoomIdHeader);
 
-        // redis에 접속 상태 저장
-        chatSessionService.saveSession(sessionId, chatRoomId, userId);
+            log.info("[WebSocket CONNECT] userId={}, chatRoomId={}, sessionId={}", userId, chatRoomId, sessionId);
 
-        // 읽지 않은 메세지 읽음처리
-        chatService.handleConnect(userId, chatRoomId);
+            // redis에 접속 상태 저장
+            chatSessionService.saveSession(sessionId, chatRoomId, userId);
+
+            // 읽지 않은 메세지 읽음처리
+            chatService.handleConnect(userId, chatRoomId);
+        } else { // 채팅방 리스트 화면 접속
+            log.info("[WebSocket CONNECT] userId={}, sessionId={}", userId, sessionId);
+        }
     }
 
     @EventListener

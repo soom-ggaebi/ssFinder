@@ -40,7 +40,12 @@ public class ChatSessionService {
     }
 
     public void deleteSession(String sessionId) {
-        String value = Objects.requireNonNull(redisTemplate.opsForValue().get(REDIS_CHAT_SESSION_KEY + sessionId));
+        String value = redisTemplate.opsForValue().get(REDIS_CHAT_SESSION_KEY + sessionId);
+
+        if(Objects.isNull(value)) {
+            log.warn("[Session Not Found in Redis] sessionId={}", sessionId);
+            return;
+        }
 
         String[] parts = value.split(":");
         Integer chatRoomId = Integer.parseInt(parts[0]);
