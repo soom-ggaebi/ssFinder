@@ -31,9 +31,6 @@ public interface FoundItemBookmarkRepository extends JpaRepository<FoundItemBook
 
     void deleteByFoundItemId(Integer foundItemId);
 
-    @Query("SELECT b.foundItem.id FROM FoundItemBookmark b WHERE b.user.id = :userId")
-    List<Integer> findFoundItemIdsByUserId(Integer userId);
-
     @Query("SELECT f.foundItem.id FROM FoundItemBookmark f WHERE f.user.id = :userId AND f.foundItem.id IN :itemIds")
     Set<Integer> findBookmarkedItemIds(@Param("userId") Integer userId, @Param("itemIds") List<Integer> itemIds);
 }
