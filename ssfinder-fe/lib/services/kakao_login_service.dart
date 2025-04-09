@@ -557,13 +557,10 @@ class KakaoLoginService {
   // 통합 로그아웃 프로세스 (카카오 로그아웃 + 백엔드 로그아웃)
   Future<bool> fullLogout() async {
     try {
-      // 1. FCM 토큰 삭제
-      await deleteFcmToken();
-
-      // 2. 백엔드 로그아웃 (토큰 무효화)
+      // 1. 백엔드 로그아웃 (토큰 무효화)
       final backendLogoutSuccess = await logoutFromBackend();
 
-      // 3. 카카오 로그아웃 (백엔드 로그아웃 성공 여부와 관계없이 진행)
+      // 2. 카카오 로그아웃 (백엔드 로그아웃 성공 여부와 관계없이 진행)
       await logout();
 
       // 로그인 상태 false로 변경
@@ -706,21 +703,14 @@ class KakaoLoginService {
       final response = await authenticatedRequest('GET', '/api/users');
 
       print('회원 정보 조회 응답 상태 코드: ${response.statusCode}');
-      debugPrint('회원 정보 조회 응답 본문: ${response.body.substring(0, 100)}...');
+      final String decodedBody = utf8.decode(response.bodyBytes);
+      debugPrint('회원 정보 조회 응답 본문: $decodedBody');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
 
-          if (responseData['success'] == true) {
-            print('회원 정보 조회 성공');
-            final userId = responseData['data']['id'];
-          if (userId != null) {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('_userIdKey', userId.toString());
-          } else {
-            print('응답 데이터에 사용자 아이디가 없습니다.');
-          }
-
+        if (responseData['success'] == true) {
+          print('회원 정보 조회 성공');
           return responseData['data'];
         } else {
           print('회원 정보 조회 실패: ${responseData['error']}');
@@ -943,24 +933,35 @@ class KakaoLoginService {
     }
   }
 
-  // FCM 토큰 삭제 API
   Future<bool> deleteFcmToken() async {
     try {
       final fcmToken = await FirebaseMessaging.instance.getToken();
       if (fcmToken == null) {
         print('FCM 토큰이 없습니다.');
-        return true; // 토큰이 없으면 삭제할 필요가 없으므로 성공으로 간주
+        return true;
       }
 
-      final response = await authenticatedRequest(
-        'DELETE',
-        '/api/notifications/token',
-        body: {'token': fcmToken},
+      final token = await getAccessToken();
+      if (token == null) {
+        print('액세스 토큰을 가져올 수 없습니다.');
+        return false;
+      }
+
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      final url = Uri.parse('$_backendUrl/api/notifications/token');
+
+      final response = await http.delete(
+        url,
+        headers: headers,
+        body: jsonEncode({'token': fcmToken}),
       );
 
       print('FCM 토큰 삭제 응답 상태 코드: ${response.statusCode}');
 
-      // 성공적으로 삭제되면 204 No Content 응답
       if (response.statusCode == 204 || response.statusCode == 200) {
         print('FCM 토큰 삭제 성공');
         return true;

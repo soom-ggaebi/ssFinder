@@ -8,6 +8,7 @@ import 'package:sumsumfinder/widgets/main/weather_widget.dart';
 import 'package:sumsumfinder/widgets/main/statistics_widget.dart';
 import 'package:sumsumfinder/widgets/main/user_stats_widget.dart';
 import 'package:sumsumfinder/widgets/main/action_buttons_widget.dart';
+import 'package:sumsumfinder/screens/main/nearby_storage_select.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -143,14 +144,22 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildBottomBanner() {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.0)),
-      child: SvgPicture.asset(
-        'assets/images/main/bottom_banner.svg',
-        fit: BoxFit.fitWidth,
-        alignment: Alignment.center,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const NearbyStorageSelect()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        height: 60,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.0)),
+        child: SvgPicture.asset(
+          'assets/images/main/bottom_banner.svg',
+          fit: BoxFit.fitWidth,
+          alignment: Alignment.center,
+        ),
       ),
     );
   }

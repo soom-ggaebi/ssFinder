@@ -6,8 +6,9 @@ import '../../widgets/lost/items_popup.dart';
 
 class LostItemDetail extends StatefulWidget {
   final int itemId;
+  final Function(int, String)? onStatusChanged;
 
-  const LostItemDetail({Key? key, required this.itemId}) : super(key: key);
+  const LostItemDetail({Key? key, required this.itemId, required this.onStatusChanged}) : super(key: key);
 
   @override
   _LostItemDetailState createState() => _LostItemDetailState();
@@ -118,7 +119,11 @@ class _LostItemDetailState extends State<LostItemDetail> {
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-                builder: (context) => MainOptionsPopup(item: _item),
+                builder: (context) => MainOptionsPopup(item: _item!,
+                  onUpdate: (updatedItem) {
+                    setState(() => _item = updatedItem);
+                  }
+                ),
               );
             },
           ),
@@ -271,11 +276,10 @@ class _LostItemDetailState extends State<LostItemDetail> {
                         _item = _item!.copyWith(status: newStatus);
                       });
                       
+                      widget.onStatusChanged?.call(_item!.id, newStatus);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('상태가 성공적으로 변경되었습니다.')),
                       );
-
-                      Navigator.pop(context, {'id': _item!.id, 'status': newStatus});
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('상태 변경에 실패했습니다: $e')),

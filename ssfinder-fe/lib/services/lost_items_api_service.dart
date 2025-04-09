@@ -7,7 +7,7 @@ import 'dart:io';
 class LostItemsApiService {
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  
+
   Future<String?> _getAccessToken() async {
     final accountId = await _storage.read(key: 'current_account_id');
     return await _storage.read(key: 'access_token_$accountId');
@@ -267,9 +267,11 @@ class LostItemsApiService {
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
-        final List<dynamic> categoriesJson = responseData['data'] as List<dynamic>;
-        
+        final Map<String, dynamic> responseData =
+            response.data as Map<String, dynamic>;
+        final List<dynamic> categoriesJson =
+            responseData['data'] as List<dynamic>;
+
         return categoriesJson
             .map((json) => CategoryModel.fromJson(json))
             .toList();
@@ -284,6 +286,48 @@ class LostItemsApiService {
       }
     } catch (e) {
       print('Error fetching categories: $e');
+      rethrow;
+    }
+  }
+
+  // 분실물 알림 설정
+  Future<Map<String, dynamic>> updateNotificationSettings({
+    required int lostId,
+    required bool notificationEnabled,
+  }) async {
+    try {
+      final token = await _getAccessToken();
+      if (token == null) throw Exception('인증 토큰을 가져올 수 없습니다.');
+
+      print('### ${notificationEnabled}');
+      final response = await _dio.patch(
+        '${EnvironmentConfig.baseUrl}/api/lost-items/$lostId/notification-settings',
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+        data: {"notification_enabled": notificationEnabled},
+      );
+      print('### ${response}');
+
+      if (response.statusCode == 200) {
+        // 성공: 응답 데이터 반환
+        return response.data as Map<String, dynamic>;
+      } else if (response.statusCode == 401) {
+        // 인증 토큰 관련 문제
+        throw Exception('유효한 인증 토큰이 필요합니다.');
+      } else {
+        // 기타 예외 처리
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          error: 'Unexpected status code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error updating notification settings: $e');
       rethrow;
     }
   }

@@ -8,7 +8,6 @@ class LostItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // status가 "LOST"면 숨은 물건, "FOUND"면 찾은 물건
     final bool isFound = item.status == "FOUND";
     final Color labelBackground =
         isFound ? Colors.lightGreen[100]! : Colors.pink[100]!;

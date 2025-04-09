@@ -161,31 +161,26 @@ class _FoundItemDetailSumsumfinderState
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(16),
-                    image:
-                        item.image != null
-                            ? DecorationImage(
-                              image: NetworkImage(item.image!),
-                              fit: BoxFit.cover,
-                            )
-                            : null,
-                  ),
-                  child:
-                      item.image == null
-                          ? const Icon(
-                            Icons.image,
-                            size: 50,
-                            color: Colors.white,
+                    image: item.image != null
+                        ? DecorationImage(
+                            image: NetworkImage(item.image!),
+                            fit: BoxFit.cover,
                           )
-                          : null,
+                        : null,
+                  ),
+                  child: item.image == null
+                      ? const Icon(
+                          Icons.image,
+                          size: 50,
+                          color: Colors.white,
+                        )
+                      : null,
                 ),
                 Positioned(
                   left: 16,
                   bottom: 16,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.blue[50],
                       borderRadius: BorderRadius.circular(8),
@@ -200,6 +195,16 @@ class _FoundItemDetailSumsumfinderState
                     ),
                   ),
                 ),
+                if (item.status != "STORED") ...[
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.black.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 16),

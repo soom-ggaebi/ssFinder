@@ -369,27 +369,6 @@ class _LostItemFormState extends State<LostItemForm> {
                 ),
                 const SizedBox(height: 20),
 
-                // 분실 장소 선택
-                const Text('분실장소'),
-                const SizedBox(height: 8),
-                _buildSelectionItem(
-                  value: _selectedLocation ?? '',
-                  onTap: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => LocationSelect(date: "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}")),
-                    );
-                    if (result != null) {
-                      setState(() {
-                        _selectedLocation = result['location'];
-                        _latitude = result['latitude'];
-                        _longitude = result['longitude'];
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 20),
-
                 // 분실 일자 선택
                 const Text('분실일자'),
                 const SizedBox(height: 8),
@@ -412,6 +391,31 @@ class _LostItemFormState extends State<LostItemForm> {
                     if (result != null) {
                       setState(() {
                         _selectedDate = result;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                // 분실 장소 선택
+                const Text('분실장소'),
+                const SizedBox(height: 8),
+                _buildSelectionItem(
+                  value: _selectedLocation ?? '',
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => LocationSelect(
+                        date:_selectedDate != null
+                          ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}"
+                          : null)
+                        ),
+                    );
+                    if (result != null) {
+                      setState(() {
+                        _selectedLocation = result['location'];
+                        _latitude = result['latitude'];
+                        _longitude = result['longitude'];
                       });
                     }
                   },

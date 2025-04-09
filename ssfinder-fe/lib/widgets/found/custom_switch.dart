@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class CustomSwitch extends StatefulWidget {
-  final bool value; // 현재 ON/OFF 상태
-  final ValueChanged<bool> onChanged; // 상태 변화 시 부모로 알리는 콜백
+  final bool value;
+  final ValueChanged<bool> onChanged;
 
   const CustomSwitch({Key? key, required this.value, required this.onChanged})
     : super(key: key);
@@ -24,7 +24,6 @@ class _CustomSwitchState extends State<CustomSwitch>
   @override
   void didUpdateWidget(CustomSwitch oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 부모에서 value가 바뀌면 여기도 반영
     if (oldWidget.value != widget.value) {
       setState(() {
         _isOn = widget.value;
@@ -33,7 +32,6 @@ class _CustomSwitchState extends State<CustomSwitch>
   }
 
   void _handleTap() {
-    // 상태값을 반전시키고, 콜백으로 알림
     setState(() {
       _isOn = !_isOn;
     });
