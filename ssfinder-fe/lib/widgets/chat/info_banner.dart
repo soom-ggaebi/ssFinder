@@ -3,6 +3,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sumsumfinder/services/kakao_login_service.dart';
+import 'package:sumsumfinder/config/environment_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class InfoBannerWidget extends StatefulWidget {
   final String otherUserNickname;
@@ -31,40 +33,120 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
   int? foundUserId; // 상대방 ID (습득자)
   int? foundItemId; // 습득물 ID
 
+  // 로그 출력 유틸리티 함수
+  void _log(String message) {
+    print('📍 [InfoBanner] $message');
+  }
+
   @override
   void initState() {
     super.initState();
+    _log('InfoBannerWidget 초기화 - 채팅방 ID: ${widget.chatRoomId}');
     _loadChatRoomDetail();
+  }
+
+  // 여러 소스에서 사용자 ID를 확인하는 향상된 메서드
+  Future<int?> _getUserIdFromMultipleSources() async {
+    _log('여러 소스에서 사용자 ID 조회 시도');
+
+    try {
+      // 1. KakaoLoginService를 통해 가져오기 시도
+      final userId = await KakaoLoginService().getUserId();
+      if (userId != null) {
+        _log('✅ KakaoLoginService에서 사용자 ID 획득: $userId');
+        return userId;
+      }
+
+      // 2. SharedPreferences에서 직접 확인
+      final prefs = await SharedPreferences.getInstance();
+      final userIdStr = prefs.getString('_userIdKey');
+      if (userIdStr != null) {
+        final userIdInt = int.tryParse(userIdStr);
+        if (userIdInt != null) {
+          _log('✅ SharedPreferences에서 사용자 ID 획득: $userIdInt');
+          return userIdInt;
+        }
+      }
+
+      // 3. 유저 프로필 API 직접 호출
+      _log('다른 방법으로 사용자 ID를 찾을 수 없어 프로필 API 직접 호출');
+      final token = await KakaoLoginService().getAccessToken();
+      if (token == null) {
+        _log('🚫 토큰이 없어 사용자 프로필을 조회할 수 없음');
+        return null;
+      }
+
+      final baseUrl = EnvironmentConfig.baseUrl;
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/users'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(utf8.decode(response.bodyBytes));
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final userIdFromApi = responseData['data']['id'];
+          int? userIdInt;
+
+          if (userIdFromApi is int) {
+            userIdInt = userIdFromApi;
+          } else if (userIdFromApi is String) {
+            userIdInt = int.tryParse(userIdFromApi);
+          }
+
+          if (userIdInt != null) {
+            _log('✅ API에서 사용자 ID 획득: $userIdInt');
+            // 획득한 ID를 SharedPreferences에 저장
+            await prefs.setString('_userIdKey', userIdInt.toString());
+            return userIdInt;
+          }
+        }
+      }
+
+      _log('🚫 모든 방법으로 사용자 ID 조회 실패');
+      return null;
+    } catch (e) {
+      _log('❌ 사용자 ID 조회 중 오류: $e');
+      return null;
+    }
   }
 
   // 채팅방 상세 정보를 먼저 로드
   Future<void> _loadChatRoomDetail() async {
+    _log('채팅방 상세 정보 로드 시작');
     try {
       // 토큰 가져오기
       final token = await KakaoLoginService().getAccessToken();
       if (token == null) {
+        _log('🚫 토큰을 가져올 수 없음');
         setState(() {
           errorMessage = "인증 정보를 가져올 수 없습니다.";
           isLoading = false;
         });
         return;
       }
+      _log('✅ 토큰 획득 성공');
 
-      // 내 ID 가져오기 (분실자 ID)
-      lostUserId = await KakaoLoginService().getUserId();
+      // 내 ID 가져오기 (분실자 ID) - 향상된 메서드 사용
+      lostUserId = await _getUserIdFromMultipleSources();
       if (lostUserId == null) {
+        _log('🚫 사용자 ID를 가져올 수 없음');
         setState(() {
           errorMessage = "사용자 정보를 가져올 수 없습니다.";
           isLoading = false;
         });
         return;
       }
+      _log('✅ 사용자 ID 획득 성공: $lostUserId');
 
-      // 서버의 baseUrl 설정
-      final baseUrl = const String.fromEnvironment(
-        'BASE_URL',
-        defaultValue: 'https://api.sumsum.com',
-      ); // 실제 서버 URL로 변경 필요
+      // 서버의 baseUrl을 EnvironmentConfig에서 가져오기
+      final baseUrl = EnvironmentConfig.baseUrl;
+      _log(
+        '📡 API 요청 URL: $baseUrl/api/chat-rooms/${widget.chatRoomId}/detail',
+      );
 
       // 채팅방 상세 정보 요청
       final response = await http.get(
@@ -75,37 +157,48 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
         },
       );
 
+      _log('📊 API 응답 상태 코드: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         // UTF-8 디코딩 처리
         final jsonData = json.decode(utf8.decode(response.bodyBytes));
+        _log('📄 응답 데이터 success: ${jsonData['success']}');
 
         if (jsonData['success'] == true && jsonData['data'] != null) {
           // 채팅방 상세 정보에서 필요한 값 추출
           foundUserId = jsonData['data']['opponent_id'];
           foundItemId = jsonData['data']['found_item']['id'];
 
+          _log('👤 상대방 ID: $foundUserId');
+          _log('📦 습득물 ID: $foundItemId');
+
           // 값을 성공적으로 가져왔다면 경로 중첩 확인 API 호출
           if (foundUserId != null && foundItemId != null) {
+            _log('✅ 필요한 데이터 모두 획득, 경로 중첩 확인 API 호출');
             await _checkOverlap();
           } else {
+            _log('🚫 필요한 데이터 누락');
             setState(() {
               errorMessage = "필요한 정보를 가져올 수 없습니다.";
               isLoading = false;
             });
           }
         } else {
+          _log('🚫 API 응답 오류: ${jsonData['error']}');
           setState(() {
             errorMessage = jsonData['error'] ?? "채팅방 정보를 가져올 수 없습니다.";
             isLoading = false;
           });
         }
       } else {
+        _log('🚫 API 요청 실패');
         setState(() {
           errorMessage = "채팅방 정보 요청 실패: ${response.statusCode}";
           isLoading = false;
         });
       }
     } catch (e) {
+      _log('❌ 예외 발생: $e');
       setState(() {
         errorMessage = "채팅방 정보 로드 중 오류: $e";
         isLoading = false;
@@ -114,8 +207,10 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
   }
 
   Future<void> _checkOverlap() async {
+    _log('경로 중첩 확인 API 호출 시작');
     try {
       if (lostUserId == null || foundUserId == null || foundItemId == null) {
+        _log('🚫 필요한 정보 누락');
         setState(() {
           errorMessage = "필요한 정보가 누락되었습니다.";
           isLoading = false;
@@ -123,15 +218,32 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
         return;
       }
 
-      // 서버의 baseUrl 설정
-      final baseUrl = const String.fromEnvironment(
-        'BASE_URL',
-        defaultValue: 'https://api.sumsum.com',
-      ); // 실제 서버 URL로 변경 필요
+      // 서버의 baseUrl을 EnvironmentConfig에서 가져오기
+      final baseUrl = EnvironmentConfig.baseUrl;
+
+      // 토큰 가져오기
+      final token = await KakaoLoginService().getAccessToken();
+      if (token == null) {
+        _log('🚫 토큰을 가져올 수 없음');
+        setState(() {
+          errorMessage = "인증 정보를 가져올 수 없습니다.";
+          isLoading = false;
+        });
+        return;
+      }
+      _log('✅ 토큰 획득 성공');
+
+      _log('📡 API 요청 URL: $baseUrl/api/users/routes/overlap');
+      _log(
+        '📤 요청 데이터: lost_user_id=$lostUserId, found_user_id=$foundUserId, found_item_id=$foundItemId',
+      );
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/routes/overlap'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/api/users/routes/overlap'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({
           'lost_user_id': lostUserId,
           'found_user_id': foundUserId,
@@ -139,28 +251,39 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
         }),
       );
 
+      _log('📊 API 응답 상태 코드: ${response.statusCode}');
+
       if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
+        final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
+        _log('📄 응답 데이터 success: ${jsonResponse['success']}');
 
         if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+          final status = jsonResponse['data']['verified_status'] ?? "";
+          _log('📋 검증 상태: $status');
+
           setState(() {
-            verifiedStatus = jsonResponse['data']['verified_status'] ?? "";
+            verifiedStatus = status;
             isVerified = verifiedStatus == "VERIFIED";
             isLoading = false;
           });
+
+          _log('✅ 경로 일치 여부: $isVerified');
         } else {
+          _log('🚫 API 응답 오류: ${jsonResponse['message']}');
           setState(() {
             errorMessage = jsonResponse['message'] ?? "요청 처리 중 오류가 발생했습니다.";
             isLoading = false;
           });
         }
       } else {
+        _log('🚫 API 요청 실패');
         setState(() {
           errorMessage = "서버 연결에 실패했습니다. 상태 코드: ${response.statusCode}";
           isLoading = false;
         });
       }
     } catch (e) {
+      _log('❌ 예외 발생: $e');
       setState(() {
         errorMessage = "연결 오류: $e";
         isLoading = false;
@@ -171,6 +294,7 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
+      _log('로딩 중 UI 표시');
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
@@ -185,6 +309,7 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
     }
 
     if (errorMessage.isNotEmpty) {
+      _log('오류 UI 표시: $errorMessage');
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
@@ -215,6 +340,7 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
       );
     }
 
+    _log('정상 UI 표시 - 검증 상태: $verifiedStatus, 일치 여부: $isVerified');
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
