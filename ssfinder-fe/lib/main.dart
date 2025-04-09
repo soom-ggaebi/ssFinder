@@ -32,6 +32,9 @@ Future<void> main() async {
   final notificationService = NotificationService();
   await notificationService.initialize(navigatorKey: navigatorKey);
 
+  // 3. 로그인 상태 리스너 설정
+  // notificationService.setupLoginStateListener();
+
   // Firebase 초기화
   await Firebase.initializeApp();
   final firebaseService = FirebaseService();

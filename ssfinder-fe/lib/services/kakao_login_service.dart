@@ -557,13 +557,10 @@ class KakaoLoginService {
   // 통합 로그아웃 프로세스 (카카오 로그아웃 + 백엔드 로그아웃)
   Future<bool> fullLogout() async {
     try {
-      // 1. FCM 토큰 삭제
-      await deleteFcmToken();
-
-      // 2. 백엔드 로그아웃 (토큰 무효화)
+      // 1. 백엔드 로그아웃 (토큰 무효화)
       final backendLogoutSuccess = await logoutFromBackend();
 
-      // 3. 카카오 로그아웃 (백엔드 로그아웃 성공 여부와 관계없이 진행)
+      // 2. 카카오 로그아웃 (백엔드 로그아웃 성공 여부와 관계없이 진행)
       await logout();
 
       // 로그인 상태 false로 변경
@@ -706,21 +703,14 @@ class KakaoLoginService {
       final response = await authenticatedRequest('GET', '/api/users');
 
       print('회원 정보 조회 응답 상태 코드: ${response.statusCode}');
-      debugPrint('회원 정보 조회 응답 본문: ${response.body.substring(0, 100)}...');
+      final String decodedBody = utf8.decode(response.bodyBytes);
+      debugPrint('회원 정보 조회 응답 본문: $decodedBody');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
 
-          if (responseData['success'] == true) {
-            print('회원 정보 조회 성공');
-            final userId = responseData['data']['id'];
-          if (userId != null) {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('_userIdKey', userId.toString());
-          } else {
-            print('응답 데이터에 사용자 아이디가 없습니다.');
-          }
-
+        if (responseData['success'] == true) {
+          print('회원 정보 조회 성공');
           return responseData['data'];
         } else {
           print('회원 정보 조회 실패: ${responseData['error']}');
@@ -941,6 +931,13 @@ class KakaoLoginService {
       print('인증 확인 중 오류 발생: $e');
       return false;
     }
+  }
+
+  // KakaoLoginService 클래스에 추가
+  Future<int?> getUserId() async {
+    // SharedPreferences나 다른 저장소에서 사용자 ID를 가져오는 코드
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_id');
   }
 
   // FCM 토큰 삭제 API

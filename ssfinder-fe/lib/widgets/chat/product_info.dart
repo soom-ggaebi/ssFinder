@@ -1,92 +1,94 @@
 import 'package:flutter/material.dart';
 
 class ProductInfoWidget extends StatelessWidget {
-  const ProductInfoWidget({Key? key}) : super(key: key);
+  final Map<String, dynamic>? foundItemInfo;
+
+  const ProductInfoWidget({Key? key, this.foundItemInfo}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    if (foundItemInfo == null) {
+      return const SizedBox.shrink(); // 정보가 없으면 아무것도 표시하지 않음
+    }
+
+    final String itemName = foundItemInfo!['name'] ?? '알 수 없음';
+    final String category =
+        foundItemInfo!['category'] != null
+            ? "${foundItemInfo!['category']['parent_name'] ?? ''} > ${foundItemInfo!['category']['name'] ?? ''}"
+            : '알 수 없음';
+    final String color = foundItemInfo!['color'] ?? '';
+    final String status = foundItemInfo!['status'] ?? '';
+    final String imageUrl = foundItemInfo!['image'] ?? '';
+
+    // 상태에 따른 텍스트 변환
+    String statusText = '보관 중';
+    if (status == 'RECEIVED') {
+      statusText = '수령 완료';
+    } else if (status == 'TRANSFERRED') {
+      statusText = '인계 완료';
+    }
+
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFFEDF5FF)),
+      padding: const EdgeInsets.all(10),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 이미지 영역
           Container(
-            width: 89,
-            height: 80,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey, width: 1.0),
-            ),
-            padding: const EdgeInsets.all(4),
-            child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                'assets/images/chat/iphone_image.png',
-                fit: BoxFit.cover,
-              ),
+              image:
+                  imageUrl.isNotEmpty
+                      ? DecorationImage(
+                        image: NetworkImage(imageUrl),
+                        fit: BoxFit.cover,
+                      )
+                      : null,
+              color: Colors.grey[300],
             ),
+            child:
+                imageUrl.isEmpty
+                    ? const Icon(Icons.image_not_supported, color: Colors.grey)
+                    : null,
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
+          // 정보 영역
           Expanded(
-            child: SizedBox(
-              height: 80,
-              child: Stack(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '휴대폰 > 아이폰',
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
-                      Text(
-                        '아이폰 16 틸',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: const Color(0xFF304A73),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF7DC383),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Text('초록색'),
-                      ),
-                    ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  itemName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFE6E6),
-                        border: Border.all(color: const Color(0xFFF15A4E)),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '분실',
-                        style: TextStyle(
-                          color: const Color(0xFFF15A4E),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '카테고리: $category',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+                if (color.isNotEmpty)
+                  Text(
+                    '색상: $color',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                   ),
-                ],
-              ),
+                Text(
+                  '상태: $statusText',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: status == 'STORED' ? Colors.green : Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
