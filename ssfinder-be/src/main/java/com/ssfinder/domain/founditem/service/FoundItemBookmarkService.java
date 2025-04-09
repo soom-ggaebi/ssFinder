@@ -57,6 +57,7 @@ public class FoundItemBookmarkService {
 
         bookmark.setUser(user);
         bookmark.setFoundItem(foundItem);
+        bookmarkRepository.save(bookmark);
 
         return bookmarkMapper.toResponse(bookmark);
     }
