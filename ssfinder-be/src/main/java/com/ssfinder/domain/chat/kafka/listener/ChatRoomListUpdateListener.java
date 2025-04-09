@@ -32,7 +32,7 @@ public class ChatRoomListUpdateListener {
     private final SimpMessagingTemplate template;
     private final ChatService chatService;
 
-    @KafkaListener(topics = "${kafka.topic.chat-message-sent}", groupId = "chat-list-update-broadcast", containerFactory = "chatMessageListenerContainerFactory")
+    @KafkaListener(topics = "${kafka.topic.chat-message-sent}", groupId = "chat-list-update-broadcast-temp", containerFactory = "chatMessageListenerContainerFactory")
     public void listen(KafkaChatMessage message) {
         log.info("[MESSAGE SENT] chat room list is updated: {}", message);
 

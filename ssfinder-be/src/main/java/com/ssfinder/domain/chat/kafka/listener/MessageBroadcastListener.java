@@ -29,7 +29,7 @@ public class MessageBroadcastListener {
     private final NotificationService notificationService;
 
 
-    @KafkaListener(topics = "${kafka.topic.chat-message-sent}", groupId = "chat-message-broadcast", containerFactory = "chatMessageListenerContainerFactory")
+    @KafkaListener(topics = "${kafka.topic.chat-message-sent}", groupId = "chat-message-broadcast-temp", containerFactory = "chatMessageListenerContainerFactory")
     public void listen(KafkaChatMessage message) {
         log.info("message is sent to /sub/chat-room/" + message.chatRoomId());
         log.info("message: {}", message);

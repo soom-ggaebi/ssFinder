@@ -26,7 +26,7 @@ public class MessageReadBroadCastListener {
 
     private final SimpMessagingTemplate template;
 
-    @KafkaListener(topics = "${kafka.topic.chat-read}", groupId = "chat-message-read-broadcast", containerFactory = "chatMessageReadListenerContainerFactory")
+    @KafkaListener(topics = "${kafka.topic.chat-read}", groupId = "chat-message-read-broadcast-temp", containerFactory = "chatMessageReadListenerContainerFactory")
     public void listen(KafkaChatReadMessage message) {
         log.info("[MESSAGE READ] read broadcast: chatRoomId {}", message.chatRoomId());
         log.info("message: {}", message);
