@@ -70,7 +70,7 @@ class _LostItemDetailState extends State<LostItemDetail> {
   String extractLocation(String location) {
     List<String> parts = location.split(" ");
     if (parts.length >= 4) {
-      return parts.sublist(2, 4).join(" ");
+      return parts.sublist(1, 3).join(" ");
     }
     return location;
   }
@@ -78,7 +78,7 @@ class _LostItemDetailState extends State<LostItemDetail> {
   String extractLocation2(String location) {
     List<String> parts = location.split(" ");
     if (parts.length >= 4) {
-      return parts.sublist(1, 4).join(" ");
+      return parts.sublist(0, 3).join(" ");
     }
     return location;
   }
@@ -206,7 +206,9 @@ class _LostItemDetailState extends State<LostItemDetail> {
             const SizedBox(height: 8),
             // 카테고리
             Text(
-              "${_item!.majorCategory} > ${_item!.minorCategory}",
+              (_item!.minorCategory == null)
+                ? "${_item!.majorCategory}"
+                : "${_item!.majorCategory} > ${_item!.minorCategory}",
               style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
             // 이름 및 위치, 시간

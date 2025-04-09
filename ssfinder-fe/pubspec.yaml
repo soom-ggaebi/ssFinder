@@ -44,6 +44,7 @@ dependencies:
 
   # 미디어 및 파일 처리
   image_picker: ^1.1.2
+  exif: ^3.3.0
   
   # 인증 및 저장소
   kakao_flutter_sdk: ^1.9.7+3 # 카카오 로그인

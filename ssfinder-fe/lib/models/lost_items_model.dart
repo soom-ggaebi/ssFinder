@@ -3,8 +3,8 @@ class LostItemModel {
   final int? userId; // 물품을 등록한 사용자의 ID (null 가능)
   final String? image; // 물품 이미지 URL (null 가능)
   final String color; // 물품의 색상
-  final String majorCategory; // 주요 카테고리
-  final String minorCategory; // 세부 카테고리
+  final String? majorCategory; // 주요 카테고리
+  final String? minorCategory; // 세부 카테고리
   final String title; // 분실물 제목
   final String detail; // 물품에 대한 상세 설명
   final String lostAt; // 물품이 분실된 날짜 (예: "2025-03-24")
@@ -80,8 +80,8 @@ class LostItemModel {
       userId: item['user_id'] as int?,
       image: item['image'] as String?,
       color: item['color'] as String,
-      majorCategory: item['major_item_category'] as String,
-      minorCategory: item['minor_item_category'] as String,
+      majorCategory: item['major_item_category'] as String?,
+      minorCategory: item['minor_item_category'] as String?,
       title: item['title'] as String,
       detail: item['detail'] as String,
       lostAt: item['lost_at'] as String,
@@ -100,8 +100,8 @@ class LostItemListModel {
   final int id; // 아이템의 고유 ID
   final int? userId; // 사용자 ID (null 가능)
   final String color; // 색상
-  final String majorCategory; // 주요 카테고리
-  final String minorCategory; // 세부 카테고리
+  final String? majorCategory; // 주요 카테고리
+  final String? minorCategory; // 세부 카테고리
   final String title; // 분실물 제목
   final String lostAt; // 분실 날짜
   final String? image; // 이미지 URL (null 가능)
@@ -148,8 +148,8 @@ class LostItemListModel {
       id: json['id'] as int,
       userId: json['user_id'] as int?,
       color: json['color'] as String,
-      majorCategory: json['major_item_category'] as String,
-      minorCategory: json['minor_item_category'] as String,
+      majorCategory: json['major_item_category'] as String?,
+      minorCategory: json['minor_item_category'] as String?,
       title: json['title'] as String,
       lostAt: json['lost_at'] as String,
       image: json['image'] as String?,

@@ -34,7 +34,7 @@ class _FoundItemsListState extends State<FoundItemsList> {
   ScrollController? _scrollController;
 
   // 상수 정의
-  static const _sheetInitialSize = 0.05;
+  static const _sheetInitialSize = 0.06;
   static const _sheetMaxSize = 0.8;
   static const _sheetMiddleSize = 0.5;
   static const _animationDuration = Duration(milliseconds: 200);
@@ -241,14 +241,13 @@ class _FoundItemsListState extends State<FoundItemsList> {
 }
 
 Widget _buildPlaceholderList() {
-  // 예시: 5개의 플레이스홀더 아이템을 보여줍니다.
   return ListView.builder(
     itemCount: 5,
     itemBuilder: (context, index) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Container(
-          height: 100, // 임의의 높이. 실제 리스트 아이템의 높이에 맞춰 조정하세요.
+          height: 100,
           decoration: BoxDecoration(
             color: Colors.grey[300],
             borderRadius: BorderRadius.circular(8),
