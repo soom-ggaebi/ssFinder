@@ -176,10 +176,10 @@ public class FoundItemController {
         return ApiResponse.created(response);
     }
 
-    @DeleteMapping("/bookmark/{bookmarkId}")
+    @DeleteMapping("/{foundId}/bookmark")
     public ApiResponse<?> deleteBookmark(@RequestAttribute("userDetails") CustomUserDetails userDetails,
-                                         @PathVariable @Min(1) int bookmarkId) {
-        foundItemBookmarkService.deleteBookmark(userDetails.getUserId(), bookmarkId);
+                                         @PathVariable @Min(1) int foundId) {
+        foundItemBookmarkService.deleteBookmark(userDetails.getUserId(), foundId);
         return ApiResponse.noContent();
     }
 

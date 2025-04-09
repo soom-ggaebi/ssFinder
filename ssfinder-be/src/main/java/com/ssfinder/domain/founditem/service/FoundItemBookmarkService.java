@@ -71,9 +71,9 @@ public class FoundItemBookmarkService {
     }
 
     @Transactional
-    public void deleteBookmark(Integer userId, Integer bookmarkId) {
+    public void deleteBookmark(Integer userId, Integer foundId) {
 
-        FoundItemBookmark bookmark = bookmarkRepository.findById(bookmarkId)
+        FoundItemBookmark bookmark = bookmarkRepository.findByUserIdAndFoundItemId(userId, foundId)
                 .orElseThrow(() -> new CustomException(ErrorCode.BOOKMARK_NOT_FOUND));
 
         if (!bookmark.getUser().getId().equals(userId)) {
