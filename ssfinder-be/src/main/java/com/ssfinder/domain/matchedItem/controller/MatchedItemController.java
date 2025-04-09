@@ -10,7 +10,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-
+import jakarta.validation.constraints.Min;
 /**
  * packageName    : com.ssfinder.domain.matchedItem.controller<br>
  * fileName       : MatchedItemController.java<br>
@@ -41,7 +41,7 @@ public class MatchedItemController {
     }
 
     @GetMapping("/matched-items/{lostItemId}")
-    public ApiResponse<MatchedItemResponse> getMatchedItems(@PathVariable Integer lostItemId) {
+    public ApiResponse<MatchedItemResponse> getMatchedItems(@PathVariable @Min(1) Integer lostItemId) {
         log.info("매칭된 습득물 목록 조회: lostItemId={}", lostItemId);
 
         MatchedItemResponse response = matchedItemService.getMatchedItems(lostItemId);
