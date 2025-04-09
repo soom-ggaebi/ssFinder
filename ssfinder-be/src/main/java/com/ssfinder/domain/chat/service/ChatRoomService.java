@@ -198,12 +198,16 @@ public class ChatRoomService {
                 .chatRoom(chatRoom)
                 .status(ChatRoomStatus.ACTIVE)
                 .user(user)
+                .lastReadAt(LocalDateTime.now())
                 .build());
+
+
 
         chatRoomParticipantRepository.save(ChatRoomParticipant.builder()
                 .chatRoom(chatRoom)
                 .status(ChatRoomStatus.ACTIVE)
                 .user(foundItem.getUser())
+                .lastReadAt(LocalDateTime.now())
                 .build()
         );
 
