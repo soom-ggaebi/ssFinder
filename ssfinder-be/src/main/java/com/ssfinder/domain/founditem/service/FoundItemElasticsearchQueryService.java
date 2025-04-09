@@ -4,7 +4,6 @@ import com.ssfinder.domain.founditem.dto.converter.FoundItemDtoConverter;
 import com.ssfinder.domain.founditem.dto.request.FoundItemFilterRequest;
 import com.ssfinder.domain.founditem.dto.request.FoundItemViewportRequest;
 import com.ssfinder.domain.founditem.dto.response.FoundItemClusterResponse;
-import com.ssfinder.domain.founditem.dto.response.FoundItemDetailResponse;
 import com.ssfinder.domain.founditem.dto.response.FoundItemSummaryResponse;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.query.FoundItemQueryBuilder;
