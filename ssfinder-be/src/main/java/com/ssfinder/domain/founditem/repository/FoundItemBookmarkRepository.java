@@ -3,9 +3,11 @@ package com.ssfinder.domain.founditem.repository;
 import com.ssfinder.domain.founditem.entity.FoundItemBookmark;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * packageName    : com.ssfinder.domain.found.repository<br>
@@ -31,4 +33,7 @@ public interface FoundItemBookmarkRepository extends JpaRepository<FoundItemBook
 
     @Query("SELECT b.foundItem.id FROM FoundItemBookmark b WHERE b.user.id = :userId")
     List<Integer> findFoundItemIdsByUserId(Integer userId);
+
+    @Query("SELECT f.foundItem.id FROM FoundItemBookmark f WHERE f.user.id = :userId AND f.foundItem.id IN :itemIds")
+    Set<Integer> findBookmarkedItemIds(@Param("userId") Integer userId, @Param("itemIds") List<Integer> itemIds);
 }

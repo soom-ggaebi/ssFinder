@@ -8,41 +8,32 @@ import com.ssfinder.domain.founditem.dto.response.FoundItemDetailResponse;
 import com.ssfinder.domain.founditem.dto.response.FoundItemSummaryResponse;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.query.FoundItemQueryBuilder;
+import com.ssfinder.domain.founditem.repository.FoundItemBookmarkRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.query.FetchSourceFilter;
-import org.springframework.data.elasticsearch.core.query.StringQuery;
 import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.FetchSourceFilter;
+import org.springframework.data.elasticsearch.core.query.StringQuery;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-/**
- * packageName    : com.ssfinder.domain.found.service<br>
- * fileName       : ElasticsearchOperations.java<br>
- * author         : leeyj<br>
- * date           : 2025-04-07<br>
- * description    :  <br>
- * ===========================================================<br>
- * DATE              AUTHOR             NOTE<br>
- * -----------------------------------------------------------<br>
- * 2025-04-07          leeyj           최초생성<br>
- * <br>
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class FoundItemElasticsearchQueryService {
 
     private final ElasticsearchOperations elasticsearchOperations;
+    private final FoundItemBookmarkRepository bookmarkRepository;
 
     @Transactional(readOnly = true)
     public Page<FoundItemDetailResponse> getMyFoundItems(int userId, Pageable pageable) {
@@ -63,7 +54,9 @@ public class FoundItemElasticsearchQueryService {
     }
 
     @Transactional(readOnly = true)
-    public Page<FoundItemSummaryResponse> getPagedFoundItemsInViewport(Integer userId, FoundItemViewportRequest request, Pageable pageable) {
+    public Page<FoundItemSummaryResponse> getPagedFoundItemsInViewport(Integer userId,
+                                                                       FoundItemViewportRequest request,
+                                                                       Pageable pageable) {
         String queryJson = FoundItemQueryBuilder.buildViewportQuery(request);
         StringQuery query = new StringQuery(queryJson);
         query.setPageable(pageable);
@@ -75,11 +68,16 @@ public class FoundItemElasticsearchQueryService {
         List<FoundItemSummaryResponse> content = searchHits.getSearchHits().stream()
                 .map(hit -> FoundItemDtoConverter.convertToSummaryResponse(hit.getContent()))
                 .collect(Collectors.toList());
+
+        updateBookmarkStatus(userId, content);
+
         return new PageImpl<>(content, pageable, searchHits.getTotalHits());
     }
 
     @Transactional(readOnly = true)
-    public Page<FoundItemSummaryResponse> getFilteredFoundItemsForDetail(Integer userId, FoundItemFilterRequest request, Pageable pageable) {
+    public Page<FoundItemSummaryResponse> getFilteredFoundItemsForDetail(Integer userId,
+                                                                         FoundItemFilterRequest request,
+                                                                         Pageable pageable) {
         String queryJson = FoundItemQueryBuilder.buildFilterQuery(request);
         StringQuery query = new StringQuery(queryJson);
         query.setPageable(pageable);
@@ -90,6 +88,9 @@ public class FoundItemElasticsearchQueryService {
         List<FoundItemSummaryResponse> content = searchHits.getSearchHits().stream()
                 .map(hit -> FoundItemDtoConverter.convertToSummaryResponse(hit.getContent()))
                 .collect(Collectors.toList());
+
+        updateBookmarkStatus(userId, content);
+
         return new PageImpl<>(content, pageable, searchHits.getTotalHits());
     }
 
@@ -124,7 +125,9 @@ public class FoundItemElasticsearchQueryService {
             }
             batchCount++;
             if (!searchHits.getSearchHits().isEmpty()) {
-                searchAfterValues = searchHits.getSearchHits().get(searchHits.getSearchHits().size() - 1).getSortValues();
+                searchAfterValues = searchHits.getSearchHits()
+                        .get(searchHits.getSearchHits().size() - 1)
+                        .getSortValues();
             }
             if (searchHits.getSearchHits().size() < batchSize || batchCount >= 100) {
                 hasMoreData = false;
@@ -164,7 +167,9 @@ public class FoundItemElasticsearchQueryService {
             }
             batchCount++;
             if (!searchHits.getSearchHits().isEmpty()) {
-                searchAfterValues = searchHits.getSearchHits().get(searchHits.getSearchHits().size() - 1).getSortValues();
+                searchAfterValues = searchHits.getSearchHits()
+                        .get(searchHits.getSearchHits().size() - 1)
+                        .getSortValues();
             }
             if (searchHits.getSearchHits().size() < batchSize || batchCount >= 100) {
                 hasMoreData = false;
@@ -174,7 +179,9 @@ public class FoundItemElasticsearchQueryService {
     }
 
     @Transactional(readOnly = true)
-    public Page<FoundItemSummaryResponse> getClusterDetailItems(Integer userId, List<Integer> ids, Pageable pageable) {
+    public Page<FoundItemSummaryResponse> getClusterDetailItems(Integer userId,
+                                                                List<Integer> ids,
+                                                                Pageable pageable) {
         int totalSize = ids.size();
         int pageSize = pageable.getPageSize();
         int pageNumber = pageable.getPageNumber();
@@ -207,6 +214,19 @@ public class FoundItemElasticsearchQueryService {
                 content.add(response);
             }
         }
+
+        updateBookmarkStatus(userId, content);
+
         return new PageImpl<>(content, pageable, totalSize);
+    }
+
+    private void updateBookmarkStatus(Integer userId, List<FoundItemSummaryResponse> responses) {
+        if (userId != null && responses != null && !responses.isEmpty()) {
+            List<Integer> itemIds = responses.stream()
+                    .map(FoundItemSummaryResponse::getId)
+                    .collect(Collectors.toList());
+            Set<Integer> bookmarkedIds = bookmarkRepository.findBookmarkedItemIds(userId, itemIds);
+            responses.forEach(item -> item.setBookmarked(bookmarkedIds.contains(item.getId())));
+        }
     }
 }
