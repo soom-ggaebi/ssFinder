@@ -32,7 +32,7 @@ public class MessageInfoUpdateListener {
     private final ChatRoomRepository chatRoomRepository;
 
     @Transactional
-    @KafkaListener(topics = "${kafka.topic.chat-message-sent}", groupId = "chat-message-info-update", containerFactory = "chatMessageListenerContainerFactory")
+    @KafkaListener(topics = "${kafka.topic.chat-message-sent}", groupId = "chat-message-info-update-temp", containerFactory = "chatMessageListenerContainerFactory")
     public void listen(KafkaChatMessage message) {
         log.info("chat room info is updated: {}", message);
 
