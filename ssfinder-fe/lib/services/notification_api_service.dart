@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/environment_config.dart';
 import 'package:sumsumfinder/models/noti_model.dart';
+import 'package:sumsumfinder/services/kakao_login_service.dart';
 
 class AppStorage {
   static final FlutterSecureStorage secureStorage =
@@ -16,8 +17,33 @@ class NotificationApiService {
   final Dio _dio = Dio();
 
   // 보안 저장소에서 토큰 가져오기
+  // 토큰 가져오기 메서드
   static Future<String?> _getToken() async {
-    return await _secureStorage.read(key: 'access_token');
+    try {
+      final KakaoLoginService loginService = KakaoLoginService();
+
+      // 액세스 토큰 가져오기
+      final token = await loginService.getAccessToken();
+
+      // 토큰이 없거나 유효하지 않은 경우 재인증 시도
+      if (token == null) {
+        // 토큰 갱신 시도
+        final isAuthRefreshed = await loginService.refreshAccessToken();
+
+        if (isAuthRefreshed) {
+          // 갱신 성공 시 새 토큰 반환
+          return await loginService.getAccessToken();
+        } else {
+          // 갱신 실패 시 null 반환
+          return null;
+        }
+      }
+
+      return token;
+    } catch (e) {
+      print('토큰 가져오기 오류: $e');
+      return null;
+    }
   }
 
   // API 호출 메서드 수정 - ALL 타입 지원
