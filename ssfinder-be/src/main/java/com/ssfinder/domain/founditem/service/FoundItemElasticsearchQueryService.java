@@ -49,16 +49,17 @@ public class FoundItemElasticsearchQueryService {
     private final FoundItemBookmarkRepository bookmarkRepository;
 
     @Transactional(readOnly = true)
-    public Page<FoundItemDetailResponse> getMyFoundItems(int userId, Pageable pageable) {
+    public Page<FoundItemSummaryResponse> getMyFoundItems(int userId, Pageable pageable) {
         String userIdStr = String.valueOf(userId);
         try {
             Criteria criteria = new Criteria("user_id").exists().is(userIdStr);
             CriteriaQuery query = new CriteriaQuery(criteria).setPageable(pageable);
             SearchHits<FoundItemDocument> searchHits = elasticsearchOperations.search(query, FoundItemDocument.class);
-            List<FoundItemDetailResponse> content = searchHits.getSearchHits().stream()
+            List<FoundItemSummaryResponse> content = searchHits.getSearchHits().stream()
                     .map(SearchHit::getContent)
-                    .map(FoundItemDtoConverter::convertToDetailResponse)
+                    .map(FoundItemDtoConverter::convertToSummaryResponse)
                     .collect(Collectors.toList());
+            updateBookmarkStatus(userId, content);
             return new PageImpl<>(content, pageable, searchHits.getTotalHits());
         } catch (Exception e) {
             log.error("Elasticsearch 검색 중 오류 발생: {}", e.getMessage());

@@ -84,7 +84,7 @@ public class FoundItemController {
     }
 
     @GetMapping("/my-items")
-    public ApiResponse<Page<FoundItemDetailResponse>> getMyFoundItems(@AuthenticationPrincipal CustomUserDetails userDetails,
+    public ApiResponse<Page<FoundItemSummaryResponse>> getMyFoundItems(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                                       @RequestParam(defaultValue = "0") int page,
                                                                       @RequestParam(defaultValue = "10") int size,
                                                                       @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -93,7 +93,7 @@ public class FoundItemController {
                 Sort.Direction.ASC : Sort.Direction.DESC;
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        Page<FoundItemDetailResponse> response = foundItemService.getMyFoundItems(userDetails.getUserId(), pageable);
+        Page<FoundItemSummaryResponse> response = foundItemService.getMyFoundItems(userDetails.getUserId(), pageable);
         return ApiResponse.ok(response);
     }
 
