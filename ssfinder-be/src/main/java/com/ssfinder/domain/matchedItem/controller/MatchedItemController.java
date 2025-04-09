@@ -6,11 +6,14 @@ import com.ssfinder.domain.matchedItem.service.MatchedItemService;
 import com.ssfinder.global.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+
 /**
- * packageName    : com.ssfinder.domain.aimatching.controller<br>
- * fileName       : AiMatchingController.java<br>
+ * packageName    : com.ssfinder.domain.matchedItem.controller<br>
+ * fileName       : MatchedItemController.java<br>
  * author         : sonseohy<br>
  * date           : 2025-04-09<br>
  * description    :  <br>
@@ -24,11 +27,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/aimatching")
 @RequiredArgsConstructor
+@Validated
 public class MatchedItemController {
     private final MatchedItemService matchedItemService;
 
     @PostMapping("/find-similar")
-    public ApiResponse<MatchedItemResponse> findSimilarItems(@RequestBody MatchedItemRequest request) {
+    public ApiResponse<MatchedItemResponse> findSimilarItems(@Valid @RequestBody MatchedItemRequest request) {
         log.info("유사 습득물 찾기 요청: {}", request);
 
         MatchedItemResponse response = matchedItemService.findSimilarItems(request);
