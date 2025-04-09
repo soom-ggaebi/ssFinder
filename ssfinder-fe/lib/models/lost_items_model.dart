@@ -14,6 +14,7 @@ class LostItemModel {
   final String updatedAt; // 수정 시간
   final double latitude; // 분실 위치의 위도
   final double longitude; // 분실 위치의 경도
+  final bool notificationEnabled; // 알림
 
   LostItemModel({
     required this.id,
@@ -31,6 +32,7 @@ class LostItemModel {
     required this.updatedAt,
     required this.latitude,
     required this.longitude,
+    required this.notificationEnabled,
   });
 
   LostItemModel copyWith({
@@ -49,6 +51,7 @@ class LostItemModel {
     String? updatedAt,
     double? latitude,
     double? longitude,
+    bool? notificationEnabled,
   }) {
     return LostItemModel(
       id: id ?? this.id,
@@ -66,6 +69,7 @@ class LostItemModel {
       updatedAt: updatedAt ?? this.updatedAt,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      notificationEnabled: notificationEnabled ?? this.notificationEnabled,
     );
   }
 
@@ -87,6 +91,7 @@ class LostItemModel {
       updatedAt: item['updated_at'] as String,
       latitude: (item['latitude'] as num).toDouble(),
       longitude: (item['longitude'] as num).toDouble(),
+      notificationEnabled: (item['notification_enabled']) as bool,
     );
   }
 }
@@ -113,6 +118,30 @@ class LostItemListModel {
     this.image,
     required this.status,
   });
+
+  LostItemListModel copyWith({
+    int? id,
+    int? userId,
+    String? color,
+    String? majorCategory,
+    String? minorCategory,
+    String? title,
+    String? lostAt,
+    String? image,
+    String? status,
+  }) {
+    return LostItemListModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      color: color ?? this.color,
+      majorCategory: majorCategory ?? this.majorCategory,
+      minorCategory: minorCategory ?? this.minorCategory,
+      title: title ?? this.title,
+      lostAt: lostAt ?? this.lostAt,
+      image: image ?? this.image,
+      status: status ?? this.status,
+    );
+  }
 
   factory LostItemListModel.fromJson(Map<String, dynamic> json) {
     return LostItemListModel(

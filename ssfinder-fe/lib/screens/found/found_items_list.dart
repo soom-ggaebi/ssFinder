@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sumsumfinder/models/found_items_model.dart';
 import 'package:sumsumfinder/services/found_items_api_service.dart';
+import 'package:sumsumfinder/services/kakao_login_service.dart';
 import '../../widgets/found/found_item_card.dart';
 import 'found_item_detail_police.dart';
 import 'found_item_detail_sumsumfinder.dart';
@@ -18,6 +19,8 @@ class _FoundItemsListState extends State<FoundItemsList> {
   final DraggableScrollableController _draggableController =
       DraggableScrollableController();
   final FoundItemsApiService _apiService = FoundItemsApiService();
+  final KakaoLoginService _kakaoLoginService = KakaoLoginService();
+
   List<FoundItemListModel> foundItems = [];
   bool isLoading = true;
   bool isLoadingMore = false;
@@ -47,7 +50,6 @@ class _FoundItemsListState extends State<FoundItemsList> {
   void didUpdateWidget(FoundItemsList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.itemIds != widget.itemIds) {
-      // 아이템 ID 목록이 변경되면 처음부터 다시 로드
       currentPage = 0;
       foundItems.clear();
       _loadClusterItems();
@@ -81,7 +83,6 @@ class _FoundItemsListState extends State<FoundItemsList> {
         } else {
           foundItems.addAll(items);
         }
-
         totalPages = pages;
         isLastPage = lastPage;
         isLoading = false;
@@ -127,24 +128,20 @@ class _FoundItemsListState extends State<FoundItemsList> {
     onVerticalDragEnd: (details) {
       final screenHeight = MediaQuery.of(context).size.height;
       final threshold = screenHeight * _velocityThresholdFactor;
-
       if (_draggableController.isAttached) {
         if (details.velocity.pixelsPerSecond.dy < -threshold) {
-          // 위로 빠르게 드래그 → 최대 크기
           _draggableController.animateTo(
             _sheetMaxSize,
             duration: _animationDuration,
             curve: Curves.easeOut,
           );
         } else if (details.velocity.pixelsPerSecond.dy > threshold) {
-          // 아래로 빠르게 드래그 → 최소 크기
           _draggableController.animateTo(
             _sheetInitialSize,
             duration: _animationDuration,
             curve: Curves.easeOut,
           );
         } else {
-          // 느린 드래그 → 중간 크기
           _draggableController.animateTo(
             _sheetMiddleSize,
             duration: _animationDuration,
@@ -172,7 +169,12 @@ class _FoundItemsListState extends State<FoundItemsList> {
     onTap: () => _navigateToDetail(item),
     child: Padding(
       padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-      child: FoundItemCard(item: item ,isLoggedIn: true,),
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _kakaoLoginService.isLoggedIn,
+        builder: (context, isLoggedIn, child) {
+          return FoundItemCard(item: item, isLoggedIn: isLoggedIn);
+        },
+      ),
     ),
   );
 
@@ -191,14 +193,13 @@ class _FoundItemsListState extends State<FoundItemsList> {
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
       controller: _draggableController,
-      initialChildSize: _sheetInitialSize,
+      initialChildSize: _sheetMiddleSize,
       minChildSize: _sheetInitialSize,
       maxChildSize: _sheetMaxSize,
       snap: true,
       snapSizes: const [_sheetInitialSize, _sheetMiddleSize, _sheetMaxSize],
       builder: (context, scrollController) {
         _setupScrollController(scrollController);
-
         return Material(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           color: const Color(0xFFF9FBFD),
@@ -210,7 +211,7 @@ class _FoundItemsListState extends State<FoundItemsList> {
                 Expanded(
                   child:
                       isLoading
-                          ? const Center(child: CircularProgressIndicator())
+                          ? _buildPlaceholderList()
                           : foundItems.isEmpty
                           ? const Center(child: Text('등록된 습득물이 없습니다'))
                           : ListView.builder(
@@ -237,4 +238,23 @@ class _FoundItemsListState extends State<FoundItemsList> {
       },
     );
   }
+}
+
+Widget _buildPlaceholderList() {
+  // 예시: 5개의 플레이스홀더 아이템을 보여줍니다.
+  return ListView.builder(
+    itemCount: 5,
+    itemBuilder: (context, index) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Container(
+          height: 100, // 임의의 높이. 실제 리스트 아이템의 높이에 맞춰 조정하세요.
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+    },
+  );
 }

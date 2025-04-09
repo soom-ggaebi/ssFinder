@@ -293,12 +293,12 @@ class FoundItemsApiService {
   }
 
   // 북마크 삭제
-  Future<void> deleteBookmark({required String bookmarkId}) async {
+  Future<void> deleteBookmark({required int foundId}) async {
     try {
       final token = await _getAccessToken();
 
       final response = await _dio.delete(
-        '${EnvironmentConfig.baseUrl}/api/found-items/bookmark/$bookmarkId',
+        '${EnvironmentConfig.baseUrl}/api/found-items/$foundId/bookmark',
         options: Options(
           headers: {
             'Content-Type': 'application/json',
@@ -358,8 +358,8 @@ class FoundItemsApiService {
     }
   }
 
-  // 특정 뷰포트 내의 습득물 좌표 조회
-  Future<List<FoundItemCoordinatesModel>> getFoundItemCoordinates({
+  // 습득물 좌표 조회
+  Future<List<FoundItemCoordinatesModel>> getFilteredFoundItems({
     required double maxLat,
     required double maxLng,
     required double minLat,
@@ -386,131 +386,22 @@ class FoundItemsApiService {
         'min_longitude': minLng,
         'status': status,
         'type': type,
-        'found_at': foundAt,
-        'major_category': majorCategory,
-        'minor_category': minorCategory,
-        'color': color,
+        if (foundAt != '') 'found_at': foundAt,
+        if (majorCategory != '') 'major_category': majorCategory,
+        if (minorCategory != '') 'minor_category': minorCategory,
+        if (color != '') 'color': color,
       };
 
-      print('### ${requestBody}');
+      print('getFilteredFoundItems: ${requestBody}');
 
       final response = await _dio.get(
         '${EnvironmentConfig.baseUrl}/api/found-items/filter',
         options: Options(headers: headers),
         data: requestBody,
       );
-
-      print("####1 ${response.data['data']}");
 
       if (response.statusCode == 200) {
         final List<dynamic> itemsJson = response.data['data'] as List<dynamic>;
-        print('###############2 ${itemsJson}');
-        return itemsJson
-            .map((json) => FoundItemCoordinatesModel.fromJson(json))
-            .toList();
-      } else {
-        throw DioException(
-          requestOptions: response.requestOptions,
-          response: response,
-          error: 'Unexpected status code: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      print('Error fetching found item coordinates: $e');
-      rethrow;
-    }
-  }
-
-  // 특정 뷰포트 내의 습득물 목록 조회
-  Future<List<FoundItemListModel>> getFoundItemsInViewport({
-    required double maxLat,
-    required double maxLng,
-    required double minLat,
-    required double minLng,
-  }) async {
-    try {
-      final token = await _getAccessToken();
-
-      final headers = {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      };
-
-      final requestBody = {
-        'max_latitude': maxLat,
-        'max_longitude': maxLng,
-        'min_latitude': minLat,
-        'min_longitude': minLng,
-      };
-
-      final response = await _dio.get(
-        '${EnvironmentConfig.baseUrl}/api/found-items/viewport',
-        options: Options(headers: headers),
-        data: requestBody,
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> itemsJson = response.data as List<dynamic>;
-        return itemsJson
-            .map((json) => FoundItemListModel.fromJson(json))
-            .toList();
-      } else {
-        throw DioException(
-          requestOptions: response.requestOptions,
-          response: response,
-          error: 'Unexpected status code: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      print('Error fetching found items in viewport: $e');
-      rethrow;
-    }
-  }
-
-  // 필터링된 습득물 좌표 조회
-  Future<List<FoundItemCoordinatesModel>> getFilteredFoundItems({
-    required double maxLat,
-    required double maxLng,
-    required double minLat,
-    required double minLng,
-    String? status,
-    String? type,
-    String? storedAt,
-    String? foundDate,
-    String? majorCategory,
-    String? minorCategory,
-    String? color,
-  }) async {
-    try {
-      final token = await _getAccessToken();
-
-      final headers = {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      };
-
-      final requestBody = {
-        'max_latitude': maxLat,
-        'max_longitude': maxLng,
-        'min_latitude': minLat,
-        'min_longitude': minLng,
-        if (status != null && status != 'all') 'status': status,
-        if (type != null && type != 'all') 'type': type,
-        if (storedAt != null) 'stored_at': storedAt,
-        if (foundDate != null) 'foundDate': foundDate,
-        if (majorCategory != null) 'MajorCategory': majorCategory,
-        if (minorCategory != null) 'MinorCategory': minorCategory,
-        if (color != null) 'color': color,
-      };
-
-      final response = await _dio.get(
-        '${EnvironmentConfig.baseUrl}/api/found-items/filter',
-        options: Options(headers: headers),
-        data: requestBody,
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> itemsJson = response.data as List<dynamic>;
         return itemsJson
             .map((json) => FoundItemCoordinatesModel.fromJson(json))
             .toList();
@@ -527,69 +418,6 @@ class FoundItemsApiService {
     }
   }
 
-  // 필터링된 습득물 목록 조회
-  Future<List<FoundItemListModel>> getFilteredFoundItemsList({
-    required double maxLat,
-    required double maxLng,
-    required double minLat,
-    required double minLng,
-    String? status,
-    String? type,
-    String? storedAt,
-    String? foundDate,
-    String? majorCategory,
-    String? minorCategory,
-    String? color,
-  }) async {
-    try {
-      final token = await _getAccessToken();
-
-      final headers = {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      };
-
-      final requestBody = {
-        'maxLat': maxLat.toString(),
-        'maxLng': maxLng.toString(),
-        'minLat': minLat.toString(),
-        'minLng': minLng.toString(),
-        if (status != null) 'status': status,
-        if (type != null) 'type': type,
-        if (storedAt != null && storedAt != 'null') 'stored_at': storedAt,
-        if (foundDate != null && foundDate != 'null') 'foundDate': foundDate,
-        if (majorCategory != null && majorCategory != 'null')
-          'MajorCategory': majorCategory,
-        if (minorCategory != null && minorCategory != 'null')
-          'MinorCategory': minorCategory,
-        if (color != null && color != 'null') 'color': color,
-      };
-
-      final response = await _dio.get(
-        '${EnvironmentConfig.baseUrl}/api/found-items/filter-items',
-        options: Options(headers: headers),
-        data: requestBody,
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> itemsJson = response.data as List<dynamic>;
-        return itemsJson
-            .map((json) => FoundItemListModel.fromJson(json))
-            .toList();
-      } else {
-        throw DioException(
-          requestOptions: response.requestOptions,
-          response: response,
-          error: 'Unexpected status code: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      print('Error fetching filtered found items list: $e');
-      rethrow;
-    }
-  }
-
-  // 클러스터 내 습득물 상세 목록 조회
   Future<Map<String, dynamic>> getClusterDetailItems({
     required List<int> ids,
     required int page,

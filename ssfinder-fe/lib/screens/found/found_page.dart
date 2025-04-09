@@ -49,9 +49,7 @@ class _FoundPageState extends State<FoundPage> {
       });
       if (_mapController != null) {
         _mapController!.animateCamera(
-          CameraUpdate.newLatLng(
-            LatLng(pos.latitude, pos.longitude),
-          ),
+          CameraUpdate.newLatLng(LatLng(pos.latitude, pos.longitude)),
         );
       }
       _loadFoundItems();
@@ -80,9 +78,10 @@ class _FoundPageState extends State<FoundPage> {
     final String url =
         'https://dapi.kakao.com/v2/local/search/keyword.json?query=${Uri.encodeComponent(keyword)}';
     try {
-      final response = await http.get(Uri.parse(url), headers: {
-        'Authorization': 'KakaoAK ${EnvironmentConfig.kakaoApiKey}',
-      });
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Authorization': 'KakaoAK ${EnvironmentConfig.kakaoApiKey}'},
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -110,19 +109,19 @@ class _FoundPageState extends State<FoundPage> {
             CameraUpdate.newLatLng(LatLng(latitude, longitude)),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('검색 결과가 없습니다.')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('검색 결과가 없습니다.')));
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('카카오맵 API 호출에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('카카오맵 API 호출에 실패했습니다.')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류가 발생했습니다: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('오류가 발생했습니다: $e')));
     }
   }
 
@@ -139,7 +138,7 @@ class _FoundPageState extends State<FoundPage> {
     if (_mapController == null || !mounted) return;
     try {
       final bounds = await _mapController!.getVisibleRegion();
-      final items = await FoundItemsApiService().getFoundItemCoordinates(
+      final items = await FoundItemsApiService().getFilteredFoundItems(
         maxLat: bounds.northeast.latitude,
         maxLng: bounds.northeast.longitude,
         minLat: bounds.southwest.latitude,
@@ -157,8 +156,9 @@ class _FoundPageState extends State<FoundPage> {
       });
     } catch (e) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('데이터 로딩에 실패하였습니다')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('데이터 로딩에 실패하였습니다')));
     }
   }
 
@@ -190,9 +190,10 @@ class _FoundPageState extends State<FoundPage> {
           isLoading
               ? Center(child: CircularProgressIndicator())
               : FoundItemsList(
-                  itemIds: _selectedClusterItemIds ??
-                      foundItems.map((item) => item.id).toList(),
-                ),
+                itemIds:
+                    _selectedClusterItemIds ??
+                    foundItems.map((item) => item.id).toList(),
+              ),
           Positioned(
             top: 48,
             left: 16,
@@ -231,8 +232,9 @@ class _FoundPageState extends State<FoundPage> {
                         final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                FilterPage(initialFilter: _filterParams),
+                            builder:
+                                (context) =>
+                                    FilterPage(initialFilter: _filterParams),
                           ),
                         );
                         if (result != null && result is Map<String, dynamic>) {
@@ -240,7 +242,9 @@ class _FoundPageState extends State<FoundPage> {
                             _filterParams['status'] = result['state'] ?? 'All';
                             _filterParams['type'] = result['type'] ?? '전체';
                             _filterParams['foundAt'] = result['foundAt'] ?? '';
-                            final categoryMap = _splitCategory(result['category']);
+                            final categoryMap = _splitCategory(
+                              result['category'],
+                            );
                             _filterParams['majorCategory'] =
                                 categoryMap['majorCategory'];
                             _filterParams['minorCategory'] =
@@ -300,5 +304,7 @@ Future<Position> getLocationData() async {
   }
   if (permission == LocationPermission.deniedForever)
     throw Exception('앱의 위치 권한을 설정에서 허가해 주세요');
-  return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+  return await Geolocator.getCurrentPosition(
+    desiredAccuracy: LocationAccuracy.high,
+  );
 }

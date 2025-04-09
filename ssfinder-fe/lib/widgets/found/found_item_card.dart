@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:sumsumfinder/models/found_items_model.dart';
+import 'package:sumsumfinder/services/found_items_api_service.dart';
 
-class FoundItemCard extends StatelessWidget {
+class FoundItemCard extends StatefulWidget {
   final FoundItemListModel item;
-  final bool isLoggedIn; // 로그인 상태
+  final bool isLoggedIn;
 
-  const FoundItemCard({Key? key, 
-    required this.item, 
-    required this.isLoggedIn,}) : super(key: key);
+  const FoundItemCard({Key? key, required this.item, required this.isLoggedIn})
+      : super(key: key);
+
+  @override
+  _FoundItemCardState createState() => _FoundItemCardState();
+}
+
+class _FoundItemCardState extends State<FoundItemCard> {
+  late FoundItemListModel item;
+  final FoundItemsApiService _apiService = FoundItemsApiService();
+  bool _processing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    item = widget.item;
+  }
 
   String extractLocation(String location) {
     List<String> parts = location.split(" ");
@@ -17,48 +32,78 @@ class FoundItemCard extends StatelessWidget {
     return location;
   }
 
+  Future<void> _toggleBookmark() async {
+    if (_processing) return;
+    setState(() {
+      _processing = true;
+    });
+    try {
+      if (item.bookmarked == true) {
+        await _apiService.deleteBookmark(foundId: item.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('북마크가 삭제되었습니다.')),
+        );
+        setState(() {
+          item = item.copyWith(bookmarked: false);
+        });
+      } else {
+        await _apiService.bookmarkFoundItem(foundId: item.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('북마크가 등록되었습니다.')),
+        );
+        setState(() {
+          item = item.copyWith(bookmarked: true);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('북마크 처리 중 오류가 발생했습니다: $e')),
+      );
+    } finally {
+      setState(() {
+        _processing = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String displayLocation;
-
     if (item.type == "경찰청") {
-      displayLocation =
-          (item.storageLocation != null &&
-                  item.storageLocation!.trim().isNotEmpty)
-              ? item.storageLocation!
-              : item.foundLocation;
+      displayLocation = (item.storageLocation != null &&
+              item.storageLocation!.trim().isNotEmpty)
+          ? item.storageLocation!
+          : item.foundLocation;
     } else {
       displayLocation = extractLocation(item.foundLocation);
     }
 
-    return Row(
+    final cardContent = Row(
       children: [
+        // 이미지 영역
         ClipRRect(
           borderRadius: BorderRadius.circular(8.0),
-          child:
-              item.image != null
-                  ? Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: NetworkImage(
-                          item.image!,
-                        ), 
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  )
-                  : Container(
-                    width: 100,
-                    height: 100,
-                    color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.image,
-                      size: 50,
-                      color: Colors.white,
+          child: item.image != null
+              ? Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: NetworkImage(item.image!),
+                      fit: BoxFit.cover,
                     ),
                   ),
+                )
+              : Container(
+                  width: 100,
+                  height: 100,
+                  color: Colors.grey[300],
+                  child: const Icon(
+                    Icons.image,
+                    size: 50,
+                    color: Colors.white,
+                  ),
+                ),
         ),
         const SizedBox(width: 20),
         Expanded(
@@ -73,7 +118,10 @@ class FoundItemCard extends StatelessWidget {
                     children: [
                       Text(
                         "${item.majorCategory} > ${item.minorCategory}",
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
                       ),
                       Text(
                         item.name,
@@ -83,23 +131,28 @@ class FoundItemCard extends StatelessWidget {
                           color: Colors.black,
                         ),
                       ),
-                    ]
+                    ],
                   ),
-                  if (isLoggedIn)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: Icon(
-                        item.bookmarked! ? Icons.bookmark : Icons.bookmark_border,
-                        color: item.bookmarked! ? Colors.blue : Colors.grey,
-                      ),
-                      onPressed: () {
-                      },
+                  if (widget.isLoggedIn)
+                    IconButton(
+                      icon: _processing
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Icon(
+                              item.bookmarked == true
+                                  ? Icons.bookmark
+                                  : Icons.bookmark_border,
+                              color: item.bookmarked == true ? Colors.blue : Colors.grey,
+                            ),
+                      onPressed: _toggleBookmark,
                       padding: EdgeInsets.zero,
-                      constraints: BoxConstraints(),
+                      constraints: const BoxConstraints(),
                     ),
-                  ),
                 ],
               ),
               Text(
@@ -125,6 +178,22 @@ class FoundItemCard extends StatelessWidget {
             ],
           ),
         ),
+      ],
+    );
+
+    return Stack(
+      children: [
+        cardContent,
+        if (item.status != "STORED") ...[
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

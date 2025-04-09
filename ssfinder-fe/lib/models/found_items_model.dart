@@ -120,13 +120,13 @@ class FoundItemModel {
 class FoundItemListModel {
   final int id; // 아이템의 고유 ID
   final String? image; // 이미지 파일 (null 가능)
-  final String? majorCategory; // 주요 카테고리 (문자열)
-  final String? minorCategory; // 세부 카테고리 (문자열)
+  final String? majorCategory; // 주요 카테고리
+  final String? minorCategory; // 세부 카테고리
   final String name; // 아이템 이름
-  final String type; // 출처 (예: "숨숨파인더")
+  final String type; // 출처
   final String status;
-  final String? storageLocation; // 보관 위치 (예: "ㅇㅇ경찰청")
-  final String foundLocation; // 분실된 위치 (예: "서울시 강남역 근처")
+  final String? storageLocation; // 보관 위치
+  final String foundLocation; // 분실된 위치
   final String createdTime; // 생성 시각
   final bool? bookmarked;
 
@@ -143,6 +143,34 @@ class FoundItemListModel {
     required this.createdTime,
     this.bookmarked,
   });
+
+  FoundItemListModel copyWith({
+    int? id,
+    String? image,
+    String? majorCategory,
+    String? minorCategory,
+    String? name,
+    String? type,
+    String? status,
+    String? storageLocation,
+    String? foundLocation,
+    String? createdTime,
+    bool? bookmarked,
+  }) {
+    return FoundItemListModel(
+      id: id ?? this.id,
+      image: image ?? this.image,
+      majorCategory: majorCategory ?? this.majorCategory,
+      minorCategory: minorCategory ?? this.minorCategory,
+      name: name ?? this.name,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      storageLocation: storageLocation ?? this.storageLocation,
+      foundLocation: foundLocation ?? this.foundLocation,
+      createdTime: createdTime ?? this.createdTime,
+      bookmarked: bookmarked ?? this.bookmarked,
+    );
+  }
 
   factory FoundItemListModel.fromJson(Map<String, dynamic> json) {
     return FoundItemListModel(

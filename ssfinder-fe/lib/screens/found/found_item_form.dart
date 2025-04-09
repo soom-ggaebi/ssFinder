@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+
+import '../../services/ai_api_service.dart';
 import '../../services/found_items_api_service.dart';
 import '../../widgets/selects/category_select.dart';
 import '../../widgets/selects/color_select.dart';
@@ -18,6 +20,7 @@ class FoundItemForm extends StatefulWidget {
 }
 
 class _FoundItemFormState extends State<FoundItemForm> {
+  final AiApiService _aiApiService = AiApiService();
   final FoundItemsApiService _apiService = FoundItemsApiService();
   final ImagePicker _picker = ImagePicker();
 
@@ -86,12 +89,58 @@ class _FoundItemFormState extends State<FoundItemForm> {
         setState(() {
           _selectedImage = File(image.path);
         });
+        await _analyzeImage();
       }
     } catch (e) {
       print('이미지 선택 오류: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('이미지를 선택하는데 실패했습니다.')));
+    }
+  }
+
+  Future<void> _analyzeImage() async {
+    if (_selectedImage == null) return;
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+      final result = await _aiApiService.analyzeImage(image: _selectedImage!);
+      // 분석 결과가 성공적이면 result의 data 필드에 결과 값이 담깁니다.
+      if (result != null && result['status'] == 'success') {
+        final data = result['data'];
+        setState(() {
+          // 만약 품목명이 비어있다면 분석 결과의 title로 자동 채움
+          if (_itemNameController.text.isEmpty) {
+            _itemNameController.text = data['title'] ?? '';
+          }
+          // 색상 선택이 안 되어 있다면 분석 결과의 color로 자동 채움
+          if (_selectedColor == null || _selectedColor!.isEmpty) {
+            _selectedColor = data['color'] ?? '';
+          }
+          // 상세 설명이 비어있다면 분석 결과의 description을 자동 채움
+          if (_detailController.text.isEmpty) {
+            _detailController.text = data['description'] ?? '';
+          }
+          // 카테고리의 경우, 분석 결과의 category를 참고로 할 수 있으나 UI에 맞게 별도의 처리 필요
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('이미지 분석 결과가 반영되었습니다.')));
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('이미지 분석에 실패했습니다.')));
+      }
+    } catch (e) {
+      print('이미지 분석 오류: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('이미지 분석 중 오류가 발생했습니다.')));
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -429,11 +478,13 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => LocationSelect(
-                          date: _selectedDate != null
-                              ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}"
-                              : null,
-                        ),
+                        builder:
+                            (_) => LocationSelect(
+                              date:
+                                  _selectedDate != null
+                                      ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}"
+                                      : null,
+                            ),
                       ),
                     );
                     if (result != null) {

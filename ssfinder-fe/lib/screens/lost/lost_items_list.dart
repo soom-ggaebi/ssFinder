@@ -2,31 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:sumsumfinder/models/lost_items_model.dart';
 import 'package:sumsumfinder/widgets/lost/lost_item_card.dart';
 import 'lost_item_detail.dart';
-// 추천 항목 관련 import는 주석 처리
+
 // import 'package:sumsumfinder/widgets/lost/recommended_card.dart';
 // import 'recommended.dart';
 // import 'package:sumsumfinder/models/found_item_model.dart';
 
-class LostItemsList extends StatelessWidget {
+class LostItemsList extends StatefulWidget {
   final List<LostItemListModel> items;
   final Function(int, String) onItemStatusChanged;
 
-  const LostItemsList({Key? key, required this.items, required this.onItemStatusChanged}) : super(key: key);
+  const LostItemsList({
+    Key? key,
+    required this.items,
+    required this.onItemStatusChanged,
+  }) : super(key: key);
+
+  @override
+  _LostItemsListState createState() => _LostItemsListState();
+}
+
+class _LostItemsListState extends State<LostItemsList> {
+  late List<LostItemListModel> items;
+
+  @override
+  void initState() {
+    super.initState();
+    items = widget.items;
+  }
+
+  void _updateItemStatus(int id, String newStatus) {
+    final index = items.indexWhere((item) => item.id == id);
+    if (index != -1) {
+      setState(() {
+        items[index] = items[index].copyWith(status: newStatus);
+      });
+      widget.onItemStatusChanged(id, newStatus);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return Center(
-        child: Text('분실물 목록이 없습니다.'),
-      );
+      return Center(child: Text('분실물 목록이 없습니다.'));
     }
-    
+
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (context, index) {
         final lostItem = items[index];
 
-        // 추천 항목 관련 코드 주석 처리
         /*
         final List<dynamic> recommendationsData =
             lostItem.recommended['recommendations'] as List<dynamic>;
@@ -39,32 +63,31 @@ class LostItemsList extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 분실물 카드
             GestureDetector(
               onTap: () async {
-                // 결과를 기다리고 상태가 변경되었으면 콜백 호출
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => LostItemDetail(itemId: lostItem.id),
+                    builder: (_) => LostItemDetail(itemId: lostItem.id, onStatusChanged: (id, status) {
+                      final index = items.indexWhere((item) => item.id == id);
+                      setState(() {
+                        items[index] = items[index].copyWith(status: status);
+                      });
+                    },),
                   ),
                 );
-                
-                // 결과가 있고 상태가 변경되었으면 콜백 호출
+
                 if (result != null && result is Map<String, dynamic>) {
                   if (result.containsKey('id') && result.containsKey('status')) {
-                    onItemStatusChanged(result['id'], result['status']);
+                    _updateItemStatus(result['id'], result['status']);
                   }
                 }
               },
               child: LostItemCard(item: lostItem),
             ),
-            // 구분선 추가
             Divider(height: 1, thickness: 1, color: Colors.grey[200]),
             
-            // 추천 항목 관련 코드 주석 처리
             /*
-            // 추천 항목이 있을 경우에만 추천 카드 표시
             if (foundItems.isNotEmpty)
               GestureDetector(
                 onTap: () {
