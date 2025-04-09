@@ -15,6 +15,7 @@ public record ChatMessageInfo(
         Integer senderId,
         Integer chatRoomId,
         String content,
+        boolean isMine,
         MessageType type,
         ChatMessageStatus status,
         LocalDateTime sentAt

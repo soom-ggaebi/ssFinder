@@ -163,7 +163,7 @@ public class ChatService {
 
         long count = mongoTemplate.count(new Query(Criteria.where("chat_room_id").is(chatRoomId)), ChatMessage.class);
 
-        return ChatMessageGetResponse.of(messageCursor, count);
+        return ChatMessageGetResponse.of(messageCursor, userId, count);
     }
 
     private void preCheckBeforeSend(Integer userId, Integer chatRoomId) {
