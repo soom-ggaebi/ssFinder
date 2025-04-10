@@ -2,6 +2,7 @@ package com.ssfinder.domain.user.controller;
 
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.domain.user.dto.request.UserUpdateRequest;
+import com.ssfinder.domain.user.dto.response.MyItemCountResponse;
 import com.ssfinder.domain.user.dto.response.UserGetResponse;
 import com.ssfinder.domain.user.dto.response.UserUpdateResponse;
 import com.ssfinder.domain.user.service.UserService;
@@ -46,6 +47,15 @@ public class UserController {
     public ApiResponse<?> deleteUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
         userService.deleteUser(userDetails.getUserId());
         return ApiResponse.noContent();
+    }
+
+    @GetMapping("/item-counts")
+    public ApiResponse<MyItemCountResponse> getMyItemCounts(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        MyItemCountResponse response = userService.getMyItemCounts(userDetails.getUserId());
+
+        return ApiResponse.ok(response);
     }
 
 }
