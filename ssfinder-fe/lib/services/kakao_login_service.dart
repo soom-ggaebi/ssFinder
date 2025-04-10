@@ -557,6 +557,13 @@ class KakaoLoginService {
   // 통합 로그아웃 프로세스 (카카오 로그아웃 + 백엔드 로그아웃)
   Future<bool> fullLogout() async {
     try {
+      // 0. FCM 토큰 삭제
+      try {
+        await deleteFcmToken();
+      } catch (e) {
+        print('FCM 토큰 삭제 중 오류 발생: $e');
+      }
+      
       // 1. 백엔드 로그아웃 (토큰 무효화)
       final backendLogoutSuccess = await logoutFromBackend();
 

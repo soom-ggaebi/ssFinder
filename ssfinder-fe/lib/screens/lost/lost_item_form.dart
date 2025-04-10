@@ -8,6 +8,7 @@ import 'package:gif_view/gif_view.dart';
 import '../../models/found_items_model.dart';
 import '../../services/ai_api_service.dart';
 import '../../services/lost_items_api_service.dart';
+import '../../services/found_items_api_service.dart';
 import '../../widgets/selects/category_select.dart';
 import '../../widgets/selects/color_select.dart';
 import '../../widgets/selects/location_select.dart';
@@ -24,6 +25,7 @@ class LostItemForm extends StatefulWidget {
 
 class _LostItemFormState extends State<LostItemForm> {
   final LostItemsApiService _apiService = LostItemsApiService();
+  final FoundItemsApiService _foundApiService = FoundItemsApiService();
   final AiApiService _aiApiService = AiApiService();
   final ImagePicker _picker = ImagePicker();
 
@@ -281,7 +283,7 @@ class _LostItemFormState extends State<LostItemForm> {
       final formattedDate =
           "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
 
-      final categories = await _apiService.getCategories();
+      final categories = await _foundApiService.getCategories();
       final selectedCategoryName = _selectedCategory?.split(' > ').last.trim();
       final matchingCategory = categories.firstWhere(
         (category) => category.name == selectedCategoryName,
@@ -289,9 +291,11 @@ class _LostItemFormState extends State<LostItemForm> {
       );
       final categoryId = matchingCategory.id;
 
+      Map<String, dynamic> lostItemResponseData;
+
       if (widget.itemToEdit != null) {
         // 수정 모드
-        await _apiService.updateLostItem(
+        lostItemResponseData = await _apiService.updateLostItem(
           lostId: widget.itemToEdit.id,
           itemCategoryId: categoryId,
           title: _itemNameController.text,
@@ -305,7 +309,7 @@ class _LostItemFormState extends State<LostItemForm> {
         );
       } else {
         // 생성 모드
-        await _apiService.postLostItem(
+        lostItemResponseData = await _apiService.postLostItem(
           itemCategoryId: categoryId,
           title: _itemNameController.text,
           color: _selectedColor!,
@@ -316,6 +320,21 @@ class _LostItemFormState extends State<LostItemForm> {
           latitude: _latitude!,
           longitude: _longitude!,
         );
+      }
+      try {
+        final result = await _aiApiService.findSimilar(
+          lostItemId: lostItemResponseData['data']["id"],
+          itemCategoryId: categoryId,
+          title: lostItemResponseData['data']["title"],
+          color: lostItemResponseData['data']["color"],
+          detail: lostItemResponseData['data']["detail"],
+          location: lostItemResponseData['data']["location"],
+          image: lostItemResponseData['data']["image"] ?? "",
+        );
+        
+        print("findSimilar API 호출 결과: $result");
+      } catch (e) {
+        print("findSimilar API 호출 중 오류 발생: $e");
       }
 
       setState(() {
