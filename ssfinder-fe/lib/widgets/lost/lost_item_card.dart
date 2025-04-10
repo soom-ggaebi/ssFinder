@@ -31,22 +31,19 @@ class LostItemCard extends StatelessWidget {
                     height: 80,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
-                      return Container(
+                      return Image.asset(
+                        'assets/images/main/null_image.png',
                         width: 80,
                         height: 80,
-                        color: Colors.grey[300],
-                        child: Icon(
-                          Icons.image_not_supported,
-                          color: Colors.grey[500],
-                        ),
+                        fit: BoxFit.cover,
                       );
                     },
                   )
-                  : Container(
+                  : Image.asset(
+                    'assets/images/main/null_image.png',
                     width: 80,
                     height: 80,
-                    color: Colors.grey[300],
-                    child: Icon(Icons.image, color: Colors.grey[500]),
+                    fit: BoxFit.cover,
                   ),
         ),
         const SizedBox(width: 20),

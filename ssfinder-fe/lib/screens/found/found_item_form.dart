@@ -527,9 +527,7 @@ class _FoundItemFormState extends State<FoundItemForm> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (_isLoading && !_isAiAnalyzing)
-                      const CircularProgressIndicator(
-                        color: Colors.white,
-                      )
+                      const CircularProgressIndicator(color: Colors.white)
                     else if (_isAiAnalyzing)
                       Column(
                         children: [
@@ -537,15 +535,15 @@ class _FoundItemFormState extends State<FoundItemForm> {
                             width: 150,
                             height: 150,
                             child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: GifView.asset(
-                              'assets/images/ai_analyzing.gif',
-                              height: 150,
-                              width: 150,
-                              frameRate: 1, // 프레임 속도 설정
-                              fit: BoxFit.cover,
+                              borderRadius: BorderRadius.circular(10),
+                              child: GifView.asset(
+                                'assets/images/ai_analyzing.gif',
+                                height: 150,
+                                width: 150,
+                                frameRate: 1, // 프레임 속도 설정
+                                fit: BoxFit.cover,
+                              ),
                             ),
-                          ),
                           ),
                           const SizedBox(height: 16),
                           const Text(
@@ -559,10 +557,7 @@ class _FoundItemFormState extends State<FoundItemForm> {
                           const SizedBox(height: 8),
                           const Text(
                             '잠시만 기다려주세요...',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.white, fontSize: 14),
                           ),
                         ],
                       ),
