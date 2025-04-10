@@ -7,7 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-
 import 'services/notification_service.dart';
 import 'services/firebase_service.dart';
 import 'services/location_service.dart';

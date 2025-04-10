@@ -26,12 +26,17 @@ class _FoundPageState extends State<FoundPage> {
   Future<void> _loadFoundItems() async {
     try {
       final response = await _apiService.getMyFoundItems();
-      final List<dynamic> itemsJson = response['data']['content'] as List<dynamic>;
+      final List<dynamic> itemsJson =
+          response['data']['content'] as List<dynamic>;
       print('#### Found Items: $itemsJson');
 
-      final items = itemsJson
-          .map((item) => FoundItemListModel.fromJson(item as Map<String, dynamic>))
-          .toList();
+      final items =
+          itemsJson
+              .map(
+                (item) =>
+                    FoundItemListModel.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
 
       setState(() {
         _foundItems = items;
@@ -39,7 +44,9 @@ class _FoundPageState extends State<FoundPage> {
       });
     } catch (e) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('로그인이 필요합니다.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('로그인이 필요합니다.')));
       print('Error: $e');
     }
   }
@@ -58,18 +65,15 @@ class _FoundPageState extends State<FoundPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(
-        title: '나의 습득물',
-        isFromBottomNav: true,
-      ),
+      appBar: CustomAppBar(title: '나의 습득물', isFromBottomNav: false),
       body: Stack(
         children: [
           isLoading
               ? const Center(child: CircularProgressIndicator())
               : FoundItemsList(
-                  items: _foundItems,
-                  onItemStatusChanged: _handleItemStatusChanged,
-                ),
+                items: _foundItems,
+                onItemStatusChanged: _handleItemStatusChanged,
+              ),
           Positioned(
             bottom: 20,
             right: 20,
@@ -81,7 +85,8 @@ class _FoundPageState extends State<FoundPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const FoundItemForm()),
+                      builder: (context) => const FoundItemForm(),
+                    ),
                   );
                 },
                 customBorder: const CircleBorder(),

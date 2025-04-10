@@ -153,6 +153,7 @@ flutter_native_splash:
   android: true
   ios: false
   web: false
+  fullscreen: true
 
 flutter_launcher_icons:
   android: "launcher_icon"

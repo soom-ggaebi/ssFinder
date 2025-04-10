@@ -23,53 +23,49 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 디바이스 크기 정보 가져오기
+    final screenSize = MediaQuery.of(context).size;
+    final screenHeight = screenSize.height;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(screenHeight * 0.02), // 상대적 패딩
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // 사용 가능한 총 높이
-              final availableHeight = constraints.maxHeight;
-
               return Column(
                 children: [
                   // 상단 아이콘 버튼들
                   _buildTopBar(context),
 
-                  const SizedBox(height: 16),
+                  // 메인 콘텐츠를 Expanded로 감싸서 남은 공간을 균등하게 분배
+                  Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceEvenly, // 균등 배치를 위한 설정
+                        children: [
+                          // 로그인 컨테이너
+                          const LoginWidget(),
 
-                  // 로그인 컨테이너
-                  const LoginWidget(),
+                          // 날씨 및 검색 컨테이너
+                          const WeatherWidget(),
 
-                  const SizedBox(height: 16),
+                          // 하단 배너
+                          _buildBottomBanner(screenHeight),
 
-                  // 날씨 및 검색 컨테이너
-                  const WeatherWidget(),
+                          // 등록한 분실물 및 습득물 카운트 컨테이너
+                          const UserStatsWidget(),
 
-                  const SizedBox(height: 16),
-
-                  // 분실물 카운트 컨테이너
-                  const StatisticsWidget(),
-
-                  const SizedBox(height: 16),
-
-                  // 등록한 분실물 및 습득물 카운트 컨테이너
-                  const UserStatsWidget(),
-
-                  const SizedBox(height: 16),
-
-                  // 물건 찾기/주웠어요 버튼
-                  ActionButtonsWidget(availableHeight: availableHeight),
-
-                  const SizedBox(height: 16),
-
-                  // 하단 배너 (높이 제한)
-                  _buildBottomBanner(),
-
-                  // 하단에 약간의 여백 추가 (오버플로우 방지)
-                  const SizedBox(height: 8),
+                          // 물건 찾기/주웠어요 버튼
+                          ActionButtonsWidget(
+                            availableHeight: constraints.maxHeight * 0.8,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               );
             },
@@ -80,16 +76,18 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildTopBar(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween, // 양 끝에 요소 배치
       children: [
-        // 좌측 끝에 로고 배치
+        // 좌측 끝에 로고 배치 - 화면 너비에 따라 조정
         Padding(
-          padding: const EdgeInsets.only(left: 8.0),
+          padding: EdgeInsets.only(left: screenWidth * 0.02),
           child: SvgPicture.asset(
             'assets/images/main/logo.svg',
-            width: 100, // 필요에 따라 조정
-            height: 24,
+            width: screenWidth * 0.25, // 화면 너비의 25%
+            height: screenWidth * 0.06, // 너비에 비례한 높이
           ),
         ),
 
@@ -100,8 +98,8 @@ class _MainPageState extends State<MainPage> {
             IconButton(
               icon: SvgPicture.asset(
                 'assets/images/main/noti_icon.svg',
-                width: 24,
-                height: 24,
+                width: screenWidth * 0.06, // 화면 너비에 비례
+                height: screenWidth * 0.06,
               ),
               onPressed: () {
                 if (_kakaoLoginService.isLoggedIn.value) {
@@ -121,8 +119,8 @@ class _MainPageState extends State<MainPage> {
             IconButton(
               icon: SvgPicture.asset(
                 'assets/images/main/myPage_icon.svg',
-                width: 24,
-                height: 24,
+                width: screenWidth * 0.06, // 화면 너비에 비례
+                height: screenWidth * 0.06,
               ),
               onPressed: () {
                 if (_kakaoLoginService.isLoggedIn.value) {
@@ -143,7 +141,7 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _buildBottomBanner() {
+  Widget _buildBottomBanner(double screenHeight) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -153,12 +151,18 @@ class _MainPageState extends State<MainPage> {
       },
       child: Container(
         width: double.infinity,
-        height: 60,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.0)),
-        child: SvgPicture.asset(
-          'assets/images/main/bottom_banner.svg',
-          fit: BoxFit.fitWidth,
-          alignment: Alignment.center,
+        height: screenHeight * 0.08, // 화면 높이의 8%
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12.0), // 테두리를 둥글게 설정
+        ),
+        child: ClipRRect(
+          // 이미지도 둥근 모서리로 클리핑
+          borderRadius: BorderRadius.circular(12.0),
+          child: SvgPicture.asset(
+            'assets/images/main/bottom_banner.svg',
+            fit: BoxFit.fitWidth,
+            alignment: Alignment.center,
+          ),
         ),
       ),
     );

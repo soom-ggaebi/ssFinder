@@ -16,40 +16,60 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   Future<Map<String, dynamic>> _getCurrentWeather() async {
     Position position = await LocationService().getCurrentPosition();
 
-    return await WeatherService.getWeather(position.latitude, position.longitude);
+    return await WeatherService.getWeather(
+      position.latitude,
+      position.longitude,
+    );
   }
 
   Map<String, String> _getWeatherAssets(Map<String, dynamic> weatherData) {
     final weatherList = weatherData['weather'] as List<dynamic>;
-    final weatherMain = weatherList.isNotEmpty ? weatherList[0]['main'] as String : '';
+    final weatherMain =
+        weatherList.isNotEmpty ? weatherList[0]['main'] as String : '';
 
     String backgroundImage;
     String weatherMessage;
     String weatherTip;
+    String weatherEmoji;
 
     switch (weatherMain) {
       case "Rain":
         backgroundImage = 'assets/images/main/weather_rain.png';
-        weatherMessage = '💧비💧';
+        weatherMessage = '비가 와요!';
         weatherTip = '우산 꼭 챙기세요!';
+        weatherEmoji = '🌧️';
         break;
       case "Clear":
         backgroundImage = 'assets/images/main/weather_clear.png';
         weatherMessage = '맑은 날씨입니다!';
         weatherTip = '화창한 날엔 선글라스로 눈부심을 막으세요!';
+        weatherEmoji = '🌞';
         break;
       case "Clouds":
         backgroundImage = 'assets/images/main/weather_cloudy.png';
         weatherMessage = '구름이 많아요!';
-         weatherTip = '흐린 날에도 필요할 때 우산 준비하세요!';
+        weatherTip = '흐린 날에도 필요할 때 우산 준비하세요!';
+        weatherEmoji = '☁️';
+        break;
+      case "Snow":
+        backgroundImage = 'assets/images/main/weather_snow.png';
+        weatherMessage = '눈이 와요!';
+        weatherTip = '우산 꼭 챙기세요!';
+        weatherEmoji = '☃️';
         break;
       default:
         backgroundImage = 'assets/images/main/weather_default.png';
         weatherMessage = '오늘의 날씨를 확인해보세요!';
         weatherTip = '날씨에 맞게 준비해보세요!';
+        weatherEmoji = '🍬';
         break;
     }
-    return {'image': backgroundImage, 'message': weatherMessage, 'tip': weatherTip,};
+    return {
+      'image': backgroundImage,
+      'message': weatherMessage,
+      'tip': weatherTip,
+      'emoji': weatherEmoji,
+    };
   }
 
   @override
@@ -61,18 +81,18 @@ class _WeatherWidgetState extends State<WeatherWidget> {
         String backgroundImage = 'assets/images/main/weather_default.png';
         String weatherMessage = '오늘의 날씨를 확인해보세요!';
         String weatherTip = '날씨에 맞게 준비해보세요!';
+        String weatherEmoji = '🍬';
         if (snapshot.hasData) {
           final assets = _getWeatherAssets(snapshot.data!);
           backgroundImage = assets['image']!;
           weatherMessage = assets['message']!;
           weatherTip = assets['tip']!;
+          weatherEmoji = assets['emoji']!;
         }
         return Container(
           width: double.infinity,
           height: 210,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.0)),
           child: Stack(
             children: [
               // 배경 이미지
@@ -86,14 +106,23 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                 ),
               ),
               // 오버레이 (어둡게 처리)
-              // Positioned.fill(
-              //   child: Container(
-              //     decoration: BoxDecoration(
-              //       borderRadius: BorderRadius.circular(12.0),
-              //       color: Colors.black.withOpacity(0.6),
-              //     ),
-              //   ),
-              // ),
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12.0),
+                    color: Colors.black.withOpacity(0.3),
+                  ),
+                ),
+              ),
+              // 이모티콘 추가 (오른쪽 상단)
+              Positioned(
+                top: 12.0,
+                right: 12.0,
+                child: Text(
+                  weatherEmoji,
+                  style: TextStyle(fontSize: 28.0), // 크기 조정
+                ),
+              ),
               // 내용 컨테이너: 날씨 텍스트와 검색창 포함
               Positioned.fill(
                 child: Padding(

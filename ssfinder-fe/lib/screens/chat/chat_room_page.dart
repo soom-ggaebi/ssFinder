@@ -1784,7 +1784,7 @@ class _ChatPageState extends State<ChatPage> {
                 myNickname: widget.myName,
                 chatRoomId: widget.roomId,
               ),
-              DateDividerWidget(date: '3월 23일'),
+              // DateDividerWidget(date: '3월 23일'),
               // 디버그 패널 (토글 가능)
               if (showDebugPanel)
                 Container(

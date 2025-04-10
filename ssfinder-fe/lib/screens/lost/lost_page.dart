@@ -5,7 +5,6 @@ import 'package:sumsumfinder/models/lost_items_model.dart';
 import 'package:sumsumfinder/services/lost_items_api_service.dart'; // 수정: 올바른 API 서비스 import
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:sumsumfinder/screens/main/noti_list_page.dart';
 
 class LostPage extends StatefulWidget {
   const LostPage({Key? key}) : super(key: key);
@@ -110,45 +109,16 @@ class _LostPageState extends State<LostPage>
   /// 각 탭에 해당하는 목록을 보여주는 위젯
   Widget _buildTabContent(String tab) {
     List<LostItemListModel> filteredItems = _getFilteredItems(tab);
-    return LostItemsList(items: filteredItems, onItemStatusChanged: _handleItemStatusChanged,);
+    return LostItemsList(
+      items: filteredItems,
+      onItemStatusChanged: _handleItemStatusChanged,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(
-        title: '잃어버린 물건',
-        isFromBottomNav: true,
-        customActions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: SizedBox(
-                width: 35,
-                height: 35,
-                child: IconButton(
-                  icon: SvgPicture.asset(
-                    'assets/images/main/noti_icon.svg',
-                    width: 20,
-                    height: 20,
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const NotificationPage(),
-                      ),
-                    );
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-
+      appBar: CustomAppBar(title: '나의 분실물', isFromBottomNav: false),
       body:
           isLoading
               ? const Center(child: CircularProgressIndicator())
