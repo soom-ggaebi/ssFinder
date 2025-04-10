@@ -91,20 +91,120 @@ class _ChatPageState extends State<ChatPage> {
     // 권한 확인
     _checkPermissions();
 
-    // 사용자 정보 초기화 후 다른 작업 수행
-    _initializeUserData().then((_) {
-      // 로그 추가
-      print('사용자 초기화 완료 - ID: $currentUserId');
-
-      // 메시지 로드 및 채팅방 상세 정보 로드
-      if (currentUserId != null) {
-        _loadInitialMessages();
-        _loadChatRoomDetail();
-        setupAutoReconnect();
+    // 의도적 연결 해제 상태 확인 (추가)
+    _chatService.isIntentionallyDisconnected(widget.roomId).then((
+      isIntentional,
+    ) {
+      if (isIntentional) {
+        // 의도적으로 연결 해제된 상태면 연결 상태 초기화
+        _chatService.resetDisconnectState(widget.roomId).then((_) {
+          // 사용자 정보 초기화 후 다른 작업 수행
+          _initializeUserData().then((_) {
+            // 이하 기존 코드
+            print('사용자 초기화 완료 - ID: $currentUserId');
+            if (currentUserId != null) {
+              _loadInitialMessages();
+              _loadChatRoomDetail();
+              setupAutoReconnect();
+            } else {
+              print('사용자 ID가 초기화되지 않았습니다. 메시지를 로드할 수 없습니다.');
+            }
+          });
+        });
       } else {
-        print('사용자 ID가 초기화되지 않았습니다. 메시지를 로드할 수 없습니다.');
+        // 의도적 연결 해제가 아니라면 바로 초기화 진행
+        _initializeUserData().then((_) {
+          // 이하 기존 코드
+          print('사용자 초기화 완료 - ID: $currentUserId');
+          if (currentUserId != null) {
+            _loadInitialMessages();
+            _loadChatRoomDetail();
+            setupAutoReconnect();
+          } else {
+            print('사용자 ID가 초기화되지 않았습니다. 메시지를 로드할 수 없습니다.');
+          }
+        });
       }
     });
+  }
+
+  // 통합된 연결 관리 함수
+  Future<bool> _manageConnection() async {
+    // 이미 작업 중이면 중복 실행 방지
+    if (_isInitializingClient || _isReconnecting) {
+      print('🟡 연결 작업이 이미 진행 중입니다');
+      return false;
+    }
+
+    // 의도적 연결 해제 상태 확인
+    final shouldConnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
+    if (!shouldConnect) {
+      print('🔴 의도적으로 연결이 해제된 상태입니다');
+      return false;
+    }
+
+    // 이미 연결된 상태면 추가 연결 불필요
+    if (_isStompClientInitialized && stompClient.connected && isConnected) {
+      print('🟢 이미 연결된 상태입니다');
+      return true;
+    }
+
+    // 기존 연결 정리
+    _cleanupExistingConnection();
+
+    // 새 연결 초기화
+    initStompClient();
+    // 연결 완료를 감지하는 방법 추가
+    // 예: 타임아웃 추가로 일정 시간 후 연결 상태 반환
+    await Future.delayed(Duration(seconds: 2));
+    return isConnected;
+  }
+
+  // 기존 연결 정리 함수
+  void _cleanupExistingConnection() {
+    try {
+      if (_isStompClientInitialized && stompClient.connected) {
+        // 구독 취소
+        if (chatRoomUnsubscribeFn != null) {
+          try {
+            chatRoomUnsubscribeFn!();
+          } catch (e) {
+            print('채팅방 구독 취소 오류: $e');
+          }
+          chatRoomUnsubscribeFn = null;
+        }
+
+        if (errorUnsubscribeFn != null) {
+          try {
+            errorUnsubscribeFn!();
+          } catch (e) {
+            print('에러 구독 취소 오류: $e');
+          }
+          errorUnsubscribeFn = null;
+        }
+
+        if (readStatusUnsubscribeFn != null) {
+          try {
+            readStatusUnsubscribeFn!();
+          } catch (e) {
+            print('읽음 상태 구독 취소 오류: $e');
+          }
+          readStatusUnsubscribeFn = null;
+        }
+
+        // 구독 중 플래그 초기화
+        _isSubscribingToReadStatus = false;
+        _isSubscribingToChatRoom = false;
+        _isSubscribingToErrors = false;
+
+        // 연결 종료
+        stompClient.deactivate();
+      }
+    } catch (e) {
+      print('💥 기존 연결 정리 중 오류: $e');
+    }
   }
 
   // 사용자 데이터 초기화를 위한 새 메서드
@@ -137,9 +237,17 @@ class _ChatPageState extends State<ChatPage> {
           print('사용자 ID 설정 완료: $currentUserId');
         });
 
-        // STOMP 클라이언트 초기화
+        // STOMP 클라이언트 초기화 (의도적 연결 해제 확인 후)
         if (_currentToken != null && mounted) {
-          initStompClient();
+          // 의도적 연결 해제 확인 (추가)
+          final shouldConnect = await _chatService.shouldAttemptReconnect(
+            widget.roomId,
+          );
+          if (shouldConnect) {
+            initStompClient();
+          } else {
+            print('사용자가 의도적으로 연결을 끊었으므로 STOMP 클라이언트 초기화를 건너뜁니다.');
+          }
         }
       } else {
         print('사용자 ID를 유효한 정수로 변환할 수 없습니다.');
@@ -436,6 +544,15 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _fetchLatestToken() async {
     if (_disposed) return;
 
+    // 의도적 연결 해제 확인 (추가)
+    final shouldConnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
+    if (!shouldConnect) {
+      addLog('사용자가 의도적으로 연결을 끊었으므로 토큰 갱신 및 연결을 시도하지 않습니다.');
+      return;
+    }
+
     final token = await _loginService.getAccessToken();
     if (_disposed) return;
 
@@ -455,36 +572,18 @@ class _ChatPageState extends State<ChatPage> {
     // 모든 비동기 작업 취소를 위한 플래그 설정
     _disposed = true;
 
+    // 타이머 명시적 취소 및 null 처리
+    if (_reconnectTimer != null) {
+      _reconnectTimer!.cancel();
+      _reconnectTimer = null;
+    }
+
     // 컨트롤러 정리
     _textController.dispose();
     _scrollController.dispose();
 
     // WebSocket 정리
-    try {
-      if (stompClient.connected) {
-        // 구독 취소 시도 (null 체크 포함)
-        if (chatRoomUnsubscribeFn != null) {
-          chatRoomUnsubscribeFn!();
-          chatRoomUnsubscribeFn = null;
-        }
-
-        if (errorUnsubscribeFn != null) {
-          errorUnsubscribeFn!();
-          errorUnsubscribeFn = null;
-        }
-
-        if (readStatusUnsubscribeFn != null) {
-          readStatusUnsubscribeFn!();
-          readStatusUnsubscribeFn = null;
-        }
-
-        // 명시적으로 연결 종료
-        stompClient.deactivate();
-        // stompClient = null; // 제거: late 변수에 null 할당할 수 없음
-      }
-    } catch (e) {
-      print('dispose 중 오류: $e');
-    }
+    _cleanupExistingConnection();
 
     super.dispose();
   }
@@ -504,48 +603,34 @@ class _ChatPageState extends State<ChatPage> {
   bool _isInitializingClient = false;
 
   // STOMP 클라이언트 초기화
-  void initStompClient() async {
-    // 이미 초기화되고 연결된 상태면 건너뛰기
-    if (_isStompClientInitialized && stompClient.connected) {
-      print('🟢 STOMP 클라이언트가 이미 연결되어 있습니다.');
+  Future<void> initStompClient() async {
+    // 이미 초기화 작업이 진행 중이면 중복 호출 방지
+    if (_isInitializingClient) {
+      print('🟡 STOMP 클라이언트 초기화가 이미 진행 중입니다.');
       return;
     }
-    _isInitializingClient = true;
 
-    try {
-      // 기존 연결이 있으면 먼저 정리
-      if (_isStompClientInitialized && stompClient.connected) {
-        stompClient.deactivate();
-      }
-    } catch (e) {
-      print('💥 STOMP 클라이언트 정리 중 오류: $e');
+    // 의도적 연결 해제 상태 확인
+    final shouldConnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
+    if (!shouldConnect) {
+      print('🔴 의도적으로 연결이 해제되었으므로 STOMP 클라이언트 초기화를 건너뜁니다.');
+      return;
     }
+
+    _isInitializingClient = true; // 초기화 시작 표시
 
     try {
       // 토큰 갱신 확인
       await _loginService.ensureAuthenticated();
-
-      // 최신 토큰 가져오기
       _currentToken = await _loginService.getAccessToken();
 
       if (_currentToken == null) {
+        _isInitializingClient = false;
         print('🚫 토큰이 null입니다. STOMP 클라이언트 초기화를 중단합니다.');
         return;
       }
-
-      // 사용자 ID 확인
-      if (currentUserId == null) {
-        print('🚫 사용자 ID가 null입니다. 사용자 정보 초기화를 시도합니다.');
-        await _initializeUserData();
-        if (currentUserId == null) {
-          print('🚫 사용자 ID 초기화 실패. STOMP 클라이언트 초기화를 중단합니다.');
-          return;
-        }
-      }
-
-      print('🔌 STOMP 클라이언트 초기화 시작');
-      print('🔑 최신 토큰으로 갱신됨: $_currentToken');
-      print('🏠 채팅방 ID: ${widget.roomId}');
 
       // WebSocket 서버 URL
       final String serverUrl = 'wss://ssfinder.site/app/';
@@ -556,10 +641,12 @@ class _ChatPageState extends State<ChatPage> {
           url: serverUrl,
           onConnect: (frame) {
             print('🟢 STOMP 연결 성공');
-            print('📨 프레임 헤더: ${frame.headers}');
-            print('📦 프레임 본문: ${frame.body}');
-
-            if (mounted) onConnect(frame);
+            if (mounted) {
+              // 중복 이벤트 방지를 위한 체크 추가
+              if (!isConnected) {
+                onConnect(frame);
+              }
+            }
           },
           onDisconnect: (frame) {
             print('🔴 STOMP 연결 해제');
@@ -574,7 +661,8 @@ class _ChatPageState extends State<ChatPage> {
             if (mounted) onStompError(frame);
           },
           onDebugMessage: (String message) {
-            print('🐞 디버그 메시지: $message');
+            // 디버그 메시지 양 줄이기 (필요 시 활성화)
+            // print('🐞 디버그 메시지: $message');
           },
           stompConnectHeaders: {
             'accept-version': '1.0,1.1,1.2',
@@ -587,11 +675,12 @@ class _ChatPageState extends State<ChatPage> {
       );
 
       _isStompClientInitialized = true;
-      print('🚀 STOMP 클라이언트 활성화');
       stompClient.activate();
+      print('🚀 STOMP 클라이언트 활성화');
     } catch (e) {
-      print('💥 STOMP 클라이언트 초기화 중 심각한 오류: $e');
-      addLog('STOMP 클라이언트 초기화 중 오류가 발생했습니다: $e');
+      print('💥 STOMP 클라이언트 초기화 중 오류: $e');
+    } finally {
+      _isInitializingClient = false; // 초기화 상태 플래그 해제
     }
   }
 
@@ -602,38 +691,55 @@ class _ChatPageState extends State<ChatPage> {
 
   // 연결 성공 후 구독 메서드 개선
   void onConnect(StompFrame frame) {
+    // 이미 처리된 연결 이벤트는 무시
+    if (isConnected) {
+      print('🟡 이미 연결된 상태에서 추가 연결 이벤트 수신. 무시합니다.');
+      return;
+    }
+
     addLog('연결 성공: ${frame.body}');
-    addLog('연결 헤더: ${frame.headers}'); // 헤더 정보 로깅 추가
 
     if (!mounted) return;
 
     setState(() {
       isConnected = true;
+      reconnectAttempts = 0; // 연결 성공 시 재시도 카운터 초기화
     });
 
     // 연결이 완전히 활성화될 때까지 잠시 지연
     Future.delayed(Duration(milliseconds: 500), () {
       if (!mounted || !stompClient.connected) return;
 
-      // 채팅방 구독 (중복 방지)
+      // 채팅방 구독
       if (!_isSubscribingToChatRoom) {
         _isSubscribingToChatRoom = true;
         subscribeToChatRoom();
       }
 
-      // 에러 구독 (중복 방지)
+      // 에러 구독
       if (!_isSubscribingToErrors) {
         _isSubscribingToErrors = true;
         subscribeToErrors();
       }
 
-      // 읽음 상태 구독 추가 (중복 방지)
+      // 읽음 상태 구독
       if (!_isSubscribingToReadStatus) {
         _isSubscribingToReadStatus = true;
         subscribeToReadStatus();
       }
 
-      // 온라인 상태 알림 추가
+      // 온라인 상태 알림
+      _sendOnlineStatus();
+
+      // 읽지 않은 메시지 처리
+      _processUnreadMessages();
+    });
+  }
+
+  // 온라인 상태 알림 메서드 분리
+  void _sendOnlineStatus() {
+    try {
+      // 온라인 상태 알림
       stompClient.send(
         destination: '/app/chat-room/${widget.roomId}/online',
         body: json.encode({
@@ -647,37 +753,19 @@ class _ChatPageState extends State<ChatPage> {
       );
 
       // 서버로 연결 확인 메시지 전송
-      try {
-        stompClient.send(
-          destination: '/app/connect',
-          body: json.encode({"chat_room_id": widget.roomId}),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $_currentToken',
-          },
-        );
+      stompClient.send(
+        destination: '/app/connect',
+        body: json.encode({"chat_room_id": widget.roomId}),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_currentToken',
+        },
+      );
 
-        // 1. 방에 접속했다는 신호 전송 (사용자 상태를 온라인으로 변경)
-        stompClient.send(
-          destination: '/app/connect',
-          body: json.encode({
-            "chat_room_id": widget.roomId,
-            "user_id": currentUserId,
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $_currentToken',
-          },
-        );
-
-        // 2. 읽지 않은 메시지 처리 (이미 있는 코드)
-        _processUnreadMessages();
-
-        addLog('연결 확인 메시지 전송 성공');
-      } catch (e) {
-        addLog('연결 확인 메시지 전송 실패: $e');
-      }
-    });
+      addLog('연결 확인 메시지 전송 성공');
+    } catch (e) {
+      addLog('연결 확인 메시지 전송 실패: $e');
+    }
   }
 
   // 읽지 않은 메시지 처리 메서드 추가
@@ -996,43 +1084,76 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  // 5. 자동 재연결 메커니즘 개선
+  Timer? _reconnectTimer;
+
   Future<void> setupAutoReconnect() async {
-    // 주기적으로 연결 상태 확인
-    Timer.periodic(const Duration(seconds: 30), (timer) {
+    // 기존 타이머가 있으면 취소
+    if (_reconnectTimer != null) {
+      _reconnectTimer!.cancel();
+      _reconnectTimer = null;
+    }
+
+    // 의도적 연결 해제 확인
+    final shouldReconnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
+    if (!shouldReconnect) {
+      print('사용자가 의도적으로 연결을 끊었으므로 자동 재연결 타이머를 설정하지 않습니다.');
+      return;
+    }
+
+    // 새 타이머 시작 (시간 간격 확장)
+    _reconnectTimer = Timer.periodic(const Duration(seconds: 60), (
+      timer,
+    ) async {
       if (_disposed) {
         timer.cancel();
+        return;
+      }
+
+      // 의도적 연결 해제 확인
+      final shouldAttemptReconnect = await _chatService.shouldAttemptReconnect(
+        widget.roomId,
+      );
+      if (!shouldAttemptReconnect) {
+        // 의도적 연결 해제 상태가 되면 타이머 취소
+        timer.cancel();
+        _reconnectTimer = null;
+        addLog('사용자가 의도적으로 연결을 끊었으므로 자동 재연결 타이머를 취소합니다.');
         return;
       }
 
       if (!isConnected && reconnectAttempts < 5) {
         reconnectAttempts++;
         addLog('자동 재연결 시도 ($reconnectAttempts/5)...');
-        reconnect();
+        await _manageConnection(); // 통합된 연결 관리 함수 사용
       } else if (isConnected) {
         reconnectAttempts = 0; // 연결 성공 시 카운터 초기화
       }
     });
   }
 
-  // 재연결 메서드 개선
+  bool _isReconnecting = false;
+
   Future<void> reconnect() async {
     if (_disposed) return;
 
-    addLog('재연결 시도');
-    // 이미 연결된 상태면 재연결 필요 없음
-    if (isConnected) {
-      print('🟢 이미 연결되어 있습니다. 재연결 불필요.');
+    // 이미 재연결 중이면 중복 실행 방지
+    if (_isReconnecting) {
+      addLog('이미 재연결 중입니다.');
       return;
     }
 
-    // 재연결 중인 상태 표시
-    setState(() {
-      isConnected = false;
-    });
+    // 의도적 연결 해제 상태 확인
+    final shouldReconnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
+    if (!shouldReconnect) {
+      addLog('사용자가 의도적으로 연결을 끊었으므로 재연결 시도하지 않음');
+      return;
+    }
 
-    await _fetchLatestToken();
-    if (_disposed) return;
+    _isReconnecting = true; // 재연결 시작 표시
 
     try {
       // 현재 클라이언트가 활성화된 경우 비활성화
@@ -1071,6 +1192,8 @@ class _ChatPageState extends State<ChatPage> {
       }
     } catch (e) {
       addLog('연결 종료 중 오류: $e');
+    } finally {
+      _isReconnecting = false; // 재연결 완료 표시
     }
 
     // 새로운 연결 초기화
@@ -1670,20 +1793,17 @@ class _ChatPageState extends State<ChatPage> {
     return Scaffold(
       appBar: CustomAppBar(
         title: widget.otherUserName,
-        onBackPressed: () {
-          // 모든 웹소켓 연결과 구독을 취소
-          try {
-            if (stompClient.connected) {
-              // 모든 구독 취소
-              if (chatRoomUnsubscribeFn != null) chatRoomUnsubscribeFn!();
-              if (errorUnsubscribeFn != null) errorUnsubscribeFn!();
-              if (readStatusUnsubscribeFn != null) readStatusUnsubscribeFn!();
+        onBackPressed: () async {
+          // 의도적 연결 해제 표시
+          await _chatService.markIntentionalDisconnect(widget.roomId, true);
 
-              // 연결 종료
-              stompClient.deactivate();
-            }
-          } catch (e) {
-            print('뒤로가기 중 WebSocket 정리 오류: $e');
+          // 모든 웹소켓 연결과 구독을 취소
+          _cleanupExistingConnection();
+
+          // 타이머 취소
+          if (_reconnectTimer != null) {
+            _reconnectTimer!.cancel();
+            _reconnectTimer = null;
           }
 
           // 화면 이동
