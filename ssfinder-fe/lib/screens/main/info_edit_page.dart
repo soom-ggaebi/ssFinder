@@ -108,7 +108,8 @@ class _InfoEditPageState extends State<InfoEditPage> {
 
       // 활동 지역 정보 로드 (백엔드에서 가져오거나 로컬 저장소에서 가져오기)
       final prefs = await SharedPreferences.getInstance();
-      _areaController.text = prefs.getString('user_area') ?? "장덕동"; // 기본값 설정
+      _areaController.text =
+          prefs.getString('user_area') ?? "동네를 설정해주세요"; // 기본값 설정
 
       // JWT 토큰 가져오기
       final jwtToken = await _getJwtToken();

@@ -27,16 +27,92 @@ class _MyPageState extends State<MyPage> {
   // 알림 설정 상태를 저장하는 변수
   bool _notificationEnabled = true;
 
+  // 사용자 닉네임 저장 변수
+  String _userNickname = "";
+
+  String _serverNickname = ""; // 서버에서 가져온 닉네임을 저장할 변수
+
   @override
   void initState() {
     super.initState();
-    // 로그인 상태 확인 및 비로그인 시 자동 뒤로가기
     _checkLoginStatus();
-    // dotenv 초기화 확인
     _ensureDotEnvLoaded().then((_) {
-      // 알림 설정 상태 로드
+      _loadServerNickname(); // 서버에서 닉네임 로드
       _loadNotificationSettings();
     });
+  }
+
+  // 서버에서 닉네임 가져오기
+  // 서버에서 닉네임 가져오기 - 로그 추가
+  Future<void> _loadServerNickname() async {
+    print('서버에서 닉네임 가져오기 시작...');
+    try {
+      // JWT 토큰 가져오기
+      final jwtToken = await _kakaoLoginService.getAccessToken();
+
+      if (jwtToken == null) {
+        print('JWT 토큰이 없어 서버에서 닉네임을 가져올 수 없습니다.');
+        return;
+      }
+
+      print('JWT 토큰: $jwtToken');
+      print('API 호출: ${dotenv.env['BACKEND_URL']}/api/users');
+
+      final response = await http.get(
+        Uri.parse('${dotenv.env['BACKEND_URL']}/api/users'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $jwtToken',
+        },
+      );
+
+      print('사용자 정보 응답 상태 코드: ${response.statusCode}');
+
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        final responseBody = utf8.decode(response.bodyBytes);
+        print('응답 본문: $responseBody');
+
+        final responseData = json.decode(responseBody);
+
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final userData = responseData['data'];
+          print('사용자 정보 로드 성공: $userData');
+
+          // 서버에서 닉네임 정보가 있으면 상태 업데이트
+          if (userData['nickname'] != null) {
+            final serverNick = userData['nickname'].toString();
+            print('서버 닉네임 가져옴: $serverNick');
+
+            setState(() {
+              _serverNickname = serverNick;
+              print('상태 업데이트 완료: _serverNickname = $_serverNickname');
+            });
+          } else {
+            print('서버 응답에 닉네임 필드가 없음');
+          }
+        } else {
+          print('사용자 정보 로드 실패: ${responseData['error']}');
+        }
+      } else {
+        print('사용자 정보 로드 실패: 상태 코드 ${response.statusCode}');
+        if (response.body.isNotEmpty) {
+          print('오류 응답: ${utf8.decode(response.bodyBytes)}');
+        }
+      }
+    } catch (e) {
+      print('서버에서 닉네임 로드 중 예외 발생: $e');
+    }
+
+    print('현재 _serverNickname 값: $_serverNickname');
+  }
+
+  // 닉네임 가져오기 메소드 - 서버 닉네임 반환
+  String _getNickname() {
+    // 서버 닉네임이 있으면 그것을 사용, 없으면 카카오 닉네임 사용
+    if (_serverNickname.isNotEmpty) {
+      return _serverNickname;
+    }
+    return _kakaoLoginService.user?.kakaoAccount?.profile?.nickname ?? "닉네임 없음";
   }
 
   // dotenv가 로드되었는지 확인하고, 로드되지 않았다면 로드
@@ -63,6 +139,50 @@ class _MyPageState extends State<MyPage> {
       });
     } else if (mounted) {
       setState(() {});
+    }
+  }
+
+  // 서버에서 사용자 정보 로드
+  Future<void> _loadUserInfo() async {
+    try {
+      // JWT 토큰 가져오기
+      final authToken = await _kakaoLoginService.getAccessToken();
+
+      if (authToken == null) {
+        print('인증 토큰이 없습니다. 로그인이 필요합니다.');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('${dotenv.env['BACKEND_URL']}/api/users'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+        },
+      );
+
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        final responseBody = utf8.decode(response.bodyBytes);
+        final responseData = json.decode(responseBody);
+
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final userData = responseData['data'];
+
+          setState(() {
+            // 서버에서 가져온 닉네임으로 업데이트
+            if (userData['nickname'] != null) {
+              _userNickname = userData['nickname'];
+            } else {
+              // 서버에 닉네임이 없으면 카카오 닉네임 사용
+              _userNickname =
+                  _kakaoLoginService.user?.kakaoAccount?.profile?.nickname ??
+                  "사용자";
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print('사용자 정보 로드 중 오류: $e');
     }
   }
 
@@ -303,6 +423,7 @@ class _MyPageState extends State<MyPage> {
   }
 
   Widget _buildLoggedInView() {
+    // 카카오에서 가져온 사용자 이름
     final userName =
         _kakaoLoginService.user?.kakaoAccount?.profile?.nickname ?? "사용자";
 
@@ -347,15 +468,15 @@ class _MyPageState extends State<MyPage> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              '$userName님',
+                              '${_serverNickname.isNotEmpty ? _serverNickname : userName} 님',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
                               ),
                             ),
-                            const SizedBox(width: 8), // 이름과 닉네임 사이 간격
+                            const SizedBox(width: 5), // 이름과 닉네임 사이 간격
                             Text(
-                              '($_getNickname)',
+                              '($userName)',
                               style: TextStyle(color: Colors.grey[700]),
                             ),
                           ],
@@ -493,12 +614,6 @@ class _MyPageState extends State<MyPage> {
         ),
       );
     });
-  }
-
-  // 닉네임 가져오기
-  String get _getNickname {
-    return _kakaoLoginService.user?.kakaoAccount?.profile?.nickname ??
-        "닉네임 정보 없음";
   }
 
   Widget _buildStatItem(String label, String value) {

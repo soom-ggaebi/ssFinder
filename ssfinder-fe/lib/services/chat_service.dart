@@ -545,6 +545,82 @@ class ChatService {
     }
   }
 
+  // 의도적 연결 해제 상태를 저장하는 키
+  String _getIntentionalDisconnectKey(int chatRoomId) =>
+      'intentional_disconnect_$chatRoomId';
+
+  // 의도적 연결 해제 표시
+  Future<void> markIntentionalDisconnect(
+    int chatRoomId,
+    bool isIntentional,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = _getIntentionalDisconnectKey(chatRoomId);
+      await prefs.setBool(key, isIntentional);
+      print('✅ 채팅방($chatRoomId)의 의도적 연결 해제 상태: $isIntentional');
+    } catch (e) {
+      print('❌ 의도적 연결 해제 상태 저장 실패: $e');
+    }
+  }
+
+  // 의도적 연결 해제 상태 확인
+  Future<bool> isIntentionallyDisconnected(int chatRoomId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = _getIntentionalDisconnectKey(chatRoomId);
+      return prefs.getBool(key) ?? false;
+    } catch (e) {
+      print('❌ 의도적 연결 해제 상태 확인 실패: $e');
+      return false;
+    }
+  }
+
+  // 연결 시도 전에 확인할 메서드 (STOMP 클라이언트에서 사용)
+  Future<bool> shouldAttemptReconnect(int chatRoomId) async {
+    // 의도적으로 연결 해제된 경우 재연결 시도하지 않음
+    final intentionalDisconnect = await isIntentionallyDisconnected(chatRoomId);
+    return !intentionalDisconnect;
+  }
+
+  // 사용자 행동으로 연결 시작할 때 호출하는 메서드 개선
+  Future<void> resetDisconnectState(int chatRoomId) async {
+    print('🔄 [ChatService] 채팅방($chatRoomId)의 연결 상태 초기화 중...');
+    await markIntentionalDisconnect(chatRoomId, false);
+    print('✅ [ChatService] 채팅방($chatRoomId)의 연결 상태가 재설정되었습니다. 이제 연결이 가능합니다.');
+  }
+
+  // 채팅방 입장 시 호출할 메서드 추가
+  Future<void> enterChatRoom(int chatRoomId) async {
+    print('📲 [ChatService] 채팅방($chatRoomId) 입장 처리 중...');
+    // API 호출 차단 해제
+    await unblockApi(chatRoomId);
+    // 연결 상태 초기화 (자동 연결 허용)
+    await resetDisconnectState(chatRoomId);
+    print('✅ [ChatService] 채팅방($chatRoomId) 입장 완료');
+  }
+
+  // 채팅방 퇴장 시 호출할 메서드 추가
+  Future<void> leaveChatRoom(int chatRoomId) async {
+    print('📴 [ChatService] 채팅방($chatRoomId) 퇴장 처리 중...');
+    // 의도적 연결 해제 표시
+    await markIntentionalDisconnect(chatRoomId, true);
+    print('✅ [ChatService] 채팅방($chatRoomId) 퇴장 완료');
+  }
+
+  // 연결 상태 디버깅을 위한 헬퍼 메서드
+  Future<Map<String, dynamic>> getConnectionState(int chatRoomId) async {
+    final isIntentional = await isIntentionallyDisconnected(chatRoomId);
+    final isApiBlocked = await this.isApiBlocked(chatRoomId);
+
+    return {
+      'chatRoomId': chatRoomId,
+      'isIntentionallyDisconnected': isIntentional,
+      'isApiBlocked': isApiBlocked,
+      'shouldAttemptReconnect': !isIntentional,
+    };
+  }
+
   Future<Map<String, dynamic>?> getChatRoomDetail(
     int roomId,
     String token,
