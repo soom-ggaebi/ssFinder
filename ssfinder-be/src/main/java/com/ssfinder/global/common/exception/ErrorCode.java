@@ -72,7 +72,9 @@ public enum ErrorCode {
     INVALID_NOTIFICATION_TYPE("NOTIFICATION-004",HttpStatus.BAD_REQUEST, "이 작업에서 지원되지 않는 알림 타입입니다."),
 
     AI_ANALYSIS_FAILED("AI-001", HttpStatus.INTERNAL_SERVER_ERROR, "AI 이미지 분석 중 오류가 발생했습니다."),
-    EXTERNAL_API_ERROR("AI-002", HttpStatus.BAD_GATEWAY, "외부 API 호출 중 오류가 발생했습니다.");
+    EXTERNAL_API_ERROR("AI-002", HttpStatus.BAD_GATEWAY, "외부 API 호출 중 오류가 발생했습니다."),
+
+    ITEM_NOT_FOUND("ITEM-001", HttpStatus.NOT_FOUND, "해당 아이템을 찾을 수 없습니다.");
 
     private final String code;
     private final HttpStatus httpStatus;
