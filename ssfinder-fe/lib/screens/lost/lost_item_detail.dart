@@ -8,7 +8,11 @@ class LostItemDetail extends StatefulWidget {
   final int itemId;
   final Function(int, String)? onStatusChanged;
 
-  const LostItemDetail({Key? key, required this.itemId, required this.onStatusChanged}) : super(key: key);
+  const LostItemDetail({
+    Key? key,
+    required this.itemId,
+    required this.onStatusChanged,
+  }) : super(key: key);
 
   @override
   _LostItemDetailState createState() => _LostItemDetailState();
@@ -104,276 +108,269 @@ class _LostItemDetailState extends State<LostItemDetail> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          '분실 상세 정보',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_horiz, color: Color(0xFF3D3D3D)),
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                builder: (context) => MainOptionsPopup(item: _item!,
-                  onUpdate: (updatedItem) {
-                    setState(() => _item = updatedItem);
-                  }
-                ),
-              );
-            },
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, {'id': _item!.id, 'status': _item!.status});
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            '분실 상세 정보',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                // 이미지 영역
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(16),
-                    image:
-                        _item!.image != null
-                            ? DecorationImage(
-                              image: NetworkImage(_item!.image!),
-                              fit: BoxFit.cover,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.more_horiz, color: Color(0xFF3D3D3D)),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  builder:
+                      (context) => MainOptionsPopup(
+                        item: _item!,
+                        onUpdate: (updatedItem) {
+                          setState(() => _item = updatedItem);
+                        },
+                      ),
+                );
+              },
+            ),
+          ],
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                children: [
+                  // 이미지 영역
+                  Container(
+                    height: 200,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(16),
+                      image:
+                          _item!.image != null
+                              ? DecorationImage(
+                                image: NetworkImage(_item!.image!),
+                                fit: BoxFit.cover,
+                              )
+                              : null,
+                    ),
+                    child:
+                        _item!.image == null
+                            ? const Icon(
+                              Icons.image,
+                              size: 50,
+                              color: Colors.white,
                             )
                             : null,
                   ),
-                  child:
-                      _item!.image == null
-                          ? const Center(
-                            child: Icon(
-                              Icons.image_not_supported,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
-                          )
-                          : null,
-                ),
-                // 상태 정보
-                Positioned(
-                  right: 16,
-                  top: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          _item!.status == "LOST"
-                              ? Colors.red[100]
-                              : Colors.green[100],
-                      borderRadius: BorderRadius.circular(50.0),
-                    ),
-                    child: Text(
-                      _item!.status == "LOST" ? "찾는 중" : "찾음",
-                      style: TextStyle(
-                        fontSize: 14,
+                  // 상태 정보 표시
+                  Positioned(
+                    right: 16,
+                    top: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
                         color:
-                            _item!.status == "LOST" ? Colors.red : Colors.green,
+                            _item!.status == "LOST"
+                                ? Colors.red[100]
+                                : Colors.green[100],
+                        borderRadius: BorderRadius.circular(50.0),
+                      ),
+                      child: Text(
+                        _item!.status == "LOST" ? "숨은 물건" : "찾은 물건",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color:
+                              _item!.status == "LOST"
+                                  ? Colors.red
+                                  : Colors.green,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // 색상 표시
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-              decoration: BoxDecoration(
-                color: getBackgroundColor(_item!.color),
-                borderRadius: BorderRadius.circular(50.0),
-              ),
-              child: Text(
-                _item!.color,
-                style: const TextStyle(fontSize: 14, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 8),
-            // 카테고리
-            Text(
-              (_item!.minorCategory == null)
-                ? "${_item!.majorCategory}"
-                : "${_item!.majorCategory} > ${_item!.minorCategory}",
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            // 이름 및 위치, 시간
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _item!.title,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                  if (_item!.status != "LOST")
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.black.withOpacity(0.5),
                         ),
                       ),
-                      Row(
-                        children: [
-                          Text(
-                            extractLocation(_item!.location),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // 색상 표시
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: getBackgroundColor(_item!.color),
+                  borderRadius: BorderRadius.circular(50.0),
+                ),
+                child: Text(
+                  _item!.color,
+                  style: const TextStyle(fontSize: 14, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // 카테고리 표시
+              Text(
+                (_item!.minorCategory == null)
+                    ? "${_item!.majorCategory}"
+                    : "${_item!.majorCategory} > ${_item!.minorCategory}",
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              // 이름 및 위치, 시간 표시
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _item!.title,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              extractLocation(_item!.location),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
                             ),
-                          ),
-                          const Text(
-                            ' · ',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                          Text(
-                            _item!.createdAt.substring(0, 10),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
+                            const Text(
+                              ' · ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                        ],
+                            Text(
+                              _item!.createdAt.substring(0, 10),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // 상세 설명
+              Text(_item!.detail, style: const TextStyle(fontSize: 14)),
+              const SizedBox(height: 16),
+              // 분실 일자 표시
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.blue[100],
+                  borderRadius: BorderRadius.circular(50.0),
+                ),
+                child: const Text(
+                  '분실 일자',
+                  style: TextStyle(fontSize: 14, color: Colors.blue),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: Text(
+                  _item!.lostAt,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // 분실 장소 표시
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue[100],
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        '분실 장소',
+                        style: TextStyle(fontSize: 14, color: Colors.blue),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        extractLocation2(_item!.location),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => MapWidget(
+                                    latitude: _item!.latitude,
+                                    longitude: _item!.longitude,
+                                  ),
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _item!.status == "LOST" ? Colors.blue : Colors.green,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(140, 40),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onPressed: () async {
-                    try {
-                      // 현재 상태의 반대 상태로 변경
-                      String newStatus = _item!.status == "LOST" ? "FOUND" : "LOST";
-                      
-                      // API 호출하여 상태 업데이트
-                      await _apiService.updateLostItemStatus(
-                        lostId: _item!.id,
-                        status: newStatus,
-                      );
-                      
-                      // 상태 업데이트 성공 시 UI 갱신
-                      setState(() {
-                        _item = _item!.copyWith(status: newStatus);
-                      });
-                      
-                      widget.onStatusChanged?.call(_item!.id, newStatus);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('상태가 성공적으로 변경되었습니다.')),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('상태 변경에 실패했습니다: $e')),
-                      );
-                    }
-                  },
-                  child: Text(
-                    _item!.status == "LOST" ? '찾는 중' : '찾음',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // 상세 설명
-            Text(_item!.detail, style: const TextStyle(fontSize: 14)),
-            const SizedBox(height: 16),
-            // 분실 일자 표시
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.blue[100],
-                borderRadius: BorderRadius.circular(50.0),
+                ],
               ),
-              child: const Text(
-                '분실 일자',
-                style: TextStyle(fontSize: 14, color: Colors.blue),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: Text(_item!.lostAt, style: const TextStyle(fontSize: 14)),
-            ),
-            const SizedBox(height: 8),
-            // 분실 장소 표시
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blue[100],
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Text(
-                      '분실 장소',
-                      style: TextStyle(fontSize: 14, color: Colors.blue),
-                    ),
-                  ),
+              const SizedBox(height: 8),
+              // 지도 영역
+              Container(
+                height: 200,
+                width: double.infinity,
+                child: MapWidget(
+                  latitude: _item!.latitude,
+                  longitude: _item!.longitude,
                 ),
-                Row(
-                  children: [
-                    Text(
-                      extractLocation2(_item!.location),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => MapWidget(
-                                  latitude: _item!.latitude,
-                                  longitude: _item!.longitude,
-                                ),
-                          ),
-                        );
-                      },
-                      child: const Icon(
-                        Icons.chevron_right,
-                        size: 18,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // 지도 영역
-            Container(
-              height: 200,
-              width: double.infinity,
-              child: MapWidget(
-                latitude: _item!.latitude,
-                longitude: _item!.longitude,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

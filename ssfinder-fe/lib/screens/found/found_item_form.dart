@@ -27,12 +27,12 @@ class _FoundItemFormState extends State<FoundItemForm> {
   final ImagePicker _picker = ImagePicker();
 
   String? _selectedCategory; // 카테고리
-  String? _selectedCategoryId; // 선택된 카테고리 ID (마이너 카테고리가 있을 경우)
+  String? _selectedCategoryId; // 선택된 카테고리 ID
   String? _selectedColor; // 색상
   String? _selectedLocation; // 습득 장소
   DateTime? _selectedDate; // 습득 일자
   File? _selectedImage; // 선택된 이미지 파일
-  String? _imageUrl; // 기존 이미지 URL (수정 모드)
+  String? _imageUrl; // 이미지 URL
 
   // 위치 정보
   double? _latitude;
@@ -67,9 +67,9 @@ class _FoundItemFormState extends State<FoundItemForm> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('위치 권한이 거부되었습니다.')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('위치 권한이 거부되었습니다.')));
           return;
         }
       }
@@ -84,9 +84,9 @@ class _FoundItemFormState extends State<FoundItemForm> {
       });
     } catch (e) {
       print('위치 정보를 가져오는데 실패했습니다: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('위치 정보를 가져오는데 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('위치 정보를 가져오는데 실패했습니다.')));
     }
   }
 
@@ -102,9 +102,9 @@ class _FoundItemFormState extends State<FoundItemForm> {
       }
     } catch (e) {
       print('이미지 선택 오류: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미지를 선택하는데 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('이미지를 선택하는데 실패했습니다.')));
     }
   }
 
@@ -135,7 +135,8 @@ class _FoundItemFormState extends State<FoundItemForm> {
       }
 
       // GPS 정보 추출
-      if (exifData.containsKey('GPS GPSLatitude') && exifData.containsKey('GPS GPSLongitude')) {
+      if (exifData.containsKey('GPS GPSLatitude') &&
+          exifData.containsKey('GPS GPSLongitude')) {
         List<dynamic> latValues = exifData['GPS GPSLatitude']!.values.toList();
         List<dynamic> lonValues = exifData['GPS GPSLongitude']!.values.toList();
         double latitude = _convertToDegree(latValues);
@@ -199,33 +200,34 @@ class _FoundItemFormState extends State<FoundItemForm> {
               '네이비': '남색',
               '분홍색': '분홍색',
             };
-            _selectedColor = colorMapping.containsKey(data['color'])
-                ? colorMapping[data['color']]
-                : '기타';
+            _selectedColor =
+                colorMapping.containsKey(data['color'])
+                    ? colorMapping[data['color']]
+                    : '기타';
           }
           // 상세 설명 채우기
           if (_detailController.text.isEmpty) {
             _detailController.text = data['description'] ?? '';
           }
-          // 카테고리 채우기 (설명 대신 선택값 확인)
+          // 카테고리 채우기
           if (_selectedCategory == null || _selectedCategory!.isEmpty) {
             _selectedCategory = data['category'] ?? '';
             _selectedCategoryId = '';
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미지 분석 결과가 반영되었습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('이미지 분석 결과가 반영되었습니다.')));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미지 분석에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('이미지 분석에 실패했습니다.')));
       }
     } catch (e) {
       print('이미지 분석 오류: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미지 분석 중 오류가 발생했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('이미지 분석 중 오류가 발생했습니다.')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -235,33 +237,33 @@ class _FoundItemFormState extends State<FoundItemForm> {
 
   bool _validateForm() {
     if (_itemNameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('품목명을 입력해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('품목명을 입력해주세요.')));
       return false;
     }
     if (_selectedCategoryId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('카테고리를 선택해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('카테고리를 선택해주세요.')));
       return false;
     }
     if (_selectedColor == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('색상을 선택해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('색상을 선택해주세요.')));
       return false;
     }
     if (_selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('습득일자를 선택해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('습득일자를 선택해주세요.')));
       return false;
     }
     if (_selectedLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('습득장소를 선택해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('습득장소를 선택해주세요.')));
       return false;
     }
     if (_latitude == null || _longitude == null) {
@@ -281,9 +283,10 @@ class _FoundItemFormState extends State<FoundItemForm> {
     });
 
     try {
-      final formattedDate = "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
+      final formattedDate =
+          "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
       final categories = await _apiService.getCategories();
-      
+
       final selectedCategoryName = _selectedCategory?.split(' > ').last.trim();
       final matchingCategory = categories.firstWhere(
         (category) => category.name == selectedCategoryName,
@@ -324,18 +327,18 @@ class _FoundItemFormState extends State<FoundItemForm> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('습득물이 성공적으로 등록되었습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('습득물이 성공적으로 등록되었습니다.')));
       Navigator.pop(context, true);
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
       print('습득물 등록 오류: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('습득물 등록에 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('습득물 등록에 실패했습니다.')));
     }
   }
 
@@ -346,16 +349,18 @@ class _FoundItemFormState extends State<FoundItemForm> {
     _itemNameController.text = item.name;
     _detailController.text = item.detail;
     if (item.image != null) {
-      _imageUrl = item.imageUrl;
+      _imageUrl = item.image;
     }
 
     setState(() {
-      _selectedCategory = (item.minorCategory != null && item.minorCategory.isNotEmpty)
-          ? "${item.majorCategory} > ${item.minorCategory}"
-          : "${item.majorCategory}";
-      _selectedCategoryId = (item.minorCategory != null && item.minorCategory.isNotEmpty)
-          ? item.minorCategory
-          : '';
+      _selectedCategory =
+          (item.minorCategory != null && item.minorCategory.isNotEmpty)
+              ? "${item.majorCategory} > ${item.minorCategory}"
+              : "${item.majorCategory}";
+      _selectedCategoryId =
+          (item.minorCategory != null && item.minorCategory.isNotEmpty)
+              ? item.minorCategory
+              : '';
       _selectedColor = item.color;
       _selectedLocation = item.location;
       if (item.foundAt != null) {
@@ -395,10 +400,11 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const CategorySelect(
-                          headerLine1: '주우신 물건의',
-                          headerLine2: '종류를 알려주세요!',
-                        ),
+                        builder:
+                            (_) => const CategorySelect(
+                              headerLine1: '주우신 물건의',
+                              headerLine2: '종류를 알려주세요!',
+                            ),
                       ),
                     );
                     if (result != null) {
@@ -417,10 +423,11 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const ColorSelect(
-                          headerLine1: '주우신 물건의',
-                          headerLine2: '색상을 알려주세요!',
-                        ),
+                        builder:
+                            (_) => const ColorSelect(
+                              headerLine1: '주우신 물건의',
+                              headerLine2: '색상을 알려주세요!',
+                            ),
                       ),
                     );
                     if (result != null) {
@@ -433,17 +440,19 @@ class _FoundItemFormState extends State<FoundItemForm> {
                 const SizedBox(height: 20),
                 _buildSelectionItem(
                   label: '습득일자',
-                  value: _selectedDate != null
-                      ? "${_selectedDate!.year}년 ${_selectedDate!.month.toString().padLeft(2, '0')}월 ${_selectedDate!.day.toString().padLeft(2, '0')}일"
-                      : '',
+                  value:
+                      _selectedDate != null
+                          ? "${_selectedDate!.year}년 ${_selectedDate!.month.toString().padLeft(2, '0')}월 ${_selectedDate!.day.toString().padLeft(2, '0')}일"
+                          : '',
                   onTap: () async {
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const DateSelect(
-                          headerLine1: '물건을 주우신',
-                          headerLine2: '날짜를 알려주세요!',
-                        ),
+                        builder:
+                            (_) => const DateSelect(
+                              headerLine1: '물건을 주우신',
+                              headerLine2: '날짜를 알려주세요!',
+                            ),
                       ),
                     );
                     if (result != null) {
@@ -461,11 +470,13 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => LocationSelect(
-                          date: _selectedDate != null
-                              ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}"
-                              : null,
-                        ),
+                        builder:
+                            (_) => LocationSelect(
+                              date:
+                                  _selectedDate != null
+                                      ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}"
+                                      : null,
+                            ),
                       ),
                     );
                     if (result != null) {
@@ -490,9 +501,10 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     ),
                   ),
                   onPressed: _isLoading ? null : _submitForm,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('작성 완료'),
+                  child:
+                      _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('작성 완료'),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -533,42 +545,41 @@ class _FoundItemFormState extends State<FoundItemForm> {
         decoration: BoxDecoration(
           color: Colors.grey[200],
           borderRadius: BorderRadius.circular(16),
-          image: _selectedImage != null
-              ? DecorationImage(
-                  image: FileImage(_selectedImage!),
-                  fit: BoxFit.cover,
-                )
-              : _imageUrl != null
+          image:
+              _selectedImage != null
                   ? DecorationImage(
-                      image: NetworkImage(_imageUrl!),
-                      fit: BoxFit.cover,
-                    )
+                    image: FileImage(_selectedImage!),
+                    fit: BoxFit.cover,
+                  )
+                  : _imageUrl != null
+                  ? DecorationImage(
+                    image: NetworkImage(_imageUrl!),
+                    fit: BoxFit.cover,
+                  )
                   : null,
         ),
-        child: (_selectedImage == null && _imageUrl == null)
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(
-                      Icons.image,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      '이미지 선택하기',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              )
-            : null,
+        child:
+            (_selectedImage == null && _imageUrl == null)
+                ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.image, size: 50, color: Colors.grey),
+                      SizedBox(height: 8),
+                      Text('이미지 선택하기', style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                )
+                : null,
       ),
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {int maxLines = 1}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    int maxLines = 1,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/screens/lost/lost_item_form.dart';
 import 'package:sumsumfinder/widgets/common/custom_button.dart';
+import '../../screens/lost/lost_item_form.dart';
 import 'package:sumsumfinder/services/lost_items_api_service.dart';
 import 'package:sumsumfinder/models/lost_items_model.dart';
 
@@ -9,11 +9,15 @@ class MainOptionsPopup extends StatelessWidget {
   final Function(LostItemModel) onUpdate;
   final LostItemsApiService _apiService = LostItemsApiService();
 
-  MainOptionsPopup({Key? key, required this.item, required this.onUpdate}) : super(key: key);
+  MainOptionsPopup({Key? key, required this.item, required this.onUpdate})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final bool currentNotificationEnabled = item.notificationEnabled;
+    final bool isCurrentlyLost = item.status == "LOST";
+    final String toggleStatusOptionText =
+        isCurrentlyLost ? "찾은물건으로 변경" : "숨은물건으로 변경";
 
     return SafeArea(
       child: Column(
@@ -21,14 +25,25 @@ class MainOptionsPopup extends StatelessWidget {
         children: [
           OptionItem(
             text: '수정하기',
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              Navigator.push(
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => LostItemForm(itemToEdit: item),
                 ),
               );
+              if (result == true) {
+                try {
+                  final updatedResponse = await _apiService.getLostItemDetail(
+                    lostId: item.id,
+                  );
+                  final updatedItem = LostItemModel.fromJson(updatedResponse);
+                  onUpdate(updatedItem);
+                } catch (e) {
+                  print('수정 후 분실물 정보를 불러오는데 실패했습니다: $e');
+                }
+              }
             },
           ),
           OptionItem(
@@ -40,9 +55,27 @@ class MainOptionsPopup extends StatelessWidget {
           ),
           OptionItem(
             text: currentNotificationEnabled ? '알림끄기' : '알림켜기',
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
               _updateNotificationSettings(!currentNotificationEnabled);
+            },
+          ),
+          OptionItem(
+            text: toggleStatusOptionText,
+            onTap: () async {
+              Navigator.pop(context);
+              final String newStatus = isCurrentlyLost ? "FOUND" : "LOST";
+              try {
+                await _apiService.updateLostItemStatus(
+                  lostId: item.id,
+                  status: newStatus,
+                );
+                final updatedItem = item.copyWith(status: newStatus);
+                onUpdate(updatedItem);
+                print('상태가 변경되었습니다.');
+              } catch (e) {
+                print('상태가 변경에 실패하였습니다: ${e}');
+              }
             },
           ),
           Container(
@@ -101,19 +134,13 @@ class MainOptionsPopup extends StatelessWidget {
     }
   }
 
-  Future<void> _updateNotificationSettings(
-    bool enabled,
-  ) async {
+  Future<void> _updateNotificationSettings(bool enabled) async {
     try {
       final result = await _apiService.updateNotificationSettings(
         lostId: item.id,
         notificationEnabled: enabled,
       );
-
-      final updatedItem = item.copyWith(
-        notificationEnabled: enabled
-      );
-
+      final updatedItem = item.copyWith(notificationEnabled: enabled);
       onUpdate(updatedItem);
       print('알림 설정 업데이트 결과: $result');
     } catch (e) {

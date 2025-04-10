@@ -9,40 +9,42 @@ class FoundItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isCompleted = item.status == "RECEIVED";
-    final Color labelBackground = isCompleted ? Colors.lightGreen[100]! : Colors.blue[100]!;
+    final Color labelBackground =
+        isCompleted ? Colors.lightGreen[100]! : Colors.blue[100]!;
     final Color labelBorder = isCompleted ? Colors.green : Colors.blue;
     final Color labelTextColor = isCompleted ? Colors.green : Colors.blue;
-    final String labelText = isCompleted ? '수령완료' : '습득물';
+    final String labelText = isCompleted ? '돌려준물건' : '보관중인물건';
 
     final contentRow = Row(
       children: [
         // 이미지 영역
         ClipRRect(
           borderRadius: BorderRadius.circular(8.0),
-          child: item.image != null
-              ? Image.network(
-                  item.image!,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey[300],
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: Colors.grey[500],
-                      ),
-                    );
-                  },
-                )
-              : Container(
-                  width: 80,
-                  height: 80,
-                  color: Colors.grey[300],
-                  child: Icon(Icons.image, color: Colors.grey[500]),
-                ),
+          child:
+              item.image != null
+                  ? Image.network(
+                    item.image!,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 80,
+                        height: 80,
+                        color: Colors.grey[300],
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey[500],
+                        ),
+                      );
+                    },
+                  )
+                  : Container(
+                    width: 80,
+                    height: 80,
+                    color: Colors.grey[300],
+                    child: Icon(Icons.image, color: Colors.grey[500]),
+                  ),
         ),
         const SizedBox(width: 20),
         Expanded(
@@ -59,7 +61,11 @@ class FoundItemCard extends StatelessWidget {
               // 습득물 이름
               Text(
                 item.name,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.black,
+                ),
               ),
               const SizedBox(height: 4),
               // 습득 장소 정보
@@ -94,10 +100,26 @@ class FoundItemCard extends StatelessWidget {
     if (isCompleted) {
       cardContent = ColorFiltered(
         colorFilter: const ColorFilter.matrix(<double>[
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0, 0, 0, 1, 0,
+          0.2126,
+          0.7152,
+          0.0722,
+          0,
+          0,
+          0.2126,
+          0.7152,
+          0.0722,
+          0,
+          0,
+          0.2126,
+          0.7152,
+          0.0722,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
         ]),
         child: cardContent,
       );
