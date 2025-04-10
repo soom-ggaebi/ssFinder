@@ -57,22 +57,26 @@ class _LostItemsListState extends State<LostItemsList> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => LostItemDetail(
-                      itemId: lostItem.id,
-                      onStatusChanged: (id, status) {
-                        final index = items.indexWhere(
-                          (item) => item.id == id,
-                        );
-                        setState(() {
-                          items[index] = items[index].copyWith(status: status);
-                        });
-                      },
-                    ),
+                    builder:
+                        (_) => LostItemDetail(
+                          itemId: lostItem.id,
+                          onStatusChanged: (id, status) {
+                            final index = items.indexWhere(
+                              (item) => item.id == id,
+                            );
+                            setState(() {
+                              items[index] = items[index].copyWith(
+                                status: status,
+                              );
+                            });
+                          },
+                        ),
                   ),
                 );
 
                 if (result != null && result is Map<String, dynamic>) {
-                  if (result.containsKey('id') && result.containsKey('status')) {
+                  if (result.containsKey('id') &&
+                      result.containsKey('status')) {
                     _updateItemStatus(result['id'], result['status']);
                   }
                 }
@@ -89,16 +93,16 @@ class _LostItemsListState extends State<LostItemsList> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => Recommended(
-                        lostItemId: lostItem.id,
-                      ),
+                      builder: (_) => Recommended(lostItemId: lostItem.id),
                     ),
                   );
                 },
                 child: RecommendedCard(
-                  image: (lostItem.matched_image_urls as List<String>)
-                      .take(3)
-                      .toList(),
+                  image:
+                      (lostItem.matched_image_urls as List<dynamic>)
+                          .map((url) => url.toString())
+                          .take(3)
+                          .toList(),
                 ),
               ),
           ],

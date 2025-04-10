@@ -12,6 +12,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sumsumfinder/screens/main/noti_setting_page.dart';
 import 'package:sumsumfinder/screens/main/info_edit_page.dart';
+import 'package:sumsumfinder/services/lost_items_api_service.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({Key? key}) : super(key: key);
@@ -32,6 +33,9 @@ class _MyPageState extends State<MyPage> {
 
   String _serverNickname = ""; // 서버에서 가져온 닉네임을 저장할 변수
 
+  int _lostItemCount = 0;
+  int _foundItemCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -39,7 +43,24 @@ class _MyPageState extends State<MyPage> {
     _ensureDotEnvLoaded().then((_) {
       _loadServerNickname(); // 서버에서 닉네임 로드
       _loadNotificationSettings();
+      _loadUserItemCounts();
     });
+  }
+
+  Future<void> _loadUserItemCounts() async {
+    try {
+      if (_kakaoLoginService.isLoggedIn.value) {
+        final result = await LostItemsApiService().getUserItemCounts();
+        if (result['success'] == true && result['data'] != null) {
+          setState(() {
+            _lostItemCount = result['data']['lost_item_count'] ?? 0;
+            _foundItemCount = result['data']['found_item_count'] ?? 0;
+          });
+        }
+      }
+    } catch (e) {
+      print('사용자 아이템 건수 로드 중 오류: $e');
+    }
   }
 
   // 서버에서 닉네임 가져오기
@@ -512,11 +533,10 @@ class _MyPageState extends State<MyPage> {
               ),
               child: Column(
                 children: [
-                  _buildStatItem('내가 등록한 분실물', '2건'),
+                   _buildStatItem('내가 등록한 분실물', '${_lostItemCount}건'),
                   const SizedBox(height: 12),
-                  _buildStatItem('내가 등록한 습득물', '1건'),
+                  _buildStatItem('내가 등록한 습득물', '${_foundItemCount}건'),
                   const SizedBox(height: 12),
-                  _buildStatItem('활동 지역', '장덕동'),
                 ],
               ),
             ),
