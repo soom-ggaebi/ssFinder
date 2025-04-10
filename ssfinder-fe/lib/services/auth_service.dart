@@ -15,6 +15,11 @@ class AuthService {
   // JWT 토큰 가져오기
   static Future<String> getJwtToken() async {
     final prefs = await SharedPreferences.getInstance();
+    final allPrefs = prefs.getKeys().fold<Map<String, dynamic>>({}, (map, key) {
+  map[key] = prefs.get(key);
+  return map;
+});
+print(allPrefs);
     return prefs.getString(_jwtKey) ?? '';
   }
 

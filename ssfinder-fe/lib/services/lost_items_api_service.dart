@@ -252,44 +252,6 @@ class LostItemsApiService {
     }
   }
 
-  Future<List<CategoryModel>> getCategories() async {
-    try {
-      final token = await _getAccessToken();
-
-      final headers = {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      };
-
-      final response = await _dio.get(
-        '${EnvironmentConfig.baseUrl}/api/category',
-        options: Options(headers: headers),
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData =
-            response.data as Map<String, dynamic>;
-        final List<dynamic> categoriesJson =
-            responseData['data'] as List<dynamic>;
-
-        return categoriesJson
-            .map((json) => CategoryModel.fromJson(json))
-            .toList();
-      } else if (response.statusCode == 404) {
-        throw Exception('카테고리를 찾을 수 없습니다.');
-      } else {
-        throw DioException(
-          requestOptions: response.requestOptions,
-          response: response,
-          error: 'Unexpected status code: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      print('Error fetching categories: $e');
-      rethrow;
-    }
-  }
-
   // 분실물 알림 설정
   Future<Map<String, dynamic>> updateNotificationSettings({
     required int lostId,
@@ -328,6 +290,36 @@ class LostItemsApiService {
       }
     } catch (e) {
       print('Error updating notification settings: $e');
+      rethrow;
+    }
+  }
+
+  // 사용자 분실물/습득물 카운트 조회 기능
+  Future<Map<String, dynamic>> getUserItemCounts() async {
+    try {
+      final token = await _getAccessToken();
+
+      final response = await _dio.get(
+        '${EnvironmentConfig.baseUrl}/api/users/item-counts',
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          error: 'Unexpected status code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching user item counts: $e');
       rethrow;
     }
   }

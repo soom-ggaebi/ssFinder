@@ -106,6 +106,7 @@ class LostItemListModel {
   final String lostAt; // 분실 날짜
   final String? image; // 이미지 URL (null 가능)
   final String status; // 상태 (예: "LOST")
+  final List? matched_image_urls;
 
   LostItemListModel({
     required this.id,
@@ -117,6 +118,7 @@ class LostItemListModel {
     required this.lostAt,
     this.image,
     required this.status,
+    this.matched_image_urls
   });
 
   LostItemListModel copyWith({
@@ -129,6 +131,7 @@ class LostItemListModel {
     String? lostAt,
     String? image,
     String? status,
+    List? matched_image_urls,
   }) {
     return LostItemListModel(
       id: id ?? this.id,
@@ -140,6 +143,7 @@ class LostItemListModel {
       lostAt: lostAt ?? this.lostAt,
       image: image ?? this.image,
       status: status ?? this.status,
+      matched_image_urls: matched_image_urls ?? this.matched_image_urls
     );
   }
 
@@ -154,6 +158,7 @@ class LostItemListModel {
       lostAt: json['lost_at'] as String,
       image: json['image'] as String?,
       status: json['status'] as String,
+      matched_image_urls: json['matched_image_urls'] as List?,
     );
   }
 }

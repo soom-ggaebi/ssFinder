@@ -1,45 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/models/found_items_model.dart';
-import 'package:sumsumfinder/widgets/found/found_item_card.dart';
-import 'package:sumsumfinder/screens/found/found_item_detail_police.dart';
-import 'package:sumsumfinder/screens/found/found_item_detail_sumsumfinder.dart';
 
 class Recommended extends StatelessWidget {
-  final List<FoundItemListModel> recommendations;
+  final int lostItemId;
 
-  const Recommended({Key? key, required this.recommendations})
-    : super(key: key);
+  const Recommended({Key? key, required this.lostItemId}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("추천 페이지")),
-      body: ListView.builder(
-        itemCount: recommendations.length,
-        itemBuilder: (context, index) {
-          final foundItem = recommendations[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (_) =>
-                            foundItem.type == '경찰청'
-                                ? FoundItemDetailPolice(id: foundItem.id)
-                                : FoundItemDetailSumsumfinder(id: foundItem.id),
-                  ),
-                );
-              },
-              child: FoundItemCard(item: foundItem, isLoggedIn: true,),
-            ),
-          );
-        },
+      body: Center(
+        child: Text(
+          "추천 데이터를 불러올 분실물 ID: $lostItemId",
+          style: TextStyle(fontSize: 18),
+        ),
       ),
     );
   }

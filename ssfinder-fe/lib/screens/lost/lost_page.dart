@@ -99,6 +99,7 @@ class _LostPageState extends State<LostPage>
             lostAt: _lostItems[i].lostAt,
             image: _lostItems[i].image,
             status: newStatus,
+            matched_image_urls: _lostItems[i].matched_image_urls,
           );
           break;
         }
