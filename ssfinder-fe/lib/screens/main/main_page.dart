@@ -86,8 +86,8 @@ class _MainPageState extends State<MainPage> {
           padding: EdgeInsets.only(left: screenWidth * 0.02),
           child: SvgPicture.asset(
             'assets/images/main/logo.svg',
-            width: screenWidth * 0.25, // 화면 너비의 25%
-            height: screenWidth * 0.06, // 너비에 비례한 높이
+            width: screenWidth * 0.5, // 화면 너비의 25%
+            height: screenWidth * 0.08, // 너비에 비례한 높이
           ),
         ),
 

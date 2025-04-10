@@ -29,16 +29,9 @@ class RecommendedCard extends StatelessWidget {
             children: [
               const Text(
                 "숨깨비가 물건을 찾아왔어요!",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              Image.asset(
-                "assets/images/founditem.png",
-                width: 24,
-                height: 24,
-              ),
+              Image.asset("assets/images/app_icon.png", width: 24, height: 24),
             ],
           ),
           const SizedBox(height: 8),
@@ -59,27 +52,28 @@ class RecommendedCard extends StatelessWidget {
       padding: const EdgeInsets.only(right: 8.0),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8.0),
-        child: isNetworkImage
-            ? Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: NetworkImage(imagePath),
-                    fit: BoxFit.cover,
-                  ),
+        child:
+            isNetworkImage
+                ? Image.network(
+                  imagePath,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Image.asset(
+                      'assets/images/main/null_image.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    );
+                  },
+                )
+                : Image.asset(
+                  'assets/images/main/null_image.png',
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
                 ),
-              )
-            : Container(
-                width: 80,
-                height: 80,
-                color: Colors.grey[300],
-                child: const Icon(
-                  Icons.image,
-                  size: 50,
-                  color: Colors.white,
-                ),
-              ),
       ),
     );
   }

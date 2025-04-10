@@ -109,14 +109,15 @@ class _FoundItemCardState extends State<FoundItemCard> {
                   : Container(
                     width: 100,
                     height: 100,
-                    color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.image,
-                      size: 50,
-                      color: Colors.white,
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage('assets/images/main/null_image.png'),
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
         ),
+
         const SizedBox(width: 20),
         Expanded(
           child: Column(

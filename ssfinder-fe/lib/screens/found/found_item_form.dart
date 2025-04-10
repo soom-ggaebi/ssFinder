@@ -325,15 +325,30 @@ class _FoundItemFormState extends State<FoundItemForm> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('습득물이 성공적으로 등록되었습니다.')));
-      
-      final newFoundItemId = foundItemResponseData['data']['id'];
-      
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FoundItemDetailSumsumfinder(id: newFoundItemId),
-        ),
-      );
+
+      // API 응답에서 ID 추출 시 null 체크 추가
+      int? newFoundItemId;
+      if (foundItemResponseData.containsKey('data') &&
+          foundItemResponseData['data'] != null &&
+          foundItemResponseData['data'].containsKey('id')) {
+        // newFoundItemId = foundItemResponseData['data']['id'];
+      }
+      // null이 아닌 경우에만 상세 페이지로 이동
+      // if (newFoundItemId != null) {
+      //   Navigator.pushReplacement(
+      //     context,
+      //     // MaterialPageRoute(
+      //     // builder:
+      //     // (context) => FoundItemDetailSumsumfinder(id: newFoundItemId),
+      //     // ),
+      //   );
+      else {
+        // ID가 없는 경우 처리 (예: 이전 화면으로 돌아가기)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('상세 페이지로 이동할 수 없습니다.')));
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -518,9 +533,7 @@ class _FoundItemFormState extends State<FoundItemForm> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (_isLoading && !_isAiAnalyzing)
-                      const CircularProgressIndicator(
-                        color: Colors.white,
-                      )
+                      const CircularProgressIndicator(color: Colors.white)
                     else if (_isAiAnalyzing)
                       Column(
                         children: [
@@ -528,15 +541,15 @@ class _FoundItemFormState extends State<FoundItemForm> {
                             width: 150,
                             height: 150,
                             child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: GifView.asset(
-                              'assets/images/ai_analyzing.gif',
-                              height: 150,
-                              width: 150,
-                              frameRate: 1, // 프레임 속도 설정
-                              fit: BoxFit.cover,
+                              borderRadius: BorderRadius.circular(10),
+                              child: GifView.asset(
+                                'assets/images/ai_analyzing.gif',
+                                height: 150,
+                                width: 150,
+                                frameRate: 1, // 프레임 속도 설정
+                                fit: BoxFit.cover,
+                              ),
                             ),
-                          ),
                           ),
                           const SizedBox(height: 16),
                           const Text(
@@ -550,10 +563,7 @@ class _FoundItemFormState extends State<FoundItemForm> {
                           const SizedBox(height: 8),
                           const Text(
                             '잠시만 기다려주세요...',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.white, fontSize: 14),
                           ),
                         ],
                       ),
