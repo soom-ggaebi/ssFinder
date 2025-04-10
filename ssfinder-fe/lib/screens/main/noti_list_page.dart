@@ -8,6 +8,8 @@ import 'package:sumsumfinder/models/noti_model.dart';
 import 'package:sumsumfinder/utils/noti_state.dart';
 import 'package:sumsumfinder/widgets/main/noti_item_widget.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:sumsumfinder/screens/home_page.dart';
+import 'package:sumsumfinder/utils/time_formatter.dart'; // TimeFormatter import 추가
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({Key? key}) : super(key: key);
@@ -131,7 +133,15 @@ class _NotificationPageState extends State<NotificationPage>
         await _loadTypeNotifications(type, refresh);
       }
     } catch (e) {
-      _showErrorSnackBar('알림 데이터를 불러오는 중 오류가 발생했습니다');
+      print('알림 데이터 로드 중 오류: $e');
+
+      // 로그인 관련 오류인 경우 특별 처리
+      if (e.toString().contains('로그인이 필요합니다')) {
+        _showErrorSnackBar('로그인이 필요합니다');
+        _navigateToLogin();
+      } else {
+        _showErrorSnackBar('알림 데이터를 불러오는 중 오류가 발생했습니다');
+      }
     } finally {
       setState(() {
         _state = _state.setLoading(type, false);
@@ -139,10 +149,67 @@ class _NotificationPageState extends State<NotificationPage>
     }
   }
 
-  // 모든 유형의 알림 데이터 로드
+  // 특정 유형의 알림 데이터 로드
+  Future<void> _loadTypeNotifications(
+    NotificationType type,
+    bool refresh,
+  ) async {
+    try {
+      // 로그인 상태 확인 추가
+      final token = await _kakaoLoginService.getAccessToken();
+      if (token == null) {
+        _showErrorSnackBar('로그인이 필요합니다');
+        _navigateToLogin();
+        return;
+      }
+
+      final response = await NotificationApiService.getNotifications(
+        type: type.apiValue,
+        lastId: _state.lastIdMap[type],
+      );
+
+      if (response.success && response.data != null) {
+        setState(() {
+          _state = _state.updateNotifications(
+            type,
+            response.data!.content,
+            response.data!.hasNext,
+            append: !refresh,
+          );
+        });
+      } else if (response.error != null) {
+        // 로그인 관련 오류인지 확인
+        if (response.error!.message.contains('로그인') ||
+            response.error!.code == 'UNAUTHORIZED') {
+          _showErrorSnackBar('로그인이 필요합니다');
+          _navigateToLogin();
+        } else {
+          _showErrorSnackBar(response.error!.message);
+        }
+      }
+    } catch (e) {
+      print('타입별 알림 로드 중 오류: $e');
+      // 로그인 관련 오류인 경우 특별 처리
+      if (e.toString().contains('로그인이 필요합니다')) {
+        _showErrorSnackBar('로그인이 필요합니다');
+        _navigateToLogin();
+      } else {
+        _showErrorSnackBar('알림 데이터를 불러오는 중 오류가 발생했습니다');
+      }
+    }
+  }
+
   // 모든 유형의 알림 데이터 로드 - 개선 버전
   Future<void> _loadAllNotifications(bool refresh) async {
     try {
+      // 로그인 상태 확인 추가
+      final token = await _kakaoLoginService.getAccessToken();
+      if (token == null) {
+        _showErrorSnackBar('로그인이 필요합니다');
+        _navigateToLogin(); // 로그인 페이지로 이동하는 함수 추가
+        return;
+      }
+
       // ALL 타입 API를 사용하여 모든 알림을 한 번에 가져옴
       final response = await NotificationApiService.getNotifications(
         // type 파라미터를 전달하지 않음 (모든 타입 가져오기)
@@ -150,6 +217,7 @@ class _NotificationPageState extends State<NotificationPage>
       );
 
       if (response.success && response.data != null) {
+        // 기존 코드 유지
         final items = response.data!.content;
         final hasMore = response.data!.hasNext;
 
@@ -193,36 +261,82 @@ class _NotificationPageState extends State<NotificationPage>
           });
         }
       } else if (response.error != null) {
-        _showErrorSnackBar(response.error!.message);
+        // 로그인 관련 오류인지 확인
+        if (response.error!.message.contains('로그인') ||
+            response.error!.code == 'UNAUTHORIZED') {
+          _showErrorSnackBar('로그인이 필요합니다');
+          _navigateToLogin(); // 로그인 페이지로 이동
+        } else {
+          _showErrorSnackBar(response.error!.message);
+        }
       }
     } catch (e) {
       print('전체 알림 로드 중 오류: $e');
-      _showErrorSnackBar('알림 데이터를 불러오는 중 오류가 발생했습니다');
+      // 로그인 관련 오류인 경우 특별 처리
+      if (e.toString().contains('로그인이 필요합니다')) {
+        _showErrorSnackBar('로그인이 필요합니다');
+        _navigateToLogin(); // 로그인 페이지로 이동
+      } else {
+        _showErrorSnackBar('알림 데이터를 불러오는 중 오류가 발생했습니다');
+      }
     }
   }
 
-  // 특정 유형의 알림 데이터 로드
-  Future<void> _loadTypeNotifications(
-    NotificationType type,
-    bool refresh,
-  ) async {
-    final response = await NotificationApiService.getNotifications(
-      type: type.apiValue,
-      lastId: _state.lastIdMap[type],
-    );
-
-    if (response.success && response.data != null) {
-      setState(() {
-        _state = _state.updateNotifications(
-          type,
-          response.data!.content,
-          response.data!.hasNext,
-          append: !refresh,
+  // 로그인 페이지로 이동하는 대신 카카오 로그인 시도
+  void _navigateToLogin() {
+    Future.delayed(Duration.zero, () async {
+      if (mounted) {
+        // 로그인 시도 중 다이얼로그 표시
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder:
+              (context) => const Center(child: CircularProgressIndicator()),
         );
-      });
-    } else if (response.error != null) {
-      _showErrorSnackBar(response.error!.message);
-    }
+
+        try {
+          // 카카오 로그인 시도
+          final success = await _kakaoLoginService.loginWithBackendAuth();
+
+          // 로딩 다이얼로그 닫기
+          if (mounted && Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+
+          if (success) {
+            // 로그인 성공 시 알림 데이터 다시 로드
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('로그인 성공! 알림을 불러옵니다.')),
+              );
+              _refreshCurrentTab();
+            }
+          } else {
+            // 로그인 실패 시 에러 메시지
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
+              );
+              // 로그인 실패 시 이전 화면으로 돌아가기
+              Navigator.of(context).pop();
+            }
+          }
+        } catch (e) {
+          // 예외 발생 시 로딩 다이얼로그 닫기
+          if (mounted && Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('로그인 중 오류가 발생했습니다: $e')));
+            // 오류 발생 시 이전 화면으로 돌아가기
+            Navigator.of(context).pop();
+          }
+        }
+      }
+    });
   }
 
   // 에러 메시지 표시
@@ -371,6 +485,97 @@ class _NotificationPageState extends State<NotificationPage>
     }
   }
 
+  // 알림을 클릭할 때 호출되는 메서드
+  void _handleNotificationTap(NotificationItem notification) async {
+    print(
+      'NotificationPage: Handling tap for ${notification.id}, type: ${notification.type}',
+    );
+
+    try {
+      // 알림 탭 시 먼저 알림 읽음 처리 및 삭제
+      final success = await NotificationApiService.deleteNotification(
+        notification.id,
+      );
+
+      // 알림 타입에 따라 다른 페이지로 이동
+      switch (notification.type) {
+        case NotificationType.CHAT:
+          print('NotificationPage: Navigating to ChatListPage with bottom nav');
+
+          // HomePage로 이동하면서 채팅 탭(인덱스 3)을 선택
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => HomePage(initialIndex: 3), // 채팅 탭 인덱스는 3
+            ),
+            (route) => false, // 모든 이전 라우트 제거
+          );
+          break;
+        case NotificationType.TRANSFER:
+          print(
+            'NotificationPage: Transfer notification tapped (not implemented)',
+          );
+          // TODO: 인계 관련 페이지로 이동
+          break;
+        case NotificationType.AI_MATCH:
+          print(
+            'NotificationPage: AI Match notification tapped (not implemented)',
+          );
+          // TODO: AI 매칭 관련 페이지로 이동
+          break;
+        case NotificationType.ITEM_REMINDER:
+          print(
+            'NotificationPage: Item Reminder notification tapped (not implemented)',
+          );
+          // TODO: 소지품 관련 페이지로 이동
+          break;
+        default:
+          print('NotificationPage: Unknown notification type');
+          break;
+      }
+    } catch (e) {
+      print('NotificationPage: Error handling notification tap: $e');
+      _showErrorSnackBar('알림 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  // 알림을 읽음 처리하고 삭제하는 메서드
+  Future<void> _markAsReadAndDelete(NotificationItem notification) async {
+    try {
+      // 읽음 처리 API 호출 (이 부분은 서버에 읽음 상태를 업데이트하는 API가 있다면 호출)
+      // 예: await NotificationApiService.markAsRead(notification.id);
+
+      // 알림 삭제 API 호출
+      final success = await NotificationApiService.deleteNotification(
+        notification.id,
+      );
+
+      if (success) {
+        // 성공 시 로컬 상태에서도 알림 삭제
+        for (var type in NotificationType.values) {
+          final notifications = List<NotificationItem>.from(
+            _state.notificationsMap[type] ?? [],
+          );
+          notifications.removeWhere((item) => item.id == notification.id);
+
+          setState(() {
+            final newNotificationsMap =
+                Map<NotificationType, List<NotificationItem>>.from(
+                  _state.notificationsMap,
+                );
+            newNotificationsMap[type] = notifications;
+            _state = _state.copyWith(notificationsMap: newNotificationsMap);
+          });
+        }
+      } else {
+        // 삭제 실패 시 에러 발생
+        throw Exception('알림 삭제 실패');
+      }
+    } catch (e) {
+      print('알림 읽음 처리 및 삭제 중 오류: $e');
+      // 오류가 발생해도 페이지 이동은 계속 진행
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -422,6 +627,7 @@ class _NotificationPageState extends State<NotificationPage>
   }
 
   // 탭 내용 위젯 빌드
+  // NotificationPage의 _buildTabContent 메서드 수정
   Widget _buildTabContent(NotificationType type) {
     final notifications = _state.notificationsMap[type]!;
     final isLoading = _state.isLoadingMap[type]!;
@@ -466,10 +672,13 @@ class _NotificationPageState extends State<NotificationPage>
                     return const SizedBox.shrink();
                   }
 
-                  // 알림 아이템
+                  // 알림 아이템 - 외부 콜백으로 탭 이벤트 위임
+                  final notification = notifications[index];
+
                   return NotificationItemWidget(
-                    notification: notifications[index],
+                    notification: notification,
                     onDelete: _deleteNotification,
+                    onTap: _handleNotificationTap, // 외부 콜백 전달
                   );
                 },
               ),

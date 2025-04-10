@@ -4,6 +4,9 @@ import 'package:sumsumfinder/services/kakao_login_service.dart';
 import 'package:sumsumfinder/widgets/common/app_text.dart';
 import 'package:sumsumfinder/widgets/common/custom_dialog.dart';
 import 'package:sumsumfinder/screens/home_page.dart';
+import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 
 class LoginWidget extends StatefulWidget {
   const LoginWidget({Key? key}) : super(key: key);
@@ -16,6 +19,9 @@ class _LoginWidgetState extends State<LoginWidget> {
   // 카카오 로그인 서비스 인스턴스
   final KakaoLoginService _kakaoLoginService = KakaoLoginService();
   bool _isLoading = true; // 초기 로딩 상태 추가
+
+  // 서버에서 가져온 닉네임 저장 변수
+  String _serverNickname = "";
 
   @override
   void initState() {
@@ -52,6 +58,9 @@ class _LoginWidgetState extends State<LoginWidget> {
         // 토큰이 있으면 백엔드에 유효성 확인 및 갱신
         if (token != null) {
           await _ensureBackendAuthentication();
+
+          // 서버에서 닉네임 가져오기
+          await _loadServerNickname();
         }
       }
     } catch (e) {
@@ -85,9 +94,71 @@ class _LoginWidgetState extends State<LoginWidget> {
     }
   }
 
-  // 로그인 상태 변경 시 화면 갱신
+  // 서버에서 닉네임 가져오기
+  Future<void> _loadServerNickname() async {
+    try {
+      // dotenv가 이미 로드되었는지 확인
+      if (dotenv.env['BACKEND_URL'] == null) {
+        await dotenv.load();
+      }
+
+      // JWT 토큰 가져오기
+      final jwtToken = await _kakaoLoginService.getAccessToken();
+
+      if (jwtToken == null) {
+        print('JWT 토큰이 없어 서버에서 닉네임을 가져올 수 없습니다.');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('${dotenv.env['BACKEND_URL']}/api/users'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $jwtToken',
+        },
+      );
+
+      print('LoginWidget - 사용자 정보 응답 상태 코드: ${response.statusCode}');
+
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        final responseBody = utf8.decode(response.bodyBytes);
+        final responseData = json.decode(responseBody);
+        print('LoginWidget - 사용자 정보 응답: $responseBody');
+
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final userData = responseData['data'];
+          print('LoginWidget - 사용자 정보 로드 성공: $userData');
+
+          // 서버에서 닉네임 정보가 있으면 상태 업데이트
+          if (userData['nickname'] != null) {
+            setState(() {
+              _serverNickname = userData['nickname'];
+            });
+            print('LoginWidget - 서버 닉네임 업데이트: ${userData['nickname']}');
+          }
+        } else {
+          print('LoginWidget - 사용자 정보 로드 실패: ${responseData['error']}');
+        }
+      } else {
+        print('LoginWidget - 사용자 정보 로드 실패: 상태 코드 ${response.statusCode}');
+      }
+    } catch (e) {
+      print('LoginWidget - 서버에서 닉네임 로드 중 오류: $e');
+    }
+  }
+
+  // 로그인 상태 변경 시 화면 갱신 및 서버 닉네임 가져오기
   void _loginStateChanged() {
     if (mounted) {
+      if (_kakaoLoginService.isLoggedIn.value) {
+        // 로그인 상태가 되면 서버에서 닉네임 가져오기
+        _loadServerNickname();
+      } else {
+        // 로그아웃 상태가 되면 닉네임 초기화
+        setState(() {
+          _serverNickname = "";
+        });
+      }
       setState(() {}); // UI 갱신
     }
   }
@@ -216,6 +287,12 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 서버에서 가져온 닉네임이 있으면 그걸 사용, 없으면 카카오 닉네임 사용
+    final displayName =
+        _serverNickname.isNotEmpty
+            ? _serverNickname
+            : _kakaoLoginService.user?.kakaoAccount?.profile?.nickname ?? "사용자";
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
@@ -312,7 +389,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                         ? Row(
                           children: [
                             AppText(
-                              '${_kakaoLoginService.user?.kakaoAccount?.profile?.nickname ?? "사용자"}',
+                              displayName, // 서버 닉네임 또는 카카오 닉네임 사용
                               color: Color(0xFF406299),
                               fontSize: 15,
                               fontWeight: FontWeight.bold,

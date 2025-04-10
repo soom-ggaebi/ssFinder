@@ -22,11 +22,7 @@ class ActionButtonsWidget extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder:
-                      (context) =>
-                          const LostItemForm(),
-                ),
+                MaterialPageRoute(builder: (context) => const LostItemForm()),
               );
             },
             child: Container(
@@ -37,7 +33,11 @@ class ActionButtonsWidget extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const AppText('찾아줘요'),
+                  const AppText(
+                    '찾아줘요',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    fontSize: 15,
+                  ),
                   SizedBox(height: getHeightPercent(0.015)),
                   SvgPicture.asset(
                     'assets/images/main/lost_icon.svg',
@@ -55,11 +55,7 @@ class ActionButtonsWidget extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder:
-                      (context) =>
-                          const FoundItemForm(),
-                ),
+                MaterialPageRoute(builder: (context) => const FoundItemForm()),
               );
             },
             child: Container(
@@ -70,7 +66,11 @@ class ActionButtonsWidget extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const AppText('주웠어요'),
+                  const AppText(
+                    '주웠어요',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    fontSize: 15,
+                  ),
                   SizedBox(height: getHeightPercent(0.015)),
                   SvgPicture.asset(
                     'assets/images/main/found_icon.svg',

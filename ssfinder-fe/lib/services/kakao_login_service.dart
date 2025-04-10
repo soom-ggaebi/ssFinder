@@ -942,9 +942,68 @@ class KakaoLoginService {
 
   // KakaoLoginService 클래스에 추가
   Future<int?> getUserId() async {
-    // SharedPreferences나 다른 저장소에서 사용자 ID를 가져오는 코드
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('user_id');
+    print('👤 [KakaoLoginService] 사용자 ID 요청');
+    try {
+      // 1. 먼저 SharedPreferences에서 확인
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString(
+        '_userIdKey',
+      ); // 주의: getUserProfile에서는 문자열로 저장됨
+
+      if (userId != null) {
+        final userIdInt = int.tryParse(userId);
+        if (userIdInt != null) {
+          print(
+            '✅ [KakaoLoginService] SharedPreferences에서 사용자 ID 획득: $userIdInt',
+          );
+          return userIdInt;
+        }
+      }
+
+      // 2. SharedPreferences에 없으면 서버에서 사용자 정보 요청
+      print('⚠️ [KakaoLoginService] SharedPreferences에 사용자 ID 없음, 서버에서 조회 시도');
+      final userProfile = await getUserProfile();
+
+      if (userProfile != null && userProfile['id'] != null) {
+        final userIdFromProfile = userProfile['id'];
+        int? userIdInt;
+
+        if (userIdFromProfile is int) {
+          userIdInt = userIdFromProfile;
+        } else if (userIdFromProfile is String) {
+          userIdInt = int.tryParse(userIdFromProfile);
+        }
+
+        if (userIdInt != null) {
+          // ID를 SharedPreferences에 저장
+          await prefs.setString('_userIdKey', userIdInt.toString());
+          print('✅ [KakaoLoginService] 서버에서 사용자 ID 획득 및 저장: $userIdInt');
+          return userIdInt;
+        }
+      }
+
+      // 3. 마지막으로, Secure Storage에서 직접 확인
+      final storage = const FlutterSecureStorage();
+      final currentAccountId = await storage.read(key: 'current_account_id');
+
+      if (currentAccountId != null) {
+        final accountIdInt = int.tryParse(currentAccountId);
+        if (accountIdInt != null) {
+          // SharedPreferences에도 저장
+          await prefs.setString('_userIdKey', currentAccountId);
+          print(
+            '✅ [KakaoLoginService] Secure Storage에서 계정 ID 획득: $accountIdInt',
+          );
+          return accountIdInt;
+        }
+      }
+
+      print('🚫 [KakaoLoginService] 모든 방법으로 사용자 ID 조회 실패');
+      return null;
+    } catch (e) {
+      print('❌ [KakaoLoginService] 사용자 ID 확인 중 오류: $e');
+      return null;
+    }
   }
 
   // FCM 토큰 삭제 API

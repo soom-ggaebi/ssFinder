@@ -18,7 +18,8 @@ class _FoundPageState extends State<FoundPage>
   List<FoundItemListModel> _foundItems = [];
   bool isLoading = true;
 
-  final List<String> _tabs = ['전체', '보관중인물건', '돌려준물건'];
+  // 탭 목록: 전체, 찾는 중, 찾음
+  final List<String> _tabs = ['전체', '찾는 중', '찾음'];
   late TabController _tabController;
 
   @override
@@ -39,6 +40,7 @@ class _FoundPageState extends State<FoundPage>
       final response = await _apiService.getMyFoundItems();
       final List<dynamic> itemsJson =
           response['data']['content'] as List<dynamic>;
+      print('#### Found Items: $itemsJson');
 
       final items =
           itemsJson
@@ -123,6 +125,7 @@ class _FoundPageState extends State<FoundPage>
                       ),
                     ],
                   ),
+                  // 습득물 등록 버튼
                   Positioned(
                     bottom: 20,
                     right: 20,

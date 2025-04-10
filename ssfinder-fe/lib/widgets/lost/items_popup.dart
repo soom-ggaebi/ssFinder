@@ -60,23 +60,6 @@ class MainOptionsPopup extends StatelessWidget {
               _updateNotificationSettings(!currentNotificationEnabled);
             },
           ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            decoration: const BoxDecoration(color: Color(0xFFF8F8F8)),
-            child: InkWell(
-              onTap: () => Navigator.pop(context),
-              child: const Text(
-                '창닫기',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
           OptionItem(
             text: toggleStatusOptionText,
             onTap: () async {
@@ -94,6 +77,23 @@ class MainOptionsPopup extends StatelessWidget {
                 print('상태가 변경에 실패하였습니다: ${e}');
               }
             },
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            decoration: const BoxDecoration(color: Color(0xFFF8F8F8)),
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              child: const Text(
+                '창닫기',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
         ],
       ),
