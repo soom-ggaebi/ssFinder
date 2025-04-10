@@ -4,6 +4,11 @@ import 'package:sumsumfinder/services/found_items_api_service.dart';
 import 'package:sumsumfinder/widgets/map_widget.dart';
 import 'package:sumsumfinder/widgets/found/items_popup.dart';
 import 'package:sumsumfinder/services/auth_service.dart';
+import 'package:sumsumfinder/config/environment_config.dart';
+import 'package:sumsumfinder/services/kakao_login_service.dart';
+import 'package:sumsumfinder/screens/chat/chat_room_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class FoundItemDetailSumsumfinder extends StatefulWidget {
   final int id;
@@ -124,7 +129,6 @@ class _FoundItemDetailSumsumfinderState
                 final isMyPost =
                     currentUserId != null &&
                     item.userId.toString() == currentUserId;
-                print('### ${currentUserId} ${item.userId.toString()}');
                 if (isMyPost) {
                   return IconButton(
                     icon: const Icon(
@@ -216,6 +220,7 @@ class _FoundItemDetailSumsumfinderState
                         ),
                       ),
                     ),
+                    
                 ],
               ),
               const SizedBox(height: 16),
@@ -288,6 +293,116 @@ class _FoundItemDetailSumsumfinderState
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  FutureBuilder<String?>(
+                    future: AuthService.getUserId(),
+                    builder: (context, userSnapshot) {
+                      if (userSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const SizedBox(
+                          width: 140,
+                          height: 40,
+                          child: Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      }
+                      final isMyPost =
+                          userSnapshot.hasData &&
+                          userSnapshot.data != null &&
+                          item.userId.toString() == userSnapshot.data;
+
+                      if (!isMyPost) {
+                        return ElevatedButton(
+                          onPressed: () async {
+                            final KakaoLoginService loginService =
+                                KakaoLoginService();
+                            final token = await loginService.getAccessToken();
+
+                            if (token == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('로그인이 필요합니다')),
+                              );
+                              return;
+                            }
+
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder:
+                                  (context) => const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                            );
+
+                            try {
+                              final response = await http.post(
+                                Uri.parse(
+                                  '${EnvironmentConfig.baseUrl}/api/chat-rooms/${item.id}',
+                                ),
+                                headers: {
+                                  'Authorization': 'Bearer $token',
+                                  'Content-Type': 'application/json',
+                                },
+                              );
+
+                              Navigator.pop(context);
+
+                              if (response.statusCode == 200) {
+                                final responseData = jsonDecode(response.body);
+                                if (responseData['success'] == true) {
+                                  final chatRoomId =
+                                      responseData['data']['chat_room_id'];
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => ChatPage(
+                                            roomId: chatRoomId,
+                                            otherUserName: item.userName ?? '습득자',
+                                            myName: '나',
+                                          ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        responseData['error']['message'] ??
+                                            '채팅방 생성 실패',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } else {
+                                final errorData = jsonDecode(response.body);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      errorData['error']['message'] ?? '서버 오류',
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (Navigator.canPop(context)) {
+                                Navigator.pop(context);
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('채팅방 생성 중 오류 발생: $e')),
+                              );
+                            }
+                          },
+                          child: const Text(
+                            '채팅하기',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        );
+                      } else {
+                        return const SizedBox.shrink();
+                      }
+                    },
                   ),
                 ],
               ),

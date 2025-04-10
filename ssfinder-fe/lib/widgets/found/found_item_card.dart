@@ -37,7 +37,7 @@ class _FoundItemCardState extends State<FoundItemCard> {
   String extractLocation(String location) {
     List<String> parts = location.split(" ");
     if (parts.length >= 4) {
-      return parts.sublist(2, 4).join(" ");
+      return parts.sublist(1, 3).join(" ");
     }
     return location;
   }
