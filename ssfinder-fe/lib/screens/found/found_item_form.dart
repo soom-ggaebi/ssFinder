@@ -325,30 +325,24 @@ class _FoundItemFormState extends State<FoundItemForm> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('습득물이 성공적으로 등록되었습니다.')));
+      
+      final data = foundItemResponseData['data'];
+      // id가 int 타입이면 그대로 사용, 아니면 mysqlId를 int로 변환
+      final int? newFoundItemId = data['id'] is int
+          ? data['id'] as int
+          : int.tryParse(data['mysqlId']?.toString() ?? '');
 
-      // API 응답에서 ID 추출 시 null 체크 추가
-      int? newFoundItemId;
-      if (foundItemResponseData.containsKey('data') &&
-          foundItemResponseData['data'] != null &&
-          foundItemResponseData['data'].containsKey('id')) {
-        // newFoundItemId = foundItemResponseData['data']['id'];
+      if (newFoundItemId == null) {
+        throw Exception('새로운 습득물 ID를 변환하는데 실패했습니다.');
       }
-      // null이 아닌 경우에만 상세 페이지로 이동
-      // if (newFoundItemId != null) {
-      //   Navigator.pushReplacement(
-      //     context,
-      //     // MaterialPageRoute(
-      //     // builder:
-      //     // (context) => FoundItemDetailSumsumfinder(id: newFoundItemId),
-      //     // ),
-      //   );
-      else {
-        // ID가 없는 경우 처리 (예: 이전 화면으로 돌아가기)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('상세 페이지로 이동할 수 없습니다.')));
-        Navigator.pop(context);
-      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FoundItemDetailSumsumfinder(id: newFoundItemId),
+        ),
+      );
+
     } catch (e) {
       setState(() {
         _isLoading = false;
