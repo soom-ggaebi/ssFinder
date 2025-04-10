@@ -1,8 +1,10 @@
 package com.ssfinder.domain.matchedItem.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssfinder.domain.itemcategory.dto.MatchedItemsTopFiveProjection;
 import com.ssfinder.domain.matchedItem.dto.request.MatchedItemRequest;
 import com.ssfinder.domain.matchedItem.dto.response.MatchedItemResponse;
+import com.ssfinder.domain.matchedItem.dto.response.MatchedItemsTopFiveResponse;
 import com.ssfinder.domain.matchedItem.entity.MatchedItem;
 import com.ssfinder.domain.matchedItem.repository.MatchedItemRepository;
 import com.ssfinder.domain.founditem.entity.FoundItem;
@@ -155,64 +157,25 @@ public class MatchedItemService {
         }
     }
 
-    public MatchedItemResponse getMatchedItems(Integer lostItemId) {
-        // 분실물 엔티티 조회
-        LostItem lostItem = lostItemRepository.findById(lostItemId)
-                .orElseThrow(() -> new CustomException(ErrorCode.ITEM_NOT_FOUND));
-
-        // 매칭된 아이템 조회 (MatchedItem에는 이미 FoundItem 엔티티가 포함되어 있음)
-        List<MatchedItem> matchedItems = matchedItemRepository.findByLostItemOrderByScoreDesc(lostItem);
-
-        if (matchedItems.isEmpty()) {
-            return MatchedItemResponse.builder()
-                    .success(true)
-                    .message("매칭된 습득물이 없습니다.")
-                    .result(MatchedItemResponse.MatchingResult.builder()
-                            .totalMatches(0)
-                            .similarityThreshold(0.7f)
-                            .matches(Collections.emptyList())
-                            .build())
-                    .build();
-        }
-
-        // MatchedItem에서 바로 FoundItem 정보를 사용하여 MatchItem 생성
-        List<MatchedItemResponse.MatchItem> matchItems = matchedItems.stream()
-                .map(matchedItem -> {
-                    FoundItem foundItem = matchedItem.getFoundItem();
-
-                    // FoundItemInfo 객체 생성
-                    MatchedItemResponse.FoundItemInfo foundItemInfo = MatchedItemResponse.FoundItemInfo.builder()
-                            .id(foundItem.getId())
-                            .user_id(foundItem.getUser() != null ? foundItem.getUser().getId() : null)
-                            .item_category_id(foundItem.getItemCategory().getId())
-                            .title(foundItem.getName())
-                            .color(foundItem.getColor())
-                            .location(foundItem.getLocation())
-                            .detail(foundItem.getDetail())
-                            .image(foundItem.getImage())
-                            .status(foundItem.getStatus().toString())
-                            .storedAt(foundItem.getStoredAt())
-                            .build();
-
-                    return MatchedItemResponse.MatchItem.builder()
-                            .lostItemId(matchedItem.getLostItem().getId())
-                            .foundItemId(foundItem.getId())
-                            .item(foundItemInfo)
-                            .similarity(matchedItem.getScore() / 100f)
-                            .build();
-                })
+    public List<MatchedItemsTopFiveResponse> getMatchedItems(Integer lostId) {
+        return matchedItemRepository.findTop5MatchedItemsNative(lostId).stream()
+                .map(this::toDto)
                 .collect(Collectors.toList());
+    }
 
-        MatchedItemResponse.MatchingResult result = MatchedItemResponse.MatchingResult.builder()
-                .totalMatches(matchItems.size())
-                .similarityThreshold(0.7f)
-                .matches(matchItems)
-                .build();
-
-        return MatchedItemResponse.builder()
-                .success(true)
-                .message(String.format("%d개의 매칭된 습득물을 찾았습니다.", matchItems.size()))
-                .result(result)
+    private MatchedItemsTopFiveResponse toDto(MatchedItemsTopFiveProjection p) {
+        return MatchedItemsTopFiveResponse.builder()
+                .id(p.getId())
+                .image(p.getImage())
+                .majorCategory(p.getMajorCategory())
+                .minorCategory(p.getMinorCategory())
+                .name(p.getName())
+                .type(p.getType())
+                .location(p.getLocation())
+                .storedAt(p.getStoredAt())
+                .status(p.getStatus())
+                .createdAt(p.getCreatedAt())
+                .score(p.getScore())
                 .build();
     }
 }

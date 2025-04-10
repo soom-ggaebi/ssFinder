@@ -2,6 +2,7 @@ package com.ssfinder.domain.matchedItem.controller;
 
 import com.ssfinder.domain.matchedItem.dto.request.MatchedItemRequest;
 import com.ssfinder.domain.matchedItem.dto.response.MatchedItemResponse;
+import com.ssfinder.domain.matchedItem.dto.response.MatchedItemsTopFiveResponse;
 import com.ssfinder.domain.matchedItem.service.MatchedItemService;
 import com.ssfinder.global.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+
+import java.util.List;
+
 /**
  * packageName    : com.ssfinder.domain.matchedItem.controller<br>
  * fileName       : MatchedItemController.java<br>
@@ -40,11 +44,11 @@ public class MatchedItemController {
         return ApiResponse.ok(response);
     }
 
-    @GetMapping("/matched-items/{lostItemId}")
-    public ApiResponse<MatchedItemResponse> getMatchedItems(@PathVariable @Min(1) Integer lostItemId) {
-        log.info("매칭된 습득물 목록 조회: lostItemId={}", lostItemId);
+    @GetMapping("/matched-items/{lostId}")
+    public ApiResponse<List<MatchedItemsTopFiveResponse>> getMatchedItems(@PathVariable @Min(1) Integer lostId) {
+        log.info("매칭된 습득물 목록 조회: lostItemId={}", lostId);
 
-        MatchedItemResponse response = matchedItemService.getMatchedItems(lostItemId);
+        List<MatchedItemsTopFiveResponse> response = matchedItemService.getMatchedItems(lostId);
 
         return ApiResponse.ok(response);
     }
