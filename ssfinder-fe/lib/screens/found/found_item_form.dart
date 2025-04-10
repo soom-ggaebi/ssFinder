@@ -181,42 +181,30 @@ class _FoundItemFormState extends State<FoundItemForm> {
       if (result['success'] == true) {
         final data = result['data'];
         setState(() {
-          // 타이틀 채우기
-          if (_itemNameController.text.isEmpty) {
-            _itemNameController.text = data['title'] ?? '';
-          }
-          // 색상 처리
-          if (_selectedColor == null || _selectedColor!.isEmpty) {
-            final Map<String, String> colorMapping = {
-              '빨간.': '빨간색',
-              '파랑색': '파란색',
-              '노란 색': '노란색',
-              '하얀색': '흰색',
-              '보라색': '보라색',
-              '갈색': '갈색',
-              '블랙이에요.': '검정색',
-              '회색': '회색',
-              '베이지색': '베이지',
-              '주황색': '주황색',
-              '초록의': '초록색',
-              '하늘색': '하늘색',
-              '네이비': '남색',
-              '분홍색': '분홍색',
-            };
-            _selectedColor =
-                colorMapping.containsKey(data['color'])
-                    ? colorMapping[data['color']]
-                    : '기타';
-          }
-          // 상세 설명 채우기
-          if (_detailController.text.isEmpty) {
-            _detailController.text = data['description'] ?? '';
-          }
-          // 카테고리 채우기
-          if (_selectedCategory == null || _selectedCategory!.isEmpty) {
-            _selectedCategory = data['category'] ?? '';
-            _selectedCategoryId = '';
-          }
+          _itemNameController.text = data['title'] ?? '';
+          final Map<String, String> colorMapping = {
+            '빨간.': '빨간색',
+            '파랑색': '파란색',
+            '노란 색': '노란색',
+            '하얀색': '흰색',
+            '보라색': '보라색',
+            '갈색': '갈색',
+            '블랙이에요.': '검정색',
+            '회색': '회색',
+            '베이지색': '베이지',
+            '주황색': '주황색',
+            '초록의': '초록색',
+            '하늘색': '하늘색',
+            '네이비': '남색',
+            '분홍색': '분홍색',
+          };
+          _selectedColor =
+              colorMapping.containsKey(data['color'])
+                  ? colorMapping[data['color']]
+                  : '기타';
+          _detailController.text = data['description'] ?? '';
+          _selectedCategory = data['category'] ?? '';
+          _selectedCategoryId = '';
         });
         ScaffoldMessenger.of(
           context,
