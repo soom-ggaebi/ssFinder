@@ -61,7 +61,7 @@ public class FoundItemQueryBuilder {
             mustFilters.append(",");
             if (request.getType().equals("숨숨파인더")) {
                 mustFilters.append("{\"bool\": {\"must_not\": {\"exists\": {\"field\": \"management_id\"}}}}");
-            } else if (request.getType().equals("경찰")) {
+            } else if (request.getType().equals("경찰청")) {
                 mustFilters.append("{\"exists\": {\"field\": \"management_id\"}}");
             }
         }
