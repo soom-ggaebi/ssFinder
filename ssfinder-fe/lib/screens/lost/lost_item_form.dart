@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:gif_view/gif_view.dart';
 
 import '../../models/found_items_model.dart';
+import '../../screens/lost/lost_item_detail.dart';
 import '../../services/ai_api_service.dart';
 import '../../services/lost_items_api_service.dart';
 import '../../services/found_items_api_service.dart';
@@ -350,7 +351,18 @@ class _LostItemFormState extends State<LostItemForm> {
           ),
         ),
       );
-      Navigator.pop(context, true);
+      final newItemId = lostItemResponseData['data']['id'];
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LostItemDetail(
+          itemId: newItemId,
+          onStatusChanged: (id, status) {
+            // 필요하다면 여기서 콜백 처리
+          },
+        ),
+      ),
+    );
     } catch (e) {
       setState(() {
         _isLoading = false;

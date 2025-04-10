@@ -4,7 +4,6 @@ import 'lost_item_form.dart';
 import 'package:sumsumfinder/models/lost_items_model.dart';
 import 'package:sumsumfinder/services/lost_items_api_service.dart'; // 수정: 올바른 API 서비스 import
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class LostPage extends StatefulWidget {
   const LostPage({Key? key}) : super(key: key);
