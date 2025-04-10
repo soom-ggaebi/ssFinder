@@ -12,6 +12,7 @@ import '../../widgets/selects/category_select.dart';
 import '../../widgets/selects/color_select.dart';
 import '../../widgets/selects/location_select.dart';
 import '../../widgets/selects/date_select.dart';
+import '../../screens/found/found_item_detail_sumsumfinder.dart';
 
 class FoundItemForm extends StatefulWidget {
   final dynamic itemToEdit;
@@ -286,9 +287,11 @@ class _FoundItemFormState extends State<FoundItemForm> {
       );
       final categoryId = matchingCategory.id;
 
+      Map<String, dynamic> foundItemResponseData;
+
       if (widget.itemToEdit != null) {
         // 수정
-        await _apiService.updateFoundItem(
+        foundItemResponseData = await _apiService.updateFoundItem(
           foundId: widget.itemToEdit.id,
           itemCategoryId: categoryId,
           name: _itemNameController.text,
@@ -302,7 +305,7 @@ class _FoundItemFormState extends State<FoundItemForm> {
         );
       } else {
         // 생성
-        await _apiService.postFoundItem(
+        foundItemResponseData = await _apiService.postFoundItem(
           itemCategoryId: categoryId,
           name: _itemNameController.text,
           foundAt: formattedDate,
@@ -322,7 +325,15 @@ class _FoundItemFormState extends State<FoundItemForm> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('습득물이 성공적으로 등록되었습니다.')));
-      Navigator.pop(context, true);
+      
+      final newFoundItemId = foundItemResponseData['data']['id'];
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FoundItemDetailSumsumfinder(id: newFoundItemId),
+        ),
+      );
     } catch (e) {
       setState(() {
         _isLoading = false;

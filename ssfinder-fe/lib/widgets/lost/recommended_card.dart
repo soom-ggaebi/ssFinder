@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 class RecommendedCard extends StatelessWidget {
-  /// 이미지 경로 리스트
-  final List<String> imagePaths;
+  final List<String> image;
 
-  const RecommendedCard({Key? key, required this.imagePaths}) : super(key: key);
+  const RecommendedCard({Key? key, required this.image}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +24,6 @@ class RecommendedCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 타이틀 문구와 캐릭터 아이콘
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -44,13 +42,10 @@ class RecommendedCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          // 가로로 스크롤되는 이미지 목록
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: imagePaths
-                  .map((path) => _buildItemImage(path))
-                  .toList(),
+              children: image.map((path) => _buildItemImage(path)).toList(),
             ),
           ),
         ],
@@ -59,16 +54,32 @@ class RecommendedCard extends StatelessWidget {
   }
 
   Widget _buildItemImage(String imagePath) {
+    bool isNetworkImage = imagePath.startsWith("http");
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8.0),
-        child: Image.asset(
-          imagePath,
-          width: 80,
-          height: 80,
-          fit: BoxFit.cover,
-        ),
+        child: isNetworkImage
+            ? Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: NetworkImage(imagePath),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              )
+            : Container(
+                width: 80,
+                height: 80,
+                color: Colors.grey[300],
+                child: const Icon(
+                  Icons.image,
+                  size: 50,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }
