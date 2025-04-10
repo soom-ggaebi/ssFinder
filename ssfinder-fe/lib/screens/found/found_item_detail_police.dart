@@ -157,8 +157,8 @@ class FoundItemDetailPolice extends StatelessWidget {
                 // 카테고리
                 Text(
                   (item.minorCategory == null)
-                    ? "${item.majorCategory}"
-                    : "${item.majorCategory} > ${item.minorCategory}",
+                      ? "${item.majorCategory}"
+                      : "${item.majorCategory} > ${item.minorCategory}",
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 8),

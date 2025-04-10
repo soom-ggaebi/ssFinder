@@ -15,7 +15,7 @@ class LostItemCard extends StatelessWidget {
     final Color labelTextColor = isFound ? Colors.green : Colors.red;
     final String labelText = isFound ? '찾은물건' : '숨은물건';
 
-    // 알림 상태는 LostItemListModel에 추가
+    // 알림 상태
     final bool isNotificationOn = false;
 
     final contentRow = Row(
@@ -58,8 +58,8 @@ class LostItemCard extends StatelessWidget {
               // 카테고리 ID
               Text(
                 (item.minorCategory == null)
-                  ? "${item.majorCategory}"
-                  : "${item.majorCategory} > ${item.minorCategory}",
+                    ? "${item.majorCategory}"
+                    : "${item.majorCategory} > ${item.minorCategory}",
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               // 분실물 제목

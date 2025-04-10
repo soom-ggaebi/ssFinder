@@ -120,6 +120,7 @@ class _FoundItemsListState extends State<FoundItemsList> {
   @override
   void dispose() {
     _draggableController.dispose();
+    _scrollController?.dispose();
     super.dispose();
   }
 
@@ -165,6 +166,37 @@ class _FoundItemsListState extends State<FoundItemsList> {
     ),
   );
 
+  // 반환값을 받아 상태 업데이트 처리
+  void _navigateToDetail(FoundItemListModel item) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) =>
+                item.type == '경찰청'
+                    ? FoundItemDetailPolice(id: item.id)
+                    : FoundItemDetailSumsumfinder(id: item.id),
+      ),
+    );
+
+    if (result != null &&
+        result is Map<String, dynamic> &&
+        result.containsKey('id') &&
+        result.containsKey('status')) {
+      _updateItemStatus(result['id'], result['status']);
+    }
+  }
+
+  // 리스트 내 해당 아이템 상태 변경
+  void _updateItemStatus(int id, String newStatus) {
+    final index = foundItems.indexWhere((item) => item.id == id);
+    if (index != -1) {
+      setState(() {
+        foundItems[index] = foundItems[index].copyWith(status: newStatus);
+      });
+    }
+  }
+
   Widget _buildListItem(FoundItemListModel item) => GestureDetector(
     onTap: () => _navigateToDetail(item),
     child: Padding(
@@ -175,17 +207,6 @@ class _FoundItemsListState extends State<FoundItemsList> {
           return FoundItemCard(item: item, isLoggedIn: isLoggedIn);
         },
       ),
-    ),
-  );
-
-  void _navigateToDetail(FoundItemListModel item) => Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder:
-          (_) =>
-              item.type == '경찰청'
-                  ? FoundItemDetailPolice(id: item.id)
-                  : FoundItemDetailSumsumfinder(id: item.id),
     ),
   );
 

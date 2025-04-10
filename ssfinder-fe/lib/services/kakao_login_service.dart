@@ -710,8 +710,8 @@ class KakaoLoginService {
         final responseData = jsonDecode(response.body);
 
         if (responseData['success'] == true) {
-            print('회원 정보 조회 성공');
-            final userId = responseData['data']['id'];
+          print('회원 정보 조회 성공');
+          final userId = responseData['data']['id'];
           if (userId != null) {
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('_userIdKey', userId.toString());

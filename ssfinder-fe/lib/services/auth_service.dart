@@ -23,26 +23,29 @@ class AuthService {
     try {
       final kakaoLoginService = KakaoLoginService();
       final userProfile = await kakaoLoginService.getUserProfile();
-      
+
       if (userProfile != null) {
         final prefs = await SharedPreferences.getInstance();
-        
+
         // 사용자 ID 저장
         if (userProfile.containsKey('id')) {
           await prefs.setString(_userIdKey, userProfile['id'].toString());
         }
-        
+
         // 닉네임 저장
         if (userProfile.containsKey('profile_nickname')) {
-          await prefs.setString(_userNicknameKey, userProfile['profile_nickname']);
+          await prefs.setString(
+            _userNicknameKey,
+            userProfile['profile_nickname'],
+          );
         }
-        
+
         // JWT 토큰 저장
         final token = await kakaoLoginService.getAccessToken();
         if (token != null) {
           await prefs.setString(_jwtKey, token);
         }
-        
+
         return true;
       }
       return false;
@@ -51,6 +54,7 @@ class AuthService {
       return false;
     }
   }
+
   // 사용자 ID 가져오기
   static Future<String> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
