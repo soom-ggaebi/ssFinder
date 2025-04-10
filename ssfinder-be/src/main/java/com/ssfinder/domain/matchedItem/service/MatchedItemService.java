@@ -105,24 +105,32 @@ public class MatchedItemService {
         LostItem lostItem = lostItemRepository.findById(lostItemId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ITEM_NOT_FOUND));
 
-        // 유사도 70% 이상인 항목만 필터링
+        // 유사도 70% 이상인 항목만 필터링하고, 유사도 높은 순으로 정렬한 후 상위 5개만 선택
         List<MatchedItemResponse.MatchItem> matches = response.getResult().getMatches().stream()
                 .filter(match -> match.getSimilarity() >= 0.7)
+                .sorted(Comparator.comparing(MatchedItemResponse.MatchItem::getSimilarity).reversed())
+                .limit(5)
                 .collect(Collectors.toList());
 
         LocalDateTime now = LocalDateTime.now();
+
+        // 매칭할 모든 습득물 ID 목록 생성
+        List<Integer> foundItemIds = matches.stream()
+                .map(match -> match.getItem().getId())
+                .collect(Collectors.toList());
+
+        // 한 번의 쿼리로 모든 습득물 데이터 조회
+        Map<Integer, FoundItem> foundItemMap = foundItemRepository.findAllById(foundItemIds).stream()
+                .collect(Collectors.toMap(FoundItem::getId, item -> item));
 
         List<MatchedItem> matchedItemsToSave = new ArrayList<>();
 
         for (MatchedItemResponse.MatchItem match : matches) {
             Integer foundItemId = match.getItem().getId();
+            FoundItem foundItem = foundItemMap.get(foundItemId);
 
-            // 습득물 엔티티 조회
-            FoundItem foundItem = foundItemRepository.findById(foundItemId)
-                    .orElseThrow(() -> new CustomException(ErrorCode.ITEM_NOT_FOUND));
-
-            // 이미 매칭 정보가 있는지 확인
-            if (!matchedItemRepository.existsByLostItemAndFoundItem(lostItem, foundItem)) {
+            // 습득물이 존재하고 이미 매칭 정보가 없는 경우에만 처리
+            if (foundItem != null && !matchedItemRepository.existsByLostItemAndFoundItem(lostItem, foundItem)) {
                 // 유사도 소수점에서 정수로 변환
                 int similarityScore = Math.round(match.getSimilarity() * 100);
 
@@ -152,43 +160,48 @@ public class MatchedItemService {
         LostItem lostItem = lostItemRepository.findById(lostItemId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ITEM_NOT_FOUND));
 
+        // 매칭된 아이템 조회 (MatchedItem에는 이미 FoundItem 엔티티가 포함되어 있음)
         List<MatchedItem> matchedItems = matchedItemRepository.findByLostItemOrderByScoreDesc(lostItem);
 
         if (matchedItems.isEmpty()) {
             return MatchedItemResponse.builder()
                     .success(true)
                     .message("매칭된 습득물이 없습니다.")
+                    .result(MatchedItemResponse.MatchingResult.builder()
+                            .totalMatches(0)
+                            .similarityThreshold(0.7f)
+                            .matches(Collections.emptyList())
+                            .build())
                     .build();
         }
 
-        List<Integer> foundItemIds = matchedItems.stream()
-                .map(matchedItem -> matchedItem.getFoundItem().getId())
+        // MatchedItem에서 바로 FoundItem 정보를 사용하여 MatchItem 생성
+        List<MatchedItemResponse.MatchItem> matchItems = matchedItems.stream()
+                .map(matchedItem -> {
+                    FoundItem foundItem = matchedItem.getFoundItem();
+
+                    // FoundItemInfo 객체 생성
+                    MatchedItemResponse.FoundItemInfo foundItemInfo = MatchedItemResponse.FoundItemInfo.builder()
+                            .id(foundItem.getId())
+                            .user_id(foundItem.getUser() != null ? foundItem.getUser().getId() : null)
+                            .item_category_id(foundItem.getItemCategory().getId())
+                            .title(foundItem.getName())
+                            .color(foundItem.getColor())
+                            .location(foundItem.getLocation())
+                            .detail(foundItem.getDetail())
+                            .image(foundItem.getImage())
+                            .status(foundItem.getStatus().toString())
+                            .storedAt(foundItem.getStoredAt())
+                            .build();
+
+                    return MatchedItemResponse.MatchItem.builder()
+                            .lostItemId(matchedItem.getLostItem().getId())
+                            .foundItemId(foundItem.getId())
+                            .item(foundItemInfo)
+                            .similarity(matchedItem.getScore() / 100f)
+                            .build();
+                })
                 .collect(Collectors.toList());
-
-        // 습득물 ID 목록으로 한번에 모든 습득물 조회
-        List<FoundItem> foundItems = foundItemRepository.findAllById(foundItemIds);
-
-        // 습득물을 Map으로 변환 (ID -> FoundItem)
-        Map<Integer, FoundItem> foundItemMap = foundItems.stream()
-                .collect(Collectors.toMap(FoundItem::getId, foundItem -> foundItem));
-
-        List<MatchedItemResponse.MatchItem> matchItems = new ArrayList<>();
-
-        for (MatchedItem matchedItem : matchedItems) {
-            FoundItem foundItem = foundItemMap.get(matchedItem.getFoundItem().getId());
-
-            // 습득물이 없으면 다음 항목으로 넘어감
-            if (foundItem == null) continue;
-
-            // 매치 아이템 생성
-            MatchedItemResponse.MatchItem matchItem = MatchedItemResponse.MatchItem.builder()
-                    .lostItemId(matchedItem.getLostItem().getId())
-                    .foundItemId(matchedItem.getFoundItem().getId())
-                    .similarity(matchedItem.getScore() / 100f)
-                    .build();
-
-            matchItems.add(matchItem);
-        }
 
         MatchedItemResponse.MatchingResult result = MatchedItemResponse.MatchingResult.builder()
                 .totalMatches(matchItems.size())
