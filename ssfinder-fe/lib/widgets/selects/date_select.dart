@@ -65,6 +65,8 @@ class _DateSelectState extends State<DateSelect> {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -148,6 +150,8 @@ class _DateSelectState extends State<DateSelect> {
                     final dayNumber = index + 1;
                     // 단일 날짜 선택 시 현재 선택된 날짜 확인
                     bool isSelected = _selectedDay == dayNumber;
+                    
+                    bool isAfterToday = DateTime(_focusedYear, _focusedMonth, dayNumber).isAfter(now);
 
                     final BoxDecoration boxDecoration;
                     if (isSelected) {
@@ -162,11 +166,13 @@ class _DateSelectState extends State<DateSelect> {
                     }
 
                     return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedDay = dayNumber;
-                        });
-                      },
+                      onTap: isAfterToday
+                        ? null
+                        : () {
+                            setState(() {
+                              _selectedDay = dayNumber;
+                            });
+                          },
                       child: Container(
                         margin: const EdgeInsets.symmetric(vertical: 4),
                         decoration: boxDecoration,
@@ -174,8 +180,12 @@ class _DateSelectState extends State<DateSelect> {
                           child: Text(
                             '$dayNumber',
                             style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black,
-                              fontWeight: FontWeight.bold,
+                              color: isAfterToday
+                                ? Colors.grey
+                                : isSelected
+                                    ? Colors.white
+                                    : Colors.black,
+                            fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),

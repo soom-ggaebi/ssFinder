@@ -37,12 +37,18 @@ class _LocationSelectState extends State<LocationSelect> {
 
     if (widget.date != null) {
       _loadRouteData().then((_) {
-        if (_selectedLatLng == null) {
+        if (_selectedLatLng != null) {
+          _reverseGeocode(_selectedLatLng!);
+        } else {
           _determinePosition();
         }
       });
     } else {
-      _determinePosition();
+      _determinePosition().then((_) {
+        if (_selectedLatLng != null) {
+          _reverseGeocode(_selectedLatLng!);
+        }
+      });
     }
   }
 
@@ -62,6 +68,9 @@ class _LocationSelectState extends State<LocationSelect> {
       _cameraPosition = LatLng(position.latitude, position.longitude);
       _selectedLatLng = LatLng(position.latitude, position.longitude);
     });
+
+    await _reverseGeocode(_selectedLatLng!);
+    
     if (_mapController != null) {
       _mapController!.animateCamera(
         CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
@@ -94,6 +103,9 @@ class _LocationSelectState extends State<LocationSelect> {
             _selectedLatLng = routeCoordinates[0];
             _cameraPosition = routeCoordinates[0];
           });
+
+          await _reverseGeocode(_selectedLatLng!);
+
           if (_mapController != null) {
             _mapController!.animateCamera(
               CameraUpdate.newLatLng(routeCoordinates[0]),
@@ -115,9 +127,7 @@ class _LocationSelectState extends State<LocationSelect> {
     try {
       final response = await http.get(
         Uri.parse(url),
-        headers: {
-          'Authorization': 'KakaoAK ${EnvironmentConfig.kakaoApiKey}',
-        },
+        headers: {'Authorization': 'KakaoAK ${EnvironmentConfig.kakaoApiKey}'},
       );
       final data = json.decode(response.body);
 
@@ -131,9 +141,13 @@ class _LocationSelectState extends State<LocationSelect> {
           address = data['documents'][0]['address']['address_name'];
         }
 
-        addressName = (data['documents'][0]['road_address']?['building_name']?.toString().isNotEmpty == true)
-            ? data['documents'][0]['road_address']['building_name']
-            : '선택한 장소';
+        addressName =
+            (data['documents'][0]['road_address']?['building_name']
+                        ?.toString()
+                        .isNotEmpty ==
+                    true)
+                ? data['documents'][0]['road_address']['building_name']
+                : '선택한 장소';
         setState(() {
           _selectedAddress_street = address;
           _selectedAddress_name = addressName;
@@ -159,9 +173,7 @@ class _LocationSelectState extends State<LocationSelect> {
     try {
       final response = await http.get(
         Uri.parse(url),
-        headers: {
-          'Authorization': 'KakaoAK ${EnvironmentConfig.kakaoApiKey}',
-        },
+        headers: {'Authorization': 'KakaoAK ${EnvironmentConfig.kakaoApiKey}'},
       );
       final data = json.decode(response.body);
       if (data['meta'] != null && data['meta']['total_count'] > 0) {
@@ -176,14 +188,14 @@ class _LocationSelectState extends State<LocationSelect> {
         });
         _reverseGeocode(searchedLatLng);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('검색 결과가 없습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('검색 결과가 없습니다.')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('주소 검색에 실패하였습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('주소 검색에 실패하였습니다.')));
     }
   }
 
@@ -216,17 +228,18 @@ class _LocationSelectState extends State<LocationSelect> {
               onCameraMove: (position) {
                 _cameraPosition = position.target;
               },
-              markers: _selectedLatLng != null
-                  ? {
-                      Marker(
-                        markerId: MarkerId('selected'),
-                        position: _selectedLatLng!,
-                        icon: BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueAzure,
+              markers:
+                  _selectedLatLng != null
+                      ? {
+                        Marker(
+                          markerId: MarkerId('selected'),
+                          position: _selectedLatLng!,
+                          icon: BitmapDescriptor.defaultMarkerWithHue(
+                            BitmapDescriptor.hueAzure,
+                          ),
                         ),
-                      ),
-                    }
-                  : {},
+                      }
+                      : {},
               polylines: _polylines,
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
@@ -300,8 +313,7 @@ class _LocationSelectState extends State<LocationSelect> {
                       ),
                     ),
                     Text(
-                      _selectedAddress_street ??
-                          '게시글에는 상세 위치 정보를 공개하지 않습니다.',
+                      _selectedAddress_street ?? '게시글에는 상세 위치 정보를 공개하지 않습니다.',
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     SizedBox(height: 16),
@@ -314,15 +326,16 @@ class _LocationSelectState extends State<LocationSelect> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      onPressed: _selectedLatLng == null
-                          ? null
-                          : () {
-                              Navigator.pop(context, {
-                                'location': _selectedAddress_street,
-                                'latitude': _selectedLatLng!.latitude,
-                                'longitude': _selectedLatLng!.longitude,
-                              });
-                            },
+                      onPressed:
+                          _selectedLatLng == null
+                              ? null
+                              : () {
+                                Navigator.pop(context, {
+                                  'location': _selectedAddress_street,
+                                  'latitude': _selectedLatLng!.latitude,
+                                  'longitude': _selectedLatLng!.longitude,
+                                });
+                              },
                       child: Text('현재 위치로 설정'),
                     ),
                   ],
