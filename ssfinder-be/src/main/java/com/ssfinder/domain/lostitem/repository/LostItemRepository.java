@@ -20,7 +20,6 @@ import java.util.List;
  * <br>
  */
 public interface LostItemRepository extends JpaRepository<LostItem, Integer> {
-    List<LostItem> findAllByUserId(Integer userId);
 
     @Query("SELECT l FROM LostItem l " +
             "JOIN FETCH l.itemCategory ic " +

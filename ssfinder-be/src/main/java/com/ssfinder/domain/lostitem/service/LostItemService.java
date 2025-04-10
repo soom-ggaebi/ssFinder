@@ -30,8 +30,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.rmi.server.LogStream.log;
-
 /**
  * packageName    : com.ssfinder.domain.lost.service<br>
  * fileName       : LostService.java<br>
