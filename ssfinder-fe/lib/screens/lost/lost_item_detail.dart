@@ -332,10 +332,6 @@ class _LostItemDetailState extends State<LostItemDetail> {
                   ),
                   Row(
                     children: [
-                      Text(
-                        extractLocation2(_item!.location),
-                        style: const TextStyle(fontSize: 14),
-                      ),
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -349,10 +345,18 @@ class _LostItemDetailState extends State<LostItemDetail> {
                             ),
                           );
                         },
-                        child: const Icon(
-                          Icons.chevron_right,
-                          size: 18,
-                          color: Colors.grey,
+                        child: Row(
+                          children: [
+                            Text(
+                              extractLocation2(_item!.location),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                          ],
                         ),
                       ),
                     ],

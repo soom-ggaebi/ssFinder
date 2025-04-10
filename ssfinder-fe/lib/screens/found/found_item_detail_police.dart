@@ -327,10 +327,6 @@ class FoundItemDetailPolice extends StatelessWidget {
                       ),
                       Row(
                         children: [
-                          Text(
-                            item.storedAt!,
-                            style: const TextStyle(fontSize: 14),
-                          ),
                           GestureDetector(
                             onTap: () {
                               Navigator.push(
@@ -344,10 +340,18 @@ class FoundItemDetailPolice extends StatelessWidget {
                                 ),
                               );
                             },
-                            child: const Icon(
-                              Icons.chevron_right,
-                              size: 18,
-                              color: Colors.grey,
+                            child: Row(
+                              children: [
+                                Text(
+                                  item.storedAt!,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  size: 18,
+                                  color: Colors.grey,
+                                ),
+                              ],
                             ),
                           ),
                         ],

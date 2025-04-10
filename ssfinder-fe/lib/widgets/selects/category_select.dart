@@ -18,108 +18,107 @@ class _CategorySelectState extends State<CategorySelect> {
   final List<Map<String, dynamic>> categories = [
     {
       'label': '가방',
-      'icon': Icons.shopping_bag,
+      'image': 'assets/images/category/bag.png',
       'subItems': ['전체', '여성용가방', '남성용가방', '기타가방'],
     },
     {
       'label': '귀금속',
-      'icon': Icons.star,
+      'image': 'assets/images/category/jewelry.png',
       'subItems': ['전체', '반지', '목걸이', '귀걸이', '시계', '기타'],
     },
     {
       'label': '도서용품',
-      'icon': Icons.menu_book,
+      'image': 'assets/images/category/book.png',
       'subItems': ['전체', '학습서적', '소설', '컴퓨터서적', '만화책', '기타서적'],
     },
     {
       'label': '서류',
-      'icon': Icons.directions_walk,
-      'subItems': ['전체', '서류', '기타물품'],
+      'image': 'assets/images/category/document.png',
+      'subItems': ['전체', '서류'],
     },
     {
       'label': '산업용품',
-      'icon': Icons.build,
-      'subItems': ['전체', '기타물품'],
+      'image': 'assets/images/category/industry.png',
+      'subItems': ['전체'],
     },
     {
       'label': '쇼핑백',
-      'icon': Icons.shopping_bag,
+      'image': 'assets/images/category/shopping_bag.png',
       'subItems': ['전체', '쇼핑백'],
     },
     {
       'label': '스포츠용품',
-      'icon': Icons.sports_soccer,
+      'image': 'assets/images/category/sports.png',
       'subItems': ['전체', '스포츠용품'],
     },
     {
       'label': '악기',
-      'icon': Icons.music_note,
+      'image': 'assets/images/category/instrument.png',
       'subItems': ['전체', '건반악기', '관악기', '타악기', '현악기', '기타악기'],
     },
     {
       'label': '유가증권',
-      'icon': Icons.money,
+      'image': 'assets/images/category/securities.png',
       'subItems': ['전체', '어음', '상품권', '채권', '기타'],
     },
     {
       'label': '의류',
-      'icon': Icons.checkroom,
+      'image': 'assets/images/category/clothes.png',
       'subItems': ['전체', '여성의류', '남성의류', '아기의류', '모자', '신발', '기타의류'],
     },
     {
       'label': '자동차',
-      'icon': Icons.directions_car,
+      'image': 'assets/images/category/car.png',
       'subItems': ['전체', '자동차열쇠', '네비게이션', '번호판', '기타'],
     },
     {
       'label': '전자기기',
-      'icon': Icons.devices_other,
+      'image': 'assets/images/category/electronics.png',
       'subItems': ['전체', '태블릿', '스마트워치', '무선이어폰', '카메라', '기타용품'],
     },
     {
       'label': '지갑',
-      'icon': Icons.account_balance_wallet,
+      'image': 'assets/images/category/wallet.png',
       'subItems': ['전체', '여성용 지갑', '남성용 지갑', '기타 지갑'],
     },
     {
       'label': '증명서',
-      'icon': Icons.work,
+      'image': 'assets/images/category/certificate.png',
       'subItems': ['전체', '신분증', '면허증', '여권', '기타'],
     },
     {
       'label': '컴퓨터',
-      'icon': Icons.computer,
+      'image': 'assets/images/category/computer.png',
       'subItems': ['전체', '삼성노트북', 'LG노트북', '애플노트북', '기타'],
     },
     {
       'label': '카드',
-      'icon': Icons.credit_card,
+      'image': 'assets/images/category/card.png',
       'subItems': ['전체', '신용(체크)카드', '일반카드', '교통카드', '기타카드'],
     },
     {
       'label': '현금',
-      'icon': Icons.attach_money,
+      'image': 'assets/images/category/cash.png',
       'subItems': ['전체', '현금', '수표', '외화', '기타'],
     },
     {
       'label': '휴대폰',
-      'icon': Icons.phone_iphone,
+      'image': 'assets/images/category/phone.png',
       'subItems': ['전체', '삼성휴대폰', 'LG휴대폰', '아이폰', '기타휴대폰', '기타통신기기'],
     },
     {
       'label': '기타물품',
-      'icon': Icons.more_horiz,
+      'image': 'assets/images/category/more.png',
       'subItems': ['전체', '안경', '선글라스', '매장문화재', '기타'],
     },
     {
       'label': '유류품',
-      'icon': Icons.local_gas_station,
-      'subItems': ['전체', '무인공항유루품', '유류품'],
+      'image': 'assets/images/category/fuel.png',
+      'subItems': ['전체', '무인공항유류품', '유류품'],
     },
   ];
 
   int? _selectedCategoryIndex;
-
   String? _selectedSubItem;
 
   @override
@@ -131,6 +130,7 @@ class _CategorySelectState extends State<CategorySelect> {
 
     List<Widget> rows = [];
 
+    // 카테고리 그리드 생성
     for (int row = 0; row < numRows; row++) {
       List<Widget> rowItems = [];
       for (int col = 0; col < columns; col++) {
@@ -164,10 +164,10 @@ class _CategorySelectState extends State<CategorySelect> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    category['icon'],
-                    size: 28,
-                    color: isSelected ? Colors.white : Colors.grey[700],
+                  Image.asset(
+                    category['image'],
+                    width: 28,
+                    height: 28,
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -175,8 +175,7 @@ class _CategorySelectState extends State<CategorySelect> {
                     style: TextStyle(
                       fontSize: 13,
                       color: isSelected ? Colors.white : Colors.black,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -213,8 +212,7 @@ class _CategorySelectState extends State<CategorySelect> {
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children:
-                  (selectedCategory['subItems'] as List<String>).map((sub) {
+              children: (selectedCategory['subItems'] as List<String>).map((sub) {
                 final bool isSubSelected = (sub == _selectedSubItem);
                 return GestureDetector(
                   onTap: () {
@@ -289,7 +287,6 @@ class _CategorySelectState extends State<CategorySelect> {
                 ),
               ),
               const SizedBox(height: 16),
-              // 선택 완료 버튼
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
@@ -302,8 +299,7 @@ class _CategorySelectState extends State<CategorySelect> {
                 onPressed: (_selectedCategoryIndex == null || _selectedSubItem == null)
                     ? null
                     : () {
-                        final selectedCategory =
-                            categories[_selectedCategoryIndex!]['label'];
+                        final selectedCategory = categories[_selectedCategoryIndex!]['label'];
                         String result;
                         String categoryId;
                         if (_selectedSubItem == '전체') {

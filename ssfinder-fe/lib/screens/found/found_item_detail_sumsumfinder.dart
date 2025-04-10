@@ -338,10 +338,6 @@ class _FoundItemDetailSumsumfinderState
                   ),
                   Row(
                     children: [
-                      Text(
-                        extractLocation2(item.location),
-                        style: const TextStyle(fontSize: 14),
-                      ),
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -355,10 +351,18 @@ class _FoundItemDetailSumsumfinderState
                             ),
                           );
                         },
-                        child: const Icon(
-                          Icons.chevron_right,
-                          size: 18,
-                          color: Colors.grey,
+                        child: Row(
+                          children: [
+                            Text(
+                              extractLocation2(item.location),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                          ],
                         ),
                       ),
                     ],

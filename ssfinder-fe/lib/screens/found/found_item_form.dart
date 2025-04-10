@@ -3,6 +3,7 @@ import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:gif_view/gif_view.dart';
 
 import '../../models/found_items_model.dart';
 import '../../services/ai_api_service.dart';
@@ -39,6 +40,7 @@ class _FoundItemFormState extends State<FoundItemForm> {
   double? _longitude;
 
   bool _isLoading = false;
+  bool _isAiAnalyzing = false;
 
   // 텍스트 필드 컨트롤러
   final TextEditingController _itemNameController = TextEditingController();
@@ -173,47 +175,36 @@ class _FoundItemFormState extends State<FoundItemForm> {
     try {
       setState(() {
         _isLoading = true;
+        _isAiAnalyzing = true;
       });
       final result = await _aiApiService.analyzeImage(image: _selectedImage!);
       if (result['success'] == true) {
         final data = result['data'];
         setState(() {
-          // 타이틀 채우기
-          if (_itemNameController.text.isEmpty) {
-            _itemNameController.text = data['title'] ?? '';
-          }
-          // 색상 처리
-          if (_selectedColor == null || _selectedColor!.isEmpty) {
-            final Map<String, String> colorMapping = {
-              '빨간.': '빨간색',
-              '파랑색': '파란색',
-              '노란 색': '노란색',
-              '하얀색': '흰색',
-              '보라색': '보라색',
-              '갈색': '갈색',
-              '블랙이에요.': '검정색',
-              '회색': '회색',
-              '베이지색': '베이지',
-              '주황색': '주황색',
-              '초록의': '초록색',
-              '하늘색': '하늘색',
-              '네이비': '남색',
-              '분홍색': '분홍색',
-            };
-            _selectedColor =
-                colorMapping.containsKey(data['color'])
-                    ? colorMapping[data['color']]
-                    : '기타';
-          }
-          // 상세 설명 채우기
-          if (_detailController.text.isEmpty) {
-            _detailController.text = data['description'] ?? '';
-          }
-          // 카테고리 채우기
-          if (_selectedCategory == null || _selectedCategory!.isEmpty) {
-            _selectedCategory = data['category'] ?? '';
-            _selectedCategoryId = '';
-          }
+          _itemNameController.text = data['title'] ?? '';
+          final Map<String, String> colorMapping = {
+            '빨간.': '빨간색',
+            '파랑색': '파란색',
+            '노란 색': '노란색',
+            '하얀색': '흰색',
+            '보라색': '보라색',
+            '갈색': '갈색',
+            '블랙이에요.': '검정색',
+            '회색': '회색',
+            '베이지색': '베이지',
+            '주황색': '주황색',
+            '초록의': '초록색',
+            '하늘색': '하늘색',
+            '네이비': '남색',
+            '분홍색': '분홍색',
+          };
+          _selectedColor =
+              colorMapping.containsKey(data['color'])
+                  ? colorMapping[data['color']]
+                  : '기타';
+          _detailController.text = data['description'] ?? '';
+          _selectedCategory = data['category'] ?? '';
+          _selectedCategoryId = '';
         });
         ScaffoldMessenger.of(
           context,
@@ -231,6 +222,7 @@ class _FoundItemFormState extends State<FoundItemForm> {
     } finally {
       setState(() {
         _isLoading = false;
+        _isAiAnalyzing = false;
       });
     }
   }
@@ -493,7 +485,7 @@ class _FoundItemFormState extends State<FoundItemForm> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: _isLoading ? Colors.grey : Colors.blue,
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(50),
                     shape: RoundedRectangleBorder(
@@ -501,19 +493,62 @@ class _FoundItemFormState extends State<FoundItemForm> {
                     ),
                   ),
                   onPressed: _isLoading ? null : _submitForm,
-                  child:
-                      _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('작성 완료'),
+                  child: const Text('작성 완료'),
                 ),
                 const SizedBox(height: 20),
               ],
             ),
           ),
-          if (_isLoading)
+          if (_isLoading || _isAiAnalyzing)
             Container(
-              color: Colors.black.withOpacity(0.3),
-              child: const Center(child: CircularProgressIndicator()),
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_isLoading && !_isAiAnalyzing)
+                      const CircularProgressIndicator(
+                        color: Colors.white,
+                      )
+                    else if (_isAiAnalyzing)
+                      Column(
+                        children: [
+                          Container(
+                            width: 150,
+                            height: 150,
+                            child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: GifView.asset(
+                              'assets/images/ai_analyzing.gif',
+                              height: 150,
+                              width: 150,
+                              frameRate: 1, // 프레임 속도 설정
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'AI가 이미지를 분석 중입니다',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '잠시만 기다려주세요...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
             ),
         ],
       ),
