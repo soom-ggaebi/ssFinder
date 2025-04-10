@@ -2,6 +2,8 @@ package com.ssfinder.domain.lostitem.repository;
 
 import com.ssfinder.domain.lostitem.entity.LostItem;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -19,4 +21,10 @@ import java.util.List;
  */
 public interface LostItemRepository extends JpaRepository<LostItem, Integer> {
     List<LostItem> findAllByUserId(Integer userId);
+
+    @Query("SELECT l FROM LostItem l " +
+            "JOIN FETCH l.itemCategory ic " +
+            "LEFT JOIN FETCH ic.itemCategory parent " +
+            "WHERE l.user.id = :userId")
+    List<LostItem> findAllByUserIdWithCategories(@Param("userId") Integer userId);
 }
