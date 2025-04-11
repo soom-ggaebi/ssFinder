@@ -14,7 +14,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * fileName       : GlobalExceptionHandler.java<br>
  * author         : okeio<br>
  * date           : 2025-03-17<br>
- * description    :  <br>
+ * description    : 전역 예외 처리를 담당하는 클래스입니다.<br>
+ *                  커스텀 예외부터 유효성 검증 오류, 시스템 예외까지 처리하여 일관된 응답을 제공합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
@@ -99,6 +100,12 @@ public class GlobalExceptionHandler {
         return ApiResponse.fail(new CustomException(ErrorCode.INVALID_INPUT_VALUE), errorMessages);
     }
 
+    /**
+     * 필수 요청 파라미터가 누락되었을 때 발생하는 예외를 처리합니다.
+     *
+     * @param ex {@link MissingServletRequestParameterException}
+     * @return 요청 파라미터 누락에 대한 {@link ApiResponse} 응답
+     */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ApiResponse<?> handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
         String name = ex.getParameterName();

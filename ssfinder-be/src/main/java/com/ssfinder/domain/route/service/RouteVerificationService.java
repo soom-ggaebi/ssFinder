@@ -26,7 +26,8 @@ import java.util.Optional;
  * fileName       : RouteVerificationService.java<br>
  * author         : okeio<br>
  * date           : 2025-03-31<br>
- * description    : 회원 경로 검증 관련 Service 클래스입니다. <br>
+ * description    : 습득자와 분실자의 경로 및 시간 겹침 여부를 검증하는 서비스 클래스입니다.<br>
+ *                  GeoSpatial 쿼리를 통해 근접 위치 데이터를 기반으로 교차 여부를 판단합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
@@ -45,6 +46,19 @@ public class RouteVerificationService {
 
     private final MongoTemplate mongoTemplate;
 
+    /**
+     * 습득자와 분실자의 위치 및 시간 데이터를 기반으로 경로 겹침 여부를 검증합니다.
+     *
+     * <p>
+     * 이 메서드는 습득자의 위치와 분실자의 위치를 비교하여 경로가 겹치는지 확인합니다. 또한,
+     * 시간 순서에 따라 경로가 일치하는지 여부를 검사하고 결과를 반환합니다.
+     * </p>
+     *
+     * @param finderUserId 습득자 사용자 ID
+     * @param loserUserId 분실자 사용자 ID
+     * @param foundItem 습득물 엔티티
+     * @return 경로 겹침 여부와 검증 결과 상태가 포함된 {@link RoutesOverlapResponse}
+     */
     public RoutesOverlapResponse verifyRouteOverlap(int finderUserId, int loserUserId, FoundItem foundItem) {
         // 1. 습득물 작성일시 및 위치 조회
         LocalDateTime createdAt = foundItem.getCreatedAt();
@@ -76,10 +90,34 @@ public class RouteVerificationService {
         }
     }
 
+    /**
+     * JTS 포맷의 좌표를 Spring Data MongoDB의 GeoPoint로 변환합니다.
+     *
+     * <p>
+     * 이 메서드는 {@link org.locationtech.jts.geom.Point} 객체를 {@link org.springframework.data.geo.Point}로 변환하여
+     * MongoDB GeoSpatial 쿼리에서 사용할 수 있도록 합니다.
+     * </p>
+     *
+     * @param point JTS 포인트
+     * @return 변환된 {@link org.springframework.data.geo.Point}
+     */
     private Point convertToGeoPoint(org.locationtech.jts.geom.Point point) {
         return new Point(point.getX(), point.getY());
     }
 
+    /**
+     * 사용자 ID 및 위치 기준으로 지정 거리 내에 위치한 데이터를 GeoSpatial 쿼리로 조회합니다.
+     *
+     * <p>
+     * 이 메서드는 주어진 사용자 ID와 위치를 기준으로 지정된 거리 내에 있는 위치 데이터를 조회합니다.
+     * </p>
+     *
+     * @param userId 사용자 ID
+     * @param point 기준 좌표
+     * @param distance 최대 거리
+     * @param additionalCriteria 추가 필터링 조건 (null 가능)
+     * @return 위치 조회 결과 리스트
+     */
     private GeoResults<UserLocation> findNearByUserLocation(int userId, Point point, Distance distance, Criteria additionalCriteria) {
         Criteria baseCriteria = Criteria.where("user_id").is(userId);
 
@@ -94,6 +132,20 @@ public class RouteVerificationService {
         return mongoTemplate.geoNear(nearQuery, UserLocation.class);
     }
 
+    /**
+     * 주어진 시간 범위 내에서 가장 최근의 위치 정보를 반환합니다.
+     *
+     * <p>
+     * 이 메서드는 주어진 시간 범위 내에서 가장 최근에 기록된 위치 정보를 반환합니다.
+     * </p>
+     *
+     * @param userId 사용자 ID
+     * @param point 기준 좌표
+     * @param distance 최대 거리
+     * @param startTime 조회 시작 시간
+     * @param endTime 조회 종료 시간
+     * @return 가장 최근 위치의 시간 정보 (Optional)
+     */
     private Optional<LocalDateTime> getLatestTimeBetween(int userId, Point point, Distance distance,
                                                          LocalDateTime startTime, LocalDateTime endTime) {
         Criteria timeCriteria = Criteria.where("timestamp").gte(startTime).lt(endTime);
@@ -105,6 +157,19 @@ public class RouteVerificationService {
                 .max(LocalDateTime::compareTo);
     }
 
+    /**
+     * 특정 시점 이전에 기록된 가장 이른 위치 정보를 반환합니다.
+     *
+     * <p>
+     * 이 메서드는 주어진 시점 이전에 기록된 가장 이른 위치 정보를 반환합니다.
+     * </p>
+     *
+     * @param userId 사용자 ID
+     * @param point 기준 좌표
+     * @param distance 최대 거리
+     * @param endTime 조회 종료 시간
+     * @return 가장 이른 위치의 시간 정보 (Optional)
+     */
     private Optional<LocalDateTime> getEarliestTimeBefore(int userId, Point point, Distance distance, LocalDateTime endTime) {
         Criteria timeCriteria = Criteria.where("timestamp").lt(endTime);
 
@@ -115,6 +180,17 @@ public class RouteVerificationService {
                 .min(LocalDateTime::compareTo);
     }
 
+    /**
+     * 검증 결과를 응답 DTO로 생성합니다.
+     *
+     * <p>
+     * 이 메서드는 경로 겹침 여부 및 검증 상태에 대한 결과를 {@link RoutesOverlapResponse} 형태로 생성하여 반환합니다.
+     * </p>
+     *
+     * @param overlapExists 경로 겹침 여부
+     * @param status 검증 상태
+     * @return {@link RoutesOverlapResponse}
+     */
     private RoutesOverlapResponse createResponse(boolean overlapExists, VerificationStatus status) {
         return new RoutesOverlapResponse(overlapExists, status);
     }

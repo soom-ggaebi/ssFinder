@@ -18,7 +18,7 @@ import java.util.Objects;
  * fileName       : KakaoLoginRequest.java<br>
  * author         : okeio<br>
  * date           : 2025-03-19<br>
- * description    :  <br>
+ * description    : 카카오 로그인을 위한 사용자 요청 정보를 담는 DTO입니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
@@ -40,6 +40,17 @@ public record KakaoLoginRequest (
         @NotBlank String providerId,
         @NotBlank String fcmToken
 ){
+    /**
+     * Kakao 로그인 요청 정보를 기반으로 `User` 엔티티 객체를 생성합니다.
+     *
+     * <p>
+     * 프로필 닉네임, 이메일, 성별, 전화번호, providerId, 생성일 등의 필수 정보와
+     * 이름, 생년월일 등 선택 정보를 바탕으로 `User` 엔티티를 구성합니다.
+     * 생년월일 파싱 시 실패할 경우 해당 필드는 무시되며 로그 경고가 출력됩니다.
+     * </p>
+     *
+     * @return 변환된 User 엔티티 객체
+     */
     public User toUserEntity() {
         User.UserBuilder builder = User.builder()
                 .nickname(profileNickname)

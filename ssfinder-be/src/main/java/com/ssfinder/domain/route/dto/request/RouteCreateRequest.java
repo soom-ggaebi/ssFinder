@@ -11,7 +11,8 @@ import java.util.List;
  * fileName       : RouteCreateRequest.java<br>
  * author         : okeio<br>
  * date           : 2025-03-28<br>
- * description    : 경로 저장 Request DTO 입니다. <br>
+ * description    : 사용자의 경로를 등록하기 위한 요청 DTO입니다.<br>
+ *                  이벤트 유형, 발생 시각, 위치 이력 리스트를 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

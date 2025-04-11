@@ -8,7 +8,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  * fileName       : UserGetResponse.java<br>
  * author         : okeio<br>
  * date           : 2025-03-21<br>
- * description    :  <br>
+ * description    : 사용자 정보 조회 응답 DTO입니다.<br>
+ *                  사용자 ID, 닉네임, 지역, 가입 일자를 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

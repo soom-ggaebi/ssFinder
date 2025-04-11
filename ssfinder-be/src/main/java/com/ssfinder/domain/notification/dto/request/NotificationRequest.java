@@ -6,10 +6,11 @@ import jakarta.validation.constraints.NotNull;
 
 /**
  * packageName    : com.ssfinder.domain.notification.dto.request<br>
- * fileName       : *.java<br>
+ * fileName       : NotificationRequest.java<br>
  * author         : okeio<br>
  * date           : 2025-03-25<br>
- * description    :  <br>
+ * description    : 알림 발송 요청 정보를 담는 DTO입니다.<br>
+ *                  알림 유형과 날씨 조건 정보를 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

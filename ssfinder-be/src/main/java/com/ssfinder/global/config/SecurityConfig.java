@@ -22,6 +22,18 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.Collections;
 
+/**
+ * packageName    : com.ssfinder.global.config<br>
+ * fileName       : SecurityConfig.java<br>
+ * author         : okeio<br>
+ * date           : 2025-03-20<br>
+ * description    : Spring Security 설정을 담당하는 구성 클래스입니다.<br>
+ <br>
+ * ===========================================================<br>
+ * DATE              AUTHOR             NOTE<br>
+ * -----------------------------------------------------------<br>
+ * 2025-03-20          okeio           최초생성<br>
+ */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -39,11 +51,23 @@ public class SecurityConfig {
     private final UserService userService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * JWT 인증 필터 빈 등록
+     *
+     * @return JwtAuthenticationFilter 인스턴스
+     */
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter(jwtUtil, userService, objectMapper);
     }
 
+    /**
+     * Spring Security 필터 체인 구성
+     *
+     * @param http HttpSecurity 객체
+     * @return {@link SecurityFilterChain} 객체
+     * @throws Exception 예외 발생 시
+     */
     @Bean
     protected SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -65,6 +89,14 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * CORS 정책을 설정하는 빈을 등록합니다.
+     *
+     * <p>모든 Origin 및 메서드를 허용하며, 인증 정보(Credentials)는 사용하지 않습니다.
+     * 클라이언트가 접근 가능한 헤더 목록도 설정합니다.</p>
+     *
+     * @return {@link CorsConfigurationSource} 객체
+     */
     @Bean
     protected CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

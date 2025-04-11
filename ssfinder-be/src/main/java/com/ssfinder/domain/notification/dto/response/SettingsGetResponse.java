@@ -7,10 +7,11 @@ import java.util.List;
 
 /**
  * packageName    : com.ssfinder.domain.notification.dto.response<br>
- * fileName       : *.java<br>
+ * fileName       : SettingsGetResponse.java<br>
  * author         : okeio<br>
  * date           : 2025-03-25<br>
- * description    :  <br>
+ * description    : 사용자 알림 설정 조회 응답 DTO입니다.<br>
+ *                  사용자가 설정한 알림 목록 정보를 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
