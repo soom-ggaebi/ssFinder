@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+transformers==4.26.0
+torch
+Pillow
+pydantic
+python-multipart
+httpx
+python-dotenv
+aiofiles
+kiwipiepy==0.20.4
+numpy
+requests
+accelerate
+psutil>=5.9.0
+pymysql>=1.0.2
