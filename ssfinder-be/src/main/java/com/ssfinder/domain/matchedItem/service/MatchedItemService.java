@@ -1,21 +1,23 @@
 package com.ssfinder.domain.matchedItem.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssfinder.domain.founditem.entity.FoundItem;
+import com.ssfinder.domain.founditem.repository.FoundItemRepository;
 import com.ssfinder.domain.itemcategory.dto.MatchedItemsTopFiveProjection;
+import com.ssfinder.domain.lostitem.entity.LostItem;
+import com.ssfinder.domain.lostitem.repository.LostItemRepository;
 import com.ssfinder.domain.matchedItem.dto.request.MatchedItemRequest;
+import com.ssfinder.domain.matchedItem.dto.request.MatchedItemRequest2;
 import com.ssfinder.domain.matchedItem.dto.response.MatchedItemResponse;
 import com.ssfinder.domain.matchedItem.dto.response.MatchedItemsTopFiveResponse;
 import com.ssfinder.domain.matchedItem.entity.MatchedItem;
 import com.ssfinder.domain.matchedItem.repository.MatchedItemRepository;
-import com.ssfinder.domain.founditem.entity.FoundItem;
-import com.ssfinder.domain.founditem.repository.FoundItemRepository;
-import com.ssfinder.domain.lostitem.entity.LostItem;
-import com.ssfinder.domain.lostitem.repository.LostItemRepository;
 import com.ssfinder.global.common.exception.CustomException;
 import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +63,7 @@ public class MatchedItemService {
 
             // 요청 데이터를 Map으로 변환
             Map<String, Object> requestMap = new HashMap<>();
+            requestMap.put("lostItemId", request.getLostItemId());
             requestMap.put("category", request.getItemCategoryId());
             requestMap.put("name", request.getTitle());
             requestMap.put("color", request.getColor());
@@ -97,6 +100,57 @@ public class MatchedItemService {
             throw new CustomException(ErrorCode.EXTERNAL_API_ERROR);
         }
     }
+
+    @Transactional
+    public MatchedItemResponse findSimilarItems2(MatchedItemRequest2 request) {
+        log.info("AI 매칭 요청: {}", request.getFoundItemId());
+
+        try {
+            // HTTP 요청 헤더 설정
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            // 요청 데이터를 Map으로 변환
+            Map<String, Object> requestMap = new HashMap<>();
+            requestMap.put("foundItemId", request.getFoundItemId());
+            requestMap.put("category", request.getItemCategoryId());
+            requestMap.put("name", request.getTitle());
+            requestMap.put("color", request.getColor());
+            requestMap.put("content", request.getDetail());
+            requestMap.put("location", request.getLocation());
+            requestMap.put("image_url", request.getImage());
+
+            // HTTP 요청 엔티티 생성
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestMap, headers);
+
+            log.debug("Hugging Face API 호출: {}", matchinghuggingFaceUrl);
+
+            // Hugging Face API로 요청 전송 및 응답 수신
+            ResponseEntity<MatchedItemResponse> response = restTemplate.exchange(
+                    matchinghuggingFaceUrl + "?threshold=" + (request.getThreshold() != null ? request.getThreshold() : 0.7),
+                    HttpMethod.POST,
+                    entity,
+                    MatchedItemResponse.class
+            );
+
+            MatchedItemResponse matchingResponse = response.getBody();
+            log.error("response.getBody() : {}", matchingResponse.toString());
+
+//            // 매칭 결과 처리 - 여기서는 lostItemId가 foundItemId가 됨
+//            if (matchingResponse != null && matchingResponse.isSuccess() &&
+//                    matchingResponse.getResult() != null && request.getFoundItemId() != null) {
+//                // 매칭 결과를 DB에 저장
+//                matchedItemSaveService.saveMatchingResults2(request.getFoundItemId(), matchingResponse);
+//            }
+
+            return matchingResponse;
+
+        } catch (Exception e) {
+            log.error("Hugging Face API 요청 중 오류 발생: {}", e.getMessage(), e);
+            throw new CustomException(ErrorCode.EXTERNAL_API_ERROR);
+        }
+    }
+
 
     private void saveMatchingResults(Integer lostItemId, MatchedItemResponse response) {
         if (lostItemId == null || response == null || response.getResult() == null) {

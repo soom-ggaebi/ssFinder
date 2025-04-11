@@ -7,6 +7,7 @@ import com.ssfinder.domain.founditem.dto.response.*;
 import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.founditem.entity.FoundItemDocument;
 import com.ssfinder.domain.founditem.entity.FoundItemStatus;
+import com.ssfinder.domain.founditem.event.FoundItemRegisteredEvent;
 import com.ssfinder.domain.founditem.repository.FoundItemDocumentRepository;
 import com.ssfinder.domain.founditem.repository.FoundItemRepository;
 import com.ssfinder.domain.itemcategory.entity.ItemCategory;
@@ -21,6 +22,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.*;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -65,6 +67,7 @@ public class FoundItemService {
     private final S3Service s3Service;
     private final FoundItemElasticsearchQueryService elasticsearchQueryService;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 습득물 데이터 저장
     @Transactional
@@ -78,6 +81,9 @@ public class FoundItemService {
         foundItem.setImage(imageUrl);
         FoundItem savedItem = foundItemRepository.save(foundItem);
         elasticsearchAsyncService.saveFoundItemToElasticsearch(savedItem);
+
+        eventPublisher.publishEvent(new FoundItemRegisteredEvent(this, savedItem));
+
         return foundItemMapper.entityToDocument(savedItem);
     }
 
