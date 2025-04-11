@@ -37,7 +37,7 @@ public class MessageReadUpdateListener {
     private final ChatRoomService chatRoomService;
 
     @Transactional
-    @KafkaListener(topics = "${kafka.topic.chat-read}", groupId = "chat-message-read-db-update", containerFactory = "chatMessageReadListenerContainerFactory")
+    @KafkaListener(topics = "${kafka.topic.chat-read}", groupId = "chat-message-read-db-update-temp", containerFactory = "chatMessageReadListenerContainerFactory")
     public void listen(KafkaChatReadMessage message) {
         ChatRoomParticipant participant = chatRoomService.getChatRoomParticipant(message.chatRoomId(), message.userId());
         participant.setLastReadAt(LocalDateTime.now());

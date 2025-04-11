@@ -7,13 +7,11 @@ import com.ssfinder.domain.lostitem.dto.request.LostItemRegisterRequest;
 import com.ssfinder.domain.lostitem.dto.request.LostItemStatusUpdateRequest;
 import com.ssfinder.domain.lostitem.dto.request.LostItemUpdateRequest;
 import com.ssfinder.domain.lostitem.dto.request.UpdateNotificationSettingsRequest;
-import com.ssfinder.domain.lostitem.dto.response.LostItemResponse;
-import com.ssfinder.domain.lostitem.dto.response.LostItemStatusUpdateResponse;
-import com.ssfinder.domain.lostitem.dto.response.LostItemUpdateResponse;
-import com.ssfinder.domain.lostitem.dto.response.UpdateNotificationSettingsResponse;
+import com.ssfinder.domain.lostitem.dto.response.*;
 import com.ssfinder.domain.lostitem.entity.LostItem;
 import com.ssfinder.domain.lostitem.entity.LostItemStatus;
 import com.ssfinder.domain.lostitem.repository.LostItemRepository;
+import com.ssfinder.domain.matchedItem.repository.MatchedItemRepository;
 import com.ssfinder.domain.user.entity.User;
 import com.ssfinder.domain.user.service.UserService;
 import com.ssfinder.global.common.exception.CustomException;
@@ -29,8 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -58,15 +55,61 @@ public class LostItemService {
     private final UserService userService;
     private final LostItemMapper lostItemMapper;
     private final S3Service s3Service;
+    private final MatchedItemRepository matchedItemRepository;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
+
     @Transactional(readOnly = true)
-    public List<LostItemResponse> getLostAll(Integer userId) {
-        List<LostItem> lostItems = lostItemRepository.findAllByUserId(userId);
-        return lostItems.stream()
-                .map(lostItemMapper::toResponse)
-                .collect(Collectors.toList());
+    public List<LostItemListResponse> getLostAll(Integer userId) {
+
+        List<LostItem> lostItems = lostItemRepository.findAllByUserIdWithCategories(userId);
+
+        List<Object[]> topMatches = matchedItemRepository.findTop3FoundImagesPerLostItem();
+        Map<Integer, List<String>> lostItemToImagesMap = new HashMap<>();
+        for (Object[] row : topMatches) {
+            Integer lostItemId = ((Number) row[0]).intValue();
+            String imageUrl = (String) row[1];
+            lostItemToImagesMap.computeIfAbsent(lostItemId, k -> new ArrayList<>()).add(imageUrl);
+        }
+
+        return lostItems.stream().map(lostItem -> {
+            List<String> matchedImageUrls;
+            if (lostItemToImagesMap.containsKey(lostItem.getId())) {
+                matchedImageUrls = lostItemToImagesMap.get(lostItem.getId());
+            } else {
+                matchedImageUrls = new ArrayList<>();
+            }
+
+            String majorCategory = null;
+            String minorCategory = null;
+
+            ItemCategory itemCategory = lostItem.getItemCategory();
+            if (itemCategory != null) {
+                minorCategory = itemCategory.getName();
+
+                if (itemCategory.getItemCategory() != null) {
+                    majorCategory = itemCategory.getItemCategory().getName();
+                }
+            }
+
+            return LostItemListResponse.builder()
+                    .id(lostItem.getId())
+                    .userId(lostItem.getUser().getId())
+                    .majorItemCategory(majorCategory)
+                    .minorItemCategory(minorCategory)
+                    .title(lostItem.getTitle())
+                    .color(lostItem.getColor())
+                    .lostAt(lostItem.getLostAt())
+                    .location(lostItem.getLocation())
+                    .image(lostItem.getImage())
+                    .matchedImageUrls(matchedImageUrls)
+                    .status(String.valueOf(lostItem.getStatus()))
+                    .createdAt(lostItem.getCreatedAt())
+                    .updatedAt(lostItem.getUpdatedAt())
+                    .notificationEnabled(lostItem.getNotificationEnabled())
+                    .build();
+        }).collect(Collectors.toList());
     }
 
     @Transactional

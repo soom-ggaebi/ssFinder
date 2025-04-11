@@ -84,7 +84,7 @@ public class FoundItemController {
     }
 
     @GetMapping("/my-items")
-    public ApiResponse<Page<FoundItemDetailResponse>> getMyFoundItems(@AuthenticationPrincipal CustomUserDetails userDetails,
+    public ApiResponse<Page<FoundItemSummaryResponse>> getMyFoundItems(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                                       @RequestParam(defaultValue = "0") int page,
                                                                       @RequestParam(defaultValue = "10") int size,
                                                                       @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -93,7 +93,7 @@ public class FoundItemController {
                 Sort.Direction.ASC : Sort.Direction.DESC;
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        Page<FoundItemDetailResponse> response = foundItemService.getMyFoundItems(userDetails.getUserId(), pageable);
+        Page<FoundItemSummaryResponse> response = foundItemService.getMyFoundItems(userDetails.getUserId(), pageable);
         return ApiResponse.ok(response);
     }
 
@@ -177,14 +177,14 @@ public class FoundItemController {
     }
 
     @DeleteMapping("/{foundId}/bookmark")
-    public ApiResponse<?> deleteBookmark(@RequestAttribute("userDetails") CustomUserDetails userDetails,
+    public ApiResponse<?> deleteBookmark(@AuthenticationPrincipal CustomUserDetails userDetails,
                                          @PathVariable @Min(1) int foundId) {
         foundItemBookmarkService.deleteBookmark(userDetails.getUserId(), foundId);
         return ApiResponse.noContent();
     }
 
     @GetMapping("/bookmarks")
-    public ApiResponse<?> getBookmarks(@RequestAttribute("userDetails") CustomUserDetails userDetails) {
+    public ApiResponse<?> getBookmarks(@AuthenticationPrincipal CustomUserDetails userDetails) {
         List<FoundItemBookmarkResponse> response = foundItemBookmarkService.getBookmarksByUser(userDetails.getUserId());
         return ApiResponse.ok(response);
     }

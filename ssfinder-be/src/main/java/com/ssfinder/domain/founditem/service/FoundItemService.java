@@ -174,7 +174,7 @@ public class FoundItemService {
 
     // 내 습득물 조회 (Elasticsearch 검색은 별도 QueryService로 위임)
     @Transactional(readOnly = true)
-    public Page<FoundItemDetailResponse> getMyFoundItems(int userId, Pageable pageable) {
+    public Page<FoundItemSummaryResponse> getMyFoundItems(int userId, Pageable pageable) {
         return elasticsearchQueryService.getMyFoundItems(userId, pageable);
     }
 

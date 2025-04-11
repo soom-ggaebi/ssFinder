@@ -4,6 +4,7 @@ import com.ssfinder.domain.auth.service.TokenService;
 import com.ssfinder.domain.user.dto.CustomUserDetails;
 import com.ssfinder.domain.user.dto.mapper.UserMapper;
 import com.ssfinder.domain.user.dto.request.UserUpdateRequest;
+import com.ssfinder.domain.user.dto.response.MyItemCountResponse;
 import com.ssfinder.domain.user.dto.response.UserGetResponse;
 import com.ssfinder.domain.user.dto.response.UserUpdateResponse;
 import com.ssfinder.domain.user.entity.User;
@@ -141,5 +142,14 @@ public class UserService implements UserDetailsService {
      */
     public User getReferenceById(int userId) {
         return userRepository.getReferenceById(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public MyItemCountResponse getMyItemCounts(int userId) {
+        MyItemCountResponse response = userRepository.countItemsByUserId(userId);
+        return MyItemCountResponse.builder()
+                .lostItemCount(response.getLostItemCount())
+                .foundItemCount(response.getFoundItemCount())
+                .build();
     }
 }
