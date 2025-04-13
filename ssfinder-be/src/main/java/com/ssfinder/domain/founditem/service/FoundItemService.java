@@ -147,11 +147,7 @@ public class FoundItemService {
                 log.error("S3 이미지 삭제 실패: {}, 오류={}", foundItem.getImage(), e.getMessage());
             }
         }
-        try {
-            foundItemBookmarkService.deleteAllBookmarksByFoundItemId(foundId);
-        } catch (Exception e) {
-            log.error("북마크 삭제 실패 (계속 진행): FoundItemId={}, 오류={}", foundId, e.getMessage());
-        }
+
         foundItemRepository.delete(foundItem);
         elasticsearchAsyncService.deleteFoundItemFromElasticsearch(String.valueOf(foundId));
     }
