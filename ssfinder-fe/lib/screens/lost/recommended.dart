@@ -33,7 +33,7 @@ class _RecommendedState extends State<Recommended> {
       List<FoundItemListModel> recommendations = data
           .map((json) => FoundItemListModel.fromJson(json as Map<String, dynamic>))
           .toList();
-
+      print(recommendations);
       return recommendations;
     } catch (e) {
       print("추천 데이터를 불러오는 중 에러 발생: $e");
