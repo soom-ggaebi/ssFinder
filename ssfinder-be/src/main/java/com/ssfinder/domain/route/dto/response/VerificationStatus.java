@@ -20,8 +20,7 @@ import lombok.Getter;
 public enum VerificationStatus {
     NO_FINDER_LOCATION("V001", "습득자는 해당 장소를 지나지 않았습니다."),
     NO_LOSER_LOCATION("V002", "분실자는 해당 장소를 지나지 않았습니다."),
-    TIME_MISMATCH("V003", "장소는 일치하지만 시간 조건이 충족되지 않았습니다."),
-    VERIFIED("V004", "습득자와 분실자의 경로가 시간순으로 일치합니다. 인증되었습니다.");
+    VERIFIED("V003", "습득자와 분실자의 경로가 일치합니다. 인증되었습니다.");
 
     private final String code;
     private final String message;
