@@ -17,6 +17,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import java.util.Optional;
  * -----------------------------------------------------------<br>
  * 2025-03-31          okeio           최초생성<br>
  * 2025-04-04          okeio           검증 로직 수정 및 mongoTemplate 사용<br>
+ * 2025-04-13          okeio           습득물 게시글의 생성일시 대신 습득일자 기준으로 검증 로직 변경<br>
  * <br>
  */
 @Slf4j
@@ -60,17 +62,18 @@ public class RouteVerificationService {
      * @return 경로 겹침 여부와 검증 결과 상태가 포함된 {@link RoutesOverlapResponse}
      */
     public RoutesOverlapResponse verifyRouteOverlap(int finderUserId, int loserUserId, FoundItem foundItem) {
-        // 1. 습득물 작성일시 및 위치 조회
-        LocalDateTime createdAt = foundItem.getCreatedAt();
+        // 1. 습득 날짜 및 위치 조회
+        LocalDate foundAt = foundItem.getFoundAt();
         org.locationtech.jts.geom.Point foundPoint = foundItem.getCoordinates();
         org.springframework.data.geo.Point geoPoint = convertToGeoPoint(foundPoint);
 
-        // 2. 습득자가 지나간 여부 및 시간 확인(작성일시보다 이전이면서 가장 가까운 시간으로 채택)
+        // 2. 습득자가 지나간 여부 및 시간 확인(습득 날짜의 일시 중 가장 이후 시간으로 채택)
         Distance searchDistance = new Distance(MAX_DISTANCE_KILOMETERS, Metrics.KILOMETERS);
-        Optional<LocalDateTime> foundTimeOpt = getLatestTimeBetween(finderUserId, geoPoint, searchDistance, createdAt.toLocalDate().atStartOfDay(), createdAt);
+        Optional<LocalDateTime> foundTimeOpt = getLatestTimeBetween(finderUserId, geoPoint, searchDistance, foundAt.atStartOfDay(), foundAt.plusDays(1).atStartOfDay());
         if (foundTimeOpt.isEmpty()) {
             return createResponse(false, VerificationStatus.NO_FINDER_LOCATION);
         }
+        log.info("[습득 추정 시간] foundTIme: {}", foundTimeOpt.get());
 
         // 3. 추정된 습득 시간을 기반으로 분실자가 지나간 여부 및 시간 확인(저장된 모든 일자에 대해 적용)
         LocalDateTime foundTime = foundTimeOpt.get();
@@ -79,15 +82,9 @@ public class RouteVerificationService {
             return createResponse(false, VerificationStatus.NO_LOSER_LOCATION);
         }
         LocalDateTime lostTime = lostTimeOpt.get();
+        log.info("[경로 검증] VERIFIED - 분실 시간: {}, 습득 시간: {}", lostTime, foundTime);
 
-        // 4. 시간 순서 검증
-        if (foundTime.isAfter(lostTime)) {
-            log.info("[경로 검증] VERIFIED - 분실 시간: {}, 습득 시간: {}", lostTime, foundTime);
-            return createResponse(true, VerificationStatus.VERIFIED);
-        } else {
-            log.info("[경로 검증] TIME_MISMATCH - 분실 시간: {}, 습득 시간: {}", lostTime, foundTime);
-            return createResponse(false, VerificationStatus.TIME_MISMATCH);
-        }
+        return createResponse(true, VerificationStatus.VERIFIED);
     }
 
     /**
