@@ -33,7 +33,7 @@ class _RecommendedState extends State<Recommended> {
       List<FoundItemListModel> recommendations = data
           .map((json) => FoundItemListModel.fromJson(json as Map<String, dynamic>))
           .toList();
-      print(recommendations);
+
       return recommendations;
     } catch (e) {
       print("추천 데이터를 불러오는 중 에러 발생: $e");
@@ -44,7 +44,7 @@ class _RecommendedState extends State<Recommended> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("추천 페이지")),
+      appBar: AppBar(title: const Text("숨깨비 추천", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
       body: FutureBuilder<List<FoundItemListModel>>(
         future: _recommendationsFuture,
         builder: (context, snapshot) {
