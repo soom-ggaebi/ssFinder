@@ -6,8 +6,11 @@ class FoundItemCard extends StatefulWidget {
   final FoundItemListModel item;
   final bool isLoggedIn;
 
-  const FoundItemCard({Key? key, required this.item, required this.isLoggedIn})
-    : super(key: key);
+  const FoundItemCard({
+    Key? key,
+    required this.item,
+    required this.isLoggedIn,
+  }) : super(key: key);
 
   @override
   _FoundItemCardState createState() => _FoundItemCardState();
@@ -50,25 +53,25 @@ class _FoundItemCardState extends State<FoundItemCard> {
     try {
       if (item.bookmarked == true) {
         await _apiService.deleteBookmark(foundId: item.id);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('북마크가 삭제되었습니다.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('북마크가 삭제되었습니다.')),
+        );
         setState(() {
           item = item.copyWith(bookmarked: false);
         });
       } else {
         await _apiService.bookmarkFoundItem(foundId: item.id);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('북마크가 등록되었습니다.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('북마크가 등록되었습니다.')),
+        );
         setState(() {
           item = item.copyWith(bookmarked: true);
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('북마크 처리 중 오류가 발생했습니다: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('북마크 처리 중 오류가 발생했습니다: $e')),
+      );
     } finally {
       setState(() {
         _processing = false;
@@ -80,45 +83,42 @@ class _FoundItemCardState extends State<FoundItemCard> {
   Widget build(BuildContext context) {
     String displayLocation;
     if (item.type == "경찰청") {
-      displayLocation =
-          (item.storageLocation != null &&
-                  item.storageLocation!.trim().isNotEmpty)
-              ? item.storageLocation!
-              : item.foundLocation;
+      displayLocation = (item.storageLocation != null &&
+              item.storageLocation!.trim().isNotEmpty)
+          ? item.storageLocation!
+          : item.foundLocation;
     } else {
       displayLocation = extractLocation(item.foundLocation);
     }
 
     final cardContent = Row(
       children: [
-        // 이미지 영역
         ClipRRect(
           borderRadius: BorderRadius.circular(8.0),
-          child:
-              item.image != null
-                  ? Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: NetworkImage(item.image!),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  )
-                  : Container(
-                    width: 100,
-                    height: 100,
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('assets/images/main/null_image.png'),
-                        fit: BoxFit.cover,
-                      ),
+          child: item.image != null
+              ? Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: NetworkImage(item.image!),
+                      fit: BoxFit.cover,
                     ),
                   ),
+                )
+              : Container(
+                  width: 100,
+                  height: 100,
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/main/null_image.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
         ),
-
         const SizedBox(width: 20),
+
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,30 +148,31 @@ class _FoundItemCardState extends State<FoundItemCard> {
                       ),
                     ],
                   ),
+
                   if (widget.isLoggedIn)
-                    IconButton(
-                      icon:
-                          _processing
-                              ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : Icon(
-                                item.bookmarked == true
-                                    ? Icons.bookmark
-                                    : Icons.bookmark_border,
-                                color:
+                    item.score == null
+                        ? IconButton(
+                            icon: _processing
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Icon(
                                     item.bookmarked == true
+                                        ? Icons.bookmark
+                                        : Icons.bookmark_border,
+                                    color: item.bookmarked == true
                                         ? Colors.blue
                                         : Colors.grey,
-                              ),
-                      onPressed: _toggleBookmark,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
+                                  ),
+                            onPressed: _toggleBookmark,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          )
+                        : _buildScoreIndicator(item.score!),
                 ],
               ),
               Text(
@@ -199,11 +200,10 @@ class _FoundItemCardState extends State<FoundItemCard> {
         ),
       ],
     );
-
     return Stack(
       children: [
         cardContent,
-        if (item.status != "STORED") ...[
+        if (item.status != "STORED")
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -212,8 +212,35 @@ class _FoundItemCardState extends State<FoundItemCard> {
               ),
             ),
           ),
-        ],
       ],
+    );
+  }
+
+  Widget _buildScoreIndicator(int score) {
+    final double progressValue = score / 100.0;
+
+    return SizedBox(
+      width: 50,
+      height: 50,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CircularProgressIndicator(
+            value: progressValue,
+            strokeWidth: 6.0,
+            backgroundColor: Colors.grey.shade300,
+            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+          ),
+          Text(
+            "$score",
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -129,6 +129,7 @@ class FoundItemListModel {
   final String foundLocation; // 분실된 위치
   final String createdTime; // 생성 시각
   final bool? bookmarked;
+  final int? score;
 
   FoundItemListModel({
     required this.id,
@@ -142,6 +143,7 @@ class FoundItemListModel {
     required this.foundLocation,
     required this.createdTime,
     this.bookmarked,
+    this.score,
   });
 
   FoundItemListModel copyWith({
@@ -156,6 +158,7 @@ class FoundItemListModel {
     String? foundLocation,
     String? createdTime,
     bool? bookmarked,
+    int? score,
   }) {
     return FoundItemListModel(
       id: id ?? this.id,
@@ -169,6 +172,7 @@ class FoundItemListModel {
       foundLocation: foundLocation ?? this.foundLocation,
       createdTime: createdTime ?? this.createdTime,
       bookmarked: bookmarked ?? this.bookmarked,
+      score: score ?? this.score,
     );
   }
 
@@ -185,6 +189,7 @@ class FoundItemListModel {
       foundLocation: json['location'] as String,
       createdTime: json['created_at'] as String,
       bookmarked: json['bookmarked'] as bool?,
+      score: json['score'] as int?,
     );
   }
 }
