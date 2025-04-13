@@ -3,6 +3,8 @@ package com.ssfinder.domain.founditem.entity;
 import com.ssfinder.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 /**
  * packageName    : com.ssfinder.domain.found.entity<br>
@@ -29,10 +31,12 @@ public class FoundItemBookmark {
     private Integer id;
 
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     private User user;
 
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "found_item_id", referencedColumnName = "id", nullable = false)
     private FoundItem foundItem;
 }

@@ -4,6 +4,8 @@ import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.lostitem.entity.LostItem;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -32,10 +34,12 @@ public class MatchedItem {
     private Integer id;
 
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "lost_item_id", referencedColumnName = "id", nullable = false)
     private LostItem lostItem;
 
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "found_item_id", referencedColumnName = "id", nullable = false)
     private FoundItem foundItem;
 
