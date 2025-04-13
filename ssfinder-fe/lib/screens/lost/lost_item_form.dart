@@ -345,6 +345,7 @@ class _LostItemFormState extends State<LostItemForm> {
       );
 
       final newItemData = lostItemResponseData['data'];
+      // 결과를 이전 페이지로 전달
       Navigator.pop(context, newItemData);
     } catch (e) {
       setState(() {

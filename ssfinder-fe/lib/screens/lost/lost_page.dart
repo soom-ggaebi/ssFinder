@@ -145,7 +145,6 @@ class _LostPageState extends State<LostPage>
                     shape: const CircleBorder(),
                     child: InkWell(
                       onTap: () async {
-                        // LostItemForm으로 이동 후 결과(data)를 받아 리스트에 추가
                         final result = await Navigator.push(
                           context,
                           MaterialPageRoute(

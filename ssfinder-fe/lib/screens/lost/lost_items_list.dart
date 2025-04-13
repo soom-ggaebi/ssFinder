@@ -82,7 +82,6 @@ class _LostItemsListState extends State<LostItemsList> {
                 (lostItem.matched_image_urls as List).isNotEmpty)
               GestureDetector(
                 onTap: () {
-                  // 추천 페이지로 넘어갈 때 lostItemId 값을 전달합니다.
                   Navigator.push(
                     context,
                     MaterialPageRoute(
