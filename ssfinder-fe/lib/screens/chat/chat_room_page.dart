@@ -80,31 +80,33 @@ class _ChatPageState extends State<ChatPage> {
   // 권한 확인 메서드 추가
   Future<void> _checkPermissions() async {
     if (_disposed) return;
-    
+
     // camera와 storage 권한 요청
     Map<Permission, PermissionStatus> statuses =
         await [Permission.camera, Permission.storage].request();
     if (_disposed) return;
-    
+
     addLog('카메라 권한: ${statuses[Permission.camera]}');
     addLog('저장소 권한: ${statuses[Permission.storage]}');
   }
-  
+
   @override
   void initState() {
     super.initState();
     print('ChatPage 초기화');
-    
+
     // API 호출 차단 상태 해제
     _chatService.unblockApi(widget.roomId).then((_) {
       print('API 호출 차단 상태 해제됨');
     });
-    
+
     // 추가한 _checkPermissions 호출
     _checkPermissions();
-    
+
     // 의도적 연결 해제 상태 확인 및 사용자 정보 초기화 등...
-    _chatService.isIntentionallyDisconnected(widget.roomId).then((isIntentional) {
+    _chatService.isIntentionallyDisconnected(widget.roomId).then((
+      isIntentional,
+    ) {
       if (isIntentional) {
         _chatService.resetDisconnectState(widget.roomId).then((_) {
           _initializeUserData().then((_) {
@@ -139,7 +141,9 @@ class _ChatPageState extends State<ChatPage> {
       return false;
     }
 
-    final shouldConnect = await _chatService.shouldAttemptReconnect(widget.roomId);
+    final shouldConnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
     if (!shouldConnect) {
       print('🔴 의도적으로 연결이 해제된 상태입니다');
       return false;
@@ -222,7 +226,9 @@ class _ChatPageState extends State<ChatPage> {
         });
 
         if (_currentToken != null && mounted) {
-          final shouldConnect = await _chatService.shouldAttemptReconnect(widget.roomId);
+          final shouldConnect = await _chatService.shouldAttemptReconnect(
+            widget.roomId,
+          );
           if (shouldConnect) {
             initStompClient();
           } else {
@@ -240,7 +246,9 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _fetchLatestToken() async {
     if (_disposed) return;
 
-    final shouldConnect = await _chatService.shouldAttemptReconnect(widget.roomId);
+    final shouldConnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
     if (!shouldConnect) {
       addLog('사용자가 의도적으로 연결을 끊었으므로 토큰 갱신 및 연결을 시도하지 않습니다.');
       return;
@@ -290,7 +298,9 @@ class _ChatPageState extends State<ChatPage> {
       return;
     }
 
-    final shouldConnect = await _chatService.shouldAttemptReconnect(widget.roomId);
+    final shouldConnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
     if (!shouldConnect) {
       print('🔴 의도적으로 연결이 해제되었으므로 STOMP 클라이언트 초기화를 건너뜁니다.');
       return;
@@ -314,25 +324,74 @@ class _ChatPageState extends State<ChatPage> {
           onConnect: (frame) {
             print('🟢 STOMP 연결 성공');
             if (mounted) {
-              if (!isConnected) {
-                onConnect(frame);
+              setState(() {
+                isConnected = true;
+                reconnectAttempts = 0;
+              });
+
+              // 연결 후 즉시 구독 시작
+              if (!_isSubscribingToChatRoom) {
+                _isSubscribingToChatRoom = true;
+                subscribeToChatRoom();
               }
+              if (!_isSubscribingToErrors) {
+                _isSubscribingToErrors = true;
+                subscribeToErrors();
+              }
+              if (!_isSubscribingToReadStatus) {
+                _isSubscribingToReadStatus = true;
+                subscribeToReadStatus();
+              }
+
+              // 온라인 상태 전송 및 읽지 않은 메시지 처리
+              _sendOnlineStatus();
+              _processUnreadMessages();
             }
           },
           onDisconnect: (frame) {
             print('🔴 STOMP 연결 해제');
-            if (mounted) onDisconnect(frame);
+            if (mounted) {
+              setState(() {
+                isConnected = false;
+                _isSubscribingToChatRoom = false;
+                _isSubscribingToReadStatus = false;
+                _isSubscribingToErrors = false;
+              });
+
+              // 의도적으로 연결을 해제한 것이 아니라면 재연결 시도
+              _checkAndReconnect();
+            }
           },
           onWebSocketError: (error) {
             print('❌ WebSocket 오류: $error');
-            if (mounted) onWebSocketError(error);
+            if (mounted) {
+              setState(() {
+                isConnected = false;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('연결 오류가 발생했습니다: $error'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+
+              // 웹소켓 오류 시 재연결 시도
+              _checkAndReconnect();
+            }
           },
           onStompError: (frame) {
             print('❗ STOMP 오류: ${frame.body}');
-            if (mounted) onStompError(frame);
+            if (mounted &&
+                frame.body != null &&
+                (frame.body!.toLowerCase().contains('token') ||
+                    frame.body!.toLowerCase().contains('auth') ||
+                    frame.body!.toLowerCase().contains('unauthorized'))) {
+              _refreshTokenAndReconnect();
+            }
           },
           onDebugMessage: (String message) {
-            // 필요할 경우 활성화
+            // 디버그 메시지 활성화
+            print('🔍 STOMP 디버그: $message');
           },
           stompConnectHeaders: {
             'accept-version': '1.0,1.1,1.2',
@@ -351,6 +410,52 @@ class _ChatPageState extends State<ChatPage> {
       print('💥 STOMP 클라이언트 초기화 중 오류: $e');
     } finally {
       _isInitializingClient = false;
+    }
+  }
+
+  // 사용자 정의 재연결 로직
+  Future<void> _checkAndReconnect() async {
+    if (_disposed) return;
+
+    final shouldReconnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
+    if (!shouldReconnect) {
+      print('사용자가 의도적으로 연결을 끊었으므로 재연결 시도하지 않음');
+      return;
+    }
+
+    if (reconnectAttempts < 5) {
+      reconnectAttempts++;
+      print('🔄 자동 재연결 시도 ($reconnectAttempts/5)...');
+
+      // 연결 시도 사이에 지연 시간 증가 (지수 백오프)
+      final delay = Duration(seconds: 2 * reconnectAttempts);
+      await Future.delayed(delay);
+
+      if (_disposed) return;
+
+      // 재연결 전에 기존 연결 정리
+      _cleanupExistingConnection();
+
+      // 재연결 시도
+      initStompClient();
+    } else {
+      print('❌ 최대 재연결 시도 횟수 도달 (5/5)');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('서버 연결에 반복적으로 실패했습니다. 수동으로 다시 시도해 주세요.'),
+            action: SnackBarAction(
+              label: '재시도',
+              onPressed: () {
+                reconnectAttempts = 0;
+                reconnect();
+              },
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -420,13 +525,16 @@ class _ChatPageState extends State<ChatPage> {
 
   void _processUnreadMessages() {
     if (currentUserId == null || _messages.isEmpty) return;
-    final List<String> unreadMessageIds = _messages
-        .where((msg) =>
-            !msg.isSent &&
-            msg.status == 'UNREAD' &&
-            msg.messageId != null)
-        .map((msg) => msg.messageId!)
-        .toList();
+    final List<String> unreadMessageIds =
+        _messages
+            .where(
+              (msg) =>
+                  !msg.isSent &&
+                  msg.status == 'UNREAD' &&
+                  msg.messageId != null,
+            )
+            .map((msg) => msg.messageId!)
+            .toList();
     if (unreadMessageIds.isNotEmpty) {
       addLog('읽지 않은 메시지 ${unreadMessageIds.length}개 읽음 처리 시작');
       sendReadReceipt(unreadMessageIds);
@@ -469,7 +577,9 @@ class _ChatPageState extends State<ChatPage> {
         addLog('읽음 상태 업데이트 수신: ${frame.body}');
         final jsonData = json.decode(frame.body!);
         final int userId = jsonData['user_id'];
-        final List<String> messageIds = List<String>.from(jsonData['message_ids']);
+        final List<String> messageIds = List<String>.from(
+          jsonData['message_ids'],
+        );
         final int chatRoomId = jsonData['chat_room_id'];
         if (userId != currentUserId) {
           addLog('상대방(ID: $userId)이 메시지 ${messageIds.length}개를 읽음');
@@ -477,11 +587,12 @@ class _ChatPageState extends State<ChatPage> {
           if (userId == currentUserId) return;
           setState(() {
             for (int i = 0; i < _messages.length; i++) {
-              if (_messages[i].isSent && messageIds.contains(_messages[i].messageId)) {
+              if (_messages[i].isSent &&
+                  messageIds.contains(_messages[i].messageId)) {
                 _messages[i] = ChatMessage(
                   text: _messages[i].text,
                   isSent: _messages[i].isSent,
-                  sentAt: _messages[i].sentAt,  // 수정: "sentAt:" 사용
+                  sentAt: _messages[i].sentAt, // 수정: "sentAt:" 사용
                   type: _messages[i].type,
                   status: 'READ',
                   messageId: _messages[i].messageId,
@@ -510,59 +621,80 @@ class _ChatPageState extends State<ChatPage> {
         });
         return;
       }
+
+      // 이전 구독이 있으면, 깨끗하게 해제
       if (chatRoomUnsubscribeFn != null) {
         try {
           chatRoomUnsubscribeFn!();
+          chatRoomUnsubscribeFn = null;
         } catch (e) {
           print('채팅방 구독 취소 오류: $e');
         }
-        chatRoomUnsubscribeFn = null;
       }
+
       final String topic = '/sub/chat-room/${widget.roomId}';
       addLog('📝 채팅방 구독 시도: $topic');
+
+      // 새 구독 생성
       chatRoomUnsubscribeFn = stompClient.subscribe(
         destination: topic,
         callback: (StompFrame frame) {
           try {
+            // 수신된 프레임이 비어있는지 확인
             if (frame.body == null || frame.body!.isEmpty) {
               print('⚠️ 빈 메시지 프레임을 받았습니다.');
               return;
             }
+
+            // JSON 디코딩 시도
             Map<String, dynamic> jsonData;
             try {
               jsonData = json.decode(frame.body!);
+              addLog('메시지 수신 성공: ${frame.body}');
             } catch (e) {
               print('⚠️ JSON 파싱 오류: $e');
               print('⚠️ 원본 데이터: ${frame.body}');
               return;
             }
-            addLog('메시지 수신: ${frame.body}');
+
+            // 메시지 객체 생성
             final int senderId = jsonData['sender_id'];
             final String content = jsonData['content'] as String? ?? '';
             final String type = jsonData['type'] as String? ?? 'NORMAL';
-            final bool isImage = type == 'IMAGE';
-            final bool isLocation = type == 'LOCATION';
+
+            // 시간 파싱
             DateTime sentAt;
             try {
               sentAt = DateTime.parse(jsonData['sent_at']);
             } catch (_) {
               sentAt = DateTime.now();
             }
+
+            // 채팅 메시지 객체 생성
             final ChatMessage message = ChatMessage(
-              text: (jsonData['type'] == 'IMAGE' || jsonData['type'] == 'LOCATION')
-                  ? ''
-                  : jsonData['content'] ?? '',
+              text: (type == 'IMAGE' || type == 'LOCATION') ? '' : content,
               isSent: senderId == currentUserId,
               sentAt: sentAt,
-              type: jsonData['type'] ?? 'NORMAL',
+              type: type,
               status: jsonData['status'] ?? 'UNREAD',
               messageId: jsonData['message_id'],
-              imageUrl: jsonData['type'] == 'IMAGE' ? jsonData['content'] : null,
-              locationUrl: jsonData['type'] == 'LOCATION' ? jsonData['content'] : null,
+              imageUrl: type == 'IMAGE' ? content : null,
+              locationUrl: type == 'LOCATION' ? content : null,
             );
+
+            // UI 업데이트
             if (mounted) {
+              // 메시지 디버그 로그
+              addLog(
+                '메시지 처리: id=${message.messageId}, type=${message.type}, isSent=${message.isSent}',
+              );
+
+              // 수신한 메시지를 UI에 추가
               _addOrUpdateMessage(message);
+
+              // 상대방 메시지이고 읽지 않았으면 읽음 처리
               if (!message.isSent && message.messageId != null) {
+                addLog('읽음 처리: ${message.messageId}');
                 sendReadReceipt([message.messageId!]);
               }
             }
@@ -574,10 +706,13 @@ class _ChatPageState extends State<ChatPage> {
           }
         },
       );
+
       addLog('✅ 채팅방 구독 완료: $topic');
     } catch (e) {
       _isSubscribingToChatRoom = false;
       addLog('❌ 채팅방 구독 중 오류: $e');
+
+      // 오류 발생 시 재시도 로직
       Future.delayed(Duration(seconds: 2), () {
         if (mounted && isConnected && !_isSubscribingToChatRoom) {
           _isSubscribingToChatRoom = true;
@@ -642,8 +777,8 @@ class _ChatPageState extends State<ChatPage> {
     if (!mounted) return;
     if (frame.body != null &&
         (frame.body!.toLowerCase().contains('token') ||
-         frame.body!.toLowerCase().contains('auth') ||
-         frame.body!.toLowerCase().contains('unauthorized'))) {
+            frame.body!.toLowerCase().contains('auth') ||
+            frame.body!.toLowerCase().contains('unauthorized'))) {
       addLog('토큰 관련 오류 감지. 토큰 갱신 후 재연결 시도');
       _refreshTokenAndReconnect();
     } else {
@@ -685,17 +820,23 @@ class _ChatPageState extends State<ChatPage> {
       _reconnectTimer!.cancel();
       _reconnectTimer = null;
     }
-    final shouldReconnect = await _chatService.shouldAttemptReconnect(widget.roomId);
+    final shouldReconnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
     if (!shouldReconnect) {
       print('사용자가 의도적으로 연결을 끊었으므로 자동 재연결 타이머를 설정하지 않습니다.');
       return;
     }
-    _reconnectTimer = Timer.periodic(const Duration(seconds: 60), (timer) async {
+    _reconnectTimer = Timer.periodic(const Duration(seconds: 60), (
+      timer,
+    ) async {
       if (_disposed) {
         timer.cancel();
         return;
       }
-      final shouldAttemptReconnect = await _chatService.shouldAttemptReconnect(widget.roomId);
+      final shouldAttemptReconnect = await _chatService.shouldAttemptReconnect(
+        widget.roomId,
+      );
       if (!shouldAttemptReconnect) {
         timer.cancel();
         _reconnectTimer = null;
@@ -720,7 +861,9 @@ class _ChatPageState extends State<ChatPage> {
       addLog('이미 재연결 중입니다.');
       return;
     }
-    final shouldReconnect = await _chatService.shouldAttemptReconnect(widget.roomId);
+    final shouldReconnect = await _chatService.shouldAttemptReconnect(
+      widget.roomId,
+    );
     if (!shouldReconnect) {
       addLog('사용자가 의도적으로 연결을 끊었으므로 재연결 시도하지 않음');
       return;
@@ -799,8 +942,9 @@ class _ChatPageState extends State<ChatPage> {
     _textController.clear();
     if (!mounted) return;
     if (!isConnected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('연결 오류. 다시 시도해주세요.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('연결 오류. 다시 시도해주세요.')));
       return;
     }
     String tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
@@ -838,13 +982,15 @@ class _ChatPageState extends State<ChatPage> {
       final token = await _loginService.getAccessToken();
       if (_disposed) return;
       if (token == null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('로그인이 필요합니다')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('로그인이 필요합니다')));
         return;
       }
       if (currentUserId == null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('사용자 정보를 가져올 수 없습니다')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('사용자 정보를 가져올 수 없습니다')));
         return;
       }
       final String tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
@@ -897,34 +1043,41 @@ class _ChatPageState extends State<ChatPage> {
             _messages[index].status = 'FAILED';
           }
         });
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('이미지 전송 실패')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('이미지 전송 실패')));
       }
     } catch (e) {
       if (_disposed) return;
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('이미지 전송 중 오류가 발생했습니다: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('이미지 전송 중 오류가 발생했습니다: $e')));
       addLog('이미지 전송 오류: $e');
     }
   }
 
-  Future<void> _sendLocationMessage(String locationName, String locationUrl) async {
+  Future<void> _sendLocationMessage(
+    String locationName,
+    String locationUrl,
+  ) async {
     if (_disposed) return;
     if (!isConnected) {
       addLog('위치 메시지 전송 실패: 연결되지 않음');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('연결 오류. 다시 시도해주세요.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('연결 오류. 다시 시도해주세요.')));
       return;
     }
     try {
       final token = await _loginService.getAccessToken();
       if (_disposed) return;
       if (token == null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('로그인이 필요합니다')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('로그인이 필요합니다')));
         return;
       }
       final String tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
@@ -970,8 +1123,9 @@ class _ChatPageState extends State<ChatPage> {
       if (_disposed) return;
       addLog('위치 메시지 전송 오류: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('위치 전송 중 오류가 발생했습니다: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('위치 전송 중 오류가 발생했습니다: $e')));
       }
     }
   }
@@ -994,15 +1148,17 @@ class _ChatPageState extends State<ChatPage> {
           await _sendImageMessage(file);
         } else {
           addLog('선택한 이미지 파일이 존재하지 않음: ${image.path}');
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('이미지 파일을 찾을 수 없습니다.')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('이미지 파일을 찾을 수 없습니다.')));
         }
       }
     } catch (e) {
       if (_disposed) return;
       addLog('갤러리 접근 중 오류: $e');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('갤러리 접근 중 오류가 발생했습니다: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('갤러리 접근 중 오류가 발생했습니다: $e')));
     }
   }
 
@@ -1015,8 +1171,9 @@ class _ChatPageState extends State<ChatPage> {
         if (!status.isGranted) {
           addLog('카메라 권한이 거부되었습니다.');
           if (mounted) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('카메라 사용 권한이 필요합니다.')));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('카메라 사용 권한이 필요합니다.')));
           }
           return;
         }
@@ -1037,14 +1194,16 @@ class _ChatPageState extends State<ChatPage> {
           await _sendImageMessage(file);
         } else {
           addLog('카메라로 촬영한 이미지 파일이 존재하지 않음: ${photo.path}');
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('이미지 파일을 찾을 수 없습니다.')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('이미지 파일을 찾을 수 없습니다.')));
         }
       }
     } catch (e) {
       addLog('카메라 접근 중 오류: $e');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('카메라 접근 중 오류가 발생했습니다: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('카메라 접근 중 오류가 발생했습니다: $e')));
     }
   }
 
@@ -1052,40 +1211,42 @@ class _ChatPageState extends State<ChatPage> {
     if (!mounted) return;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('위치 공유'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.location_on),
-              title: const Text('현재 위치'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => LocationSelect()),
-                ).then((result) {
-                  if (result != null && result is Map<String, dynamic>) {
-                    double latitude = result['latitude'] ?? 0.0;
-                    double longitude = result['longitude'] ?? 0.0;
-                    String locationUrl = 'https://maps.google.com/?q=$latitude,$longitude';
-                    _sendLocationMessage('', locationUrl);
-                  }
-                });
-              },
+      builder:
+          (context) => AlertDialog(
+            title: const Text('위치 공유'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.location_on),
+                  title: const Text('현재 위치'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => LocationSelect()),
+                    ).then((result) {
+                      if (result != null && result is Map<String, dynamic>) {
+                        double latitude = result['latitude'] ?? 0.0;
+                        double longitude = result['longitude'] ?? 0.0;
+                        String locationUrl =
+                            'https://maps.google.com/?q=$latitude,$longitude';
+                        _sendLocationMessage('', locationUrl);
+                      }
+                    });
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.search),
+                  title: const Text('위치 검색'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showLocationSearchDialog();
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.search),
-              title: const Text('위치 검색'),
-              onTap: () {
-                Navigator.pop(context);
-                _showLocationSearchDialog();
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -1109,52 +1270,57 @@ class _ChatPageState extends State<ChatPage> {
     if (!mounted) return;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('메시지 삭제'),
-        content: const Text('로컬에 저장된 모든 메시지를 삭제하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(child: CircularProgressIndicator()),
-              );
-              final success = await _chatService.clearLocalMessages(widget.roomId);
-              if (_disposed) return;
-              if (success) {
-                await _chatService.getNextCursor(widget.roomId);
-                if (_disposed) return;
-              }
-              if (mounted && Navigator.canPop(context)) {
-                Navigator.pop(context);
-              }
-              if (success) {
-                if (mounted) {
-                  setState(() {
-                    _messages = [];
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('모든 메시지가 삭제되었습니다')),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('메시지 삭제'),
+            content: const Text('로컬에 저장된 모든 메시지를 삭제하시겠습니까?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder:
+                        (context) =>
+                            const Center(child: CircularProgressIndicator()),
                   );
-                }
-              } else {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('메시지 삭제 중 오류가 발생했습니다')),
+                  final success = await _chatService.clearLocalMessages(
+                    widget.roomId,
                   );
-                }
-              }
-            },
-            child: const Text('삭제'),
+                  if (_disposed) return;
+                  if (success) {
+                    await _chatService.getNextCursor(widget.roomId);
+                    if (_disposed) return;
+                  }
+                  if (mounted && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                  if (success) {
+                    if (mounted) {
+                      setState(() {
+                        _messages = [];
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('모든 메시지가 삭제되었습니다')),
+                      );
+                    }
+                  } else {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('메시지 삭제 중 오류가 발생했습니다')),
+                      );
+                    }
+                  }
+                },
+                child: const Text('삭제'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -1212,8 +1378,9 @@ class _ChatPageState extends State<ChatPage> {
         }
       });
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('메시지 재전송 중 오류가 발생했습니다: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('메시지 재전송 중 오류가 발생했습니다: $e')));
       }
       addLog('메시지 재전송 오류: $e');
     }
@@ -1225,26 +1392,74 @@ class _ChatPageState extends State<ChatPage> {
 
   void _addOrUpdateMessage(ChatMessage message) {
     if (!mounted) return;
-    setState(() {
-      int existingIndex = -1;
-      if (message.messageId != null) {
-        existingIndex = _messages.indexWhere((msg) => msg.messageId == message.messageId);
+
+    addLog(
+      '메시지 추가/업데이트 시작: id=${message.messageId}, 유형=${message.type}, 내용=${message.text.length > 20 ? message.text.substring(0, 20) + "..." : message.text}',
+    );
+
+    // UI 업데이트는 메인 스레드에서 비동기적으로 처리
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      setState(() {
+        int existingIndex = -1;
+
+        // 메시지 ID로 기존 메시지 찾기
+        if (message.messageId != null) {
+          existingIndex = _messages.indexWhere(
+            (msg) => msg.messageId == message.messageId,
+          );
+          addLog('메시지 ID로 검색: ${message.messageId}, 결과=$existingIndex');
+        }
+
+        // 임시 ID로 기존 메시지 찾기 (보낸 메시지의 경우)
+        if (existingIndex == -1 && message.isSent) {
+          existingIndex = _messages.indexWhere(
+            (msg) =>
+                msg.messageId != null &&
+                msg.messageId!.startsWith('temp_') &&
+                msg.type == message.type &&
+                msg.text == message.text,
+          );
+          if (existingIndex != -1) {
+            addLog('임시 ID로 메시지 찾음: ${_messages[existingIndex].messageId}');
+          }
+        }
+
+        // 기존 메시지 업데이트 또는 새 메시지 추가
+        if (existingIndex != -1) {
+          _messages[existingIndex] = message;
+          addLog('기존 메시지 업데이트: 인덱스=$existingIndex');
+        } else {
+          _messages.insert(0, message);
+          addLog('새 메시지 추가: 총 메시지 수=${_messages.length}');
+        }
+
+        // 메시지 정렬
+        _sortMessages();
+      });
+
+      // 상대방의 새 메시지인 경우 스크롤 및 읽음 처리
+      if (!message.isSent) {
+        // 자동 스크롤
+        _scrollToBottom();
+
+        // 읽음 상태 처리
+        if (message.messageId != null && message.status != 'READ') {
+          addLog('메시지 읽음 처리: ${message.messageId}');
+          sendReadReceipt([message.messageId!]);
+        }
       }
-      if (existingIndex == -1 && message.isSent) {
-        existingIndex = _messages.indexWhere(
-          (msg) =>
-              msg.messageId != null &&
-              msg.messageId!.startsWith('temp_') &&
-              msg.type == message.type &&
-              msg.text == message.text,
-        );
-      }
-      if (existingIndex != -1) {
-        _messages[existingIndex] = message;
-      } else {
-        _messages.insert(0, message);
-      }
-      _sortMessages();
+
+      // 로컬 저장소에 메시지 저장
+      _chatService
+          .addMessageToLocal(widget.roomId, message)
+          .then((_) {
+            addLog('메시지 로컬 저장 완료: ${message.messageId}');
+          })
+          .catchError((error) {
+            addLog('메시지 로컬 저장 오류: $error');
+          });
     });
   }
 
@@ -1261,7 +1476,9 @@ class _ChatPageState extends State<ChatPage> {
     }
     try {
       final cursor = isLoadMore ? _nextCursor : null;
-      print('메시지 로딩 - roomId: ${widget.roomId}, 커서: $cursor, 페이지 크기: $_pageSize');
+      print(
+        '메시지 로딩 - roomId: ${widget.roomId}, 커서: $cursor, 페이지 크기: $_pageSize',
+      );
       final messages = await _chatService.loadMessages(
         widget.roomId,
         size: _pageSize,
@@ -1297,7 +1514,10 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _loadMoreMessages() {
-    if (!_isLoading && _hasMoreMessages && _nextCursor != null && _nextCursor!.isNotEmpty) {
+    if (!_isLoading &&
+        _hasMoreMessages &&
+        _nextCursor != null &&
+        _nextCursor!.isNotEmpty) {
       setState(() {
         _isLoading = true;
       });
@@ -1384,32 +1604,33 @@ class _ChatPageState extends State<ChatPage> {
                     if (!mounted) return;
                     showModalBottomSheet(
                       context: context,
-                      builder: (context) => Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ListTile(
-                            leading: const Icon(Icons.refresh),
-                            title: const Text('재연결'),
-                            onTap: () {
-                              Navigator.pop(context);
-                              reconnect();
-                            },
+                      builder:
+                          (context) => Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.refresh),
+                                title: const Text('재연결'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  reconnect();
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.bug_report),
+                                title: Text(
+                                  showDebugPanel ? '디버그 패널 숨기기' : '디버그 패널 표시',
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  if (!mounted) return;
+                                  setState(() {
+                                    showDebugPanel = !showDebugPanel;
+                                  });
+                                },
+                              ),
+                            ],
                           ),
-                          ListTile(
-                            leading: const Icon(Icons.bug_report),
-                            title: Text(
-                              showDebugPanel ? '디버그 패널 숨기기' : '디버그 패널 표시',
-                            ),
-                            onTap: () {
-                              Navigator.pop(context);
-                              if (!mounted) return;
-                              setState(() {
-                                showDebugPanel = !showDebugPanel;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
                     );
                   },
                   padding: EdgeInsets.zero,
@@ -1429,7 +1650,10 @@ class _ChatPageState extends State<ChatPage> {
           child: Column(
             children: [
               ProductInfoWidget(
-                foundItemInfo: _chatRoomDetail != null ? _chatRoomDetail!['found_item'] : null,
+                foundItemInfo:
+                    _chatRoomDetail != null
+                        ? _chatRoomDetail!['found_item']
+                        : null,
               ),
               InfoBannerWidget(
                 otherUserNickname: widget.otherUserName,
@@ -1500,49 +1724,51 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                 ),
               Expanded(
-                child: _isLoading && _messages.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
-                    : _messages.isEmpty
+                child:
+                    _isLoading && _messages.isEmpty
+                        ? const Center(child: CircularProgressIndicator())
+                        : _messages.isEmpty
                         ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.chat_bubble_outline,
-                                  size: 48,
-                                  color: Colors.grey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.chat_bubble_outline,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                '메시지가 없습니다.',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  '메시지가 없습니다.',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  '첫 메시지를 보내 대화를 시작해보세요!',
-                                  style: TextStyle(color: Colors.grey[600]),
-                                ),
-                              ],
-                            ),
-                          )
-                        : NotificationListener<ScrollNotification>(
-                            onNotification: (ScrollNotification scrollInfo) {
-                              if (!_isLoading &&
-                                  _hasMoreMessages &&
-                                  scrollInfo.metrics.pixels <= scrollInfo.metrics.minScrollExtent + 100) {
-                                _loadMoreMessages();
-                              }
-                              return true;
-                            },
-                            child: ChatMessagesList(
-                              messages: _messages,
-                              scrollController: _scrollController,
-                              onRetryMessage: _retryFailedMessage,
-                            ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '첫 메시지를 보내 대화를 시작해보세요!',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ],
                           ),
+                        )
+                        : NotificationListener<ScrollNotification>(
+                          onNotification: (ScrollNotification scrollInfo) {
+                            if (!_isLoading &&
+                                _hasMoreMessages &&
+                                scrollInfo.metrics.pixels <=
+                                    scrollInfo.metrics.minScrollExtent + 100) {
+                              _loadMoreMessages();
+                            }
+                            return true;
+                          },
+                          child: ChatMessagesList(
+                            messages: _messages,
+                            scrollController: _scrollController,
+                            onRetryMessage: _retryFailedMessage,
+                          ),
+                        ),
               ),
               ChatInputField(
                 textController: _textController,
@@ -1566,20 +1792,21 @@ class _ChatPageState extends State<ChatPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => AddOptionsPopup(
-        onAlbumPressed: () {
-          Navigator.pop(context);
-          _getImageFromGallery();
-        },
-        onCameraPressed: () {
-          Navigator.pop(context);
-          _getImageFromCamera();
-        },
-        onLocationPressed: () {
-          Navigator.pop(context);
-          _showLocationSelector();
-        },
-      ),
+      builder:
+          (context) => AddOptionsPopup(
+            onAlbumPressed: () {
+              Navigator.pop(context);
+              _getImageFromGallery();
+            },
+            onCameraPressed: () {
+              Navigator.pop(context);
+              _getImageFromCamera();
+            },
+            onLocationPressed: () {
+              Navigator.pop(context);
+              _showLocationSelector();
+            },
+          ),
     );
   }
 }

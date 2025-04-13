@@ -14,6 +14,7 @@ class ChatRoom {
   final String? latestMessage;
   final String? latestSentAt;
   final bool notificationEnabled;
+  final bool hasUnread; // 이 필드 추가
   final FoundItem? foundItem;
 
   ChatRoom({
@@ -22,6 +23,7 @@ class ChatRoom {
     this.latestMessage,
     this.latestSentAt,
     required this.notificationEnabled,
+    required this.hasUnread, // 이 매개변수 추가
     this.foundItem,
   });
 
@@ -32,6 +34,7 @@ class ChatRoom {
       latestMessage: json['latest_message'],
       latestSentAt: json['latest_sent_at'],
       notificationEnabled: json['notification_enabled'] ?? true,
+      hasUnread: json['has_unread'] ?? false, // 이 필드 추가
       foundItem:
           json['found_item'] != null
               ? FoundItem.fromJson(json['found_item'])
@@ -209,32 +212,40 @@ class _ChatListPageState extends State<ChatListPage> {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
-          'Accept-Charset': 'utf-8', // UTF-8 인코딩 명시
+          'Accept-Charset': 'utf-8',
         },
       );
 
       print('API 응답 코드: ${response.statusCode}');
-      final decodedBody = utf8.decode(response.bodyBytes);
+
+      // 응답 바디 디코딩
+      final String decodedBody = utf8.decode(response.bodyBytes);
       print('API 응답 본문: $decodedBody');
 
       if (response.statusCode == 200) {
-        // 한글 인코딩 문제 해결을 위한 처리
-        final String decodedBody = utf8.decode(response.bodyBytes);
-        final Map<String, dynamic> data = json.decode(decodedBody);
+        try {
+          final Map<String, dynamic> data = json.decode(decodedBody);
 
-        if (data['success'] == true) {
-          final List<dynamic> roomsData = data['data'] ?? [];
+          if (data['success'] == true && data['data'] != null) {
+            final List<dynamic> roomsData = data['data'];
+            setState(() {
+              _chatRooms =
+                  roomsData
+                      .map((roomData) => ChatRoom.fromJson(roomData))
+                      .toList();
+              _isLoading = false;
+            });
+            print('채팅방 ${_chatRooms.length}개를 성공적으로 로드했습니다.');
+          } else {
+            setState(() {
+              _error = data['error'] ?? '채팅방 목록을 불러오는데 실패했습니다';
+              _isLoading = false;
+            });
+          }
+        } catch (decodeError) {
+          print('JSON 디코딩 오류: $decodeError');
           setState(() {
-            _chatRooms =
-                roomsData
-                    .map((roomData) => ChatRoom.fromJson(roomData))
-                    .toList();
-            _isLoading = false;
-          });
-          print('채팅방 ${_chatRooms.length}개를 성공적으로 로드했습니다.');
-        } else {
-          setState(() {
-            _error = data['error'] ?? '채팅방 목록을 불러오는데 실패했습니다';
+            _error = 'JSON 형식 오류: $decodeError';
             _isLoading = false;
           });
         }
@@ -252,6 +263,7 @@ class _ChatListPageState extends State<ChatListPage> {
           });
         }
       } else {
+        print('서버 오류 응답: ${response.statusCode}, 본문: $decodedBody');
         setState(() {
           _error = '서버 오류: ${response.statusCode}';
           _isLoading = false;
@@ -259,9 +271,8 @@ class _ChatListPageState extends State<ChatListPage> {
       }
     } catch (e) {
       print('채팅방 목록 가져오기 오류: $e');
-
       setState(() {
-        _error = '연결 오류가 발생했습니다. 다시 시도해주세요.';
+        _error = '연결 오류가 발생했습니다: $e';
         _isLoading = false;
       });
     }
