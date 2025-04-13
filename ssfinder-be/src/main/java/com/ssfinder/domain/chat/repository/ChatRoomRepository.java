@@ -34,6 +34,7 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Integer> {
             "FROM ChatRoom cr " +
             "JOIN ChatRoomParticipant crp ON crp.chatRoom.id = cr.id " +
             "WHERE crp.user.id = :userId " +
-            "AND crp.status = 'ACTIVE'")
+            "AND crp.status = 'ACTIVE'" +
+            "ORDER BY cr.latestSentAt desc")
     List<ChatRoomListDetail> findByUserAndStatusIsActive(@Param("userId") Integer userId);
 }
