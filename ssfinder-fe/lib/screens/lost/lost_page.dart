@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'lost_items_list.dart';
 import 'lost_item_form.dart';
 import 'package:sumsumfinder/models/lost_items_model.dart';
-import 'package:sumsumfinder/services/lost_items_api_service.dart'; // 수정: 올바른 API 서비스 import
+import 'package:sumsumfinder/services/lost_items_api_service.dart';
 import 'package:sumsumfinder/widgets/common/custom_appBar.dart';
 
 class LostPage extends StatefulWidget {
@@ -43,17 +43,13 @@ class _LostPageState extends State<LostPage>
   Future<void> _loadLostItems() async {
     try {
       final response = await _apiService.getLostItems();
-
       final List<dynamic> itemsJson = response['data'] as List<dynamic>;
       print('#### ${itemsJson}');
 
-      final items =
-          itemsJson
-              .map(
-                (item) =>
-                    LostItemListModel.fromJson(item as Map<String, dynamic>),
-              )
-              .toList();
+      final items = itemsJson
+          .map((item) =>
+              LostItemListModel.fromJson(item as Map<String, dynamic>))
+          .toList();
 
       setState(() {
         _lostItems = items;
@@ -61,10 +57,9 @@ class _LostPageState extends State<LostPage>
       });
     } catch (e) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('로그인이 필요합니다.')));
-      print('erre: ${e}');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('로그인이 필요합니다.')));
+      print('error: $e');
     }
   }
 
@@ -73,10 +68,8 @@ class _LostPageState extends State<LostPage>
     if (tab == '전체') {
       return _lostItems;
     } else if (tab == '숨은물건') {
-      // 숨은물건: status가 "LOST"인 경우
       return _lostItems.where((item) => item.status == "LOST").toList();
     } else if (tab == '찾은물건') {
-      // 찾은물건: status가 "FOUND"인 경우
       return _lostItems.where((item) => item.status == "FOUND").toList();
     }
     return [];
@@ -87,7 +80,6 @@ class _LostPageState extends State<LostPage>
       // 해당 ID의 아이템 찾아서 상태 업데이트
       for (int i = 0; i < _lostItems.length; i++) {
         if (_lostItems[i].id == itemId) {
-          // 새 상태로 아이템 업데이트
           _lostItems[i] = LostItemListModel(
             id: _lostItems[i].id,
             userId: _lostItems[i].userId,
@@ -119,66 +111,68 @@ class _LostPageState extends State<LostPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(title: '나의 분실물', isFromBottomNav: false),
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : Stack(
-                children: [
-                  // 탭과 탭뷰로 분실물 목록을 표시
-                  Column(
-                    children: [
-                      Container(
-                        color: Colors.white,
-                        child: TabBar(
-                          controller: _tabController,
-                          labelColor: Colors.blue,
-                          unselectedLabelColor: Colors.grey,
-                          indicatorColor: Colors.blue,
-                          tabs: _tabs.map((e) => Tab(text: e)).toList(),
-                        ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Stack(
+              children: [
+                // 탭과 탭뷰로 분실물 목록을 표시
+                Column(
+                  children: [
+                    Container(
+                      color: Colors.white,
+                      child: TabBar(
+                        controller: _tabController,
+                        labelColor: Colors.blue,
+                        unselectedLabelColor: Colors.grey,
+                        indicatorColor: Colors.blue,
+                        tabs: _tabs.map((e) => Tab(text: e)).toList(),
                       ),
-                      Expanded(
-                        child: TabBarView(
-                          controller: _tabController,
-                          children:
-                              _tabs
-                                  .map((tab) => _buildTabContent(tab))
-                                  .toList(),
-                        ),
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: _tabs.map((tab) => _buildTabContent(tab)).toList(),
                       ),
-                    ],
-                  ),
-                  // 분실물 등록 버튼
-                  Positioned(
-                    bottom: 20,
-                    right: 20,
-                    child: Material(
-                      elevation: 2,
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LostItemForm(),
-                            ),
-                          );
-                        },
-                        customBorder: const CircleBorder(),
-                        child: Container(
-                          height: 50,
-                          width: 50,
-                          decoration: const BoxDecoration(
-                            color: Colors.blue,
-                            shape: BoxShape.circle,
+                    ),
+                  ],
+                ),
+                // 분실물 등록 버튼
+                Positioned(
+                  bottom: 20,
+                  right: 20,
+                  child: Material(
+                    elevation: 2,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: () async {
+                        // LostItemForm으로 이동 후 결과(data)를 받아 리스트에 추가
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LostItemForm(),
                           ),
-                          child: const Icon(Icons.add, color: Colors.white),
+                        );
+                        if (result != null) {
+                          setState(() {
+                            _lostItems.add(LostItemListModel.fromJson(result));
+                          });
+                        }
+                      },
+                      customBorder: const CircleBorder(),
+                      child: Container(
+                        height: 50,
+                        width: 50,
+                        decoration: const BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
                         ),
+                        child: const Icon(Icons.add, color: Colors.white),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
     );
   }
 }

@@ -6,7 +6,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:gif_view/gif_view.dart';
 
 import '../../models/found_items_model.dart';
-import '../../screens/lost/lost_item_detail.dart';
 import '../../services/ai_api_service.dart';
 import '../../services/lost_items_api_service.dart';
 import '../../services/found_items_api_service.dart';
@@ -17,7 +16,6 @@ import '../../widgets/selects/date_select.dart';
 
 class LostItemForm extends StatefulWidget {
   final dynamic itemToEdit;
-
   const LostItemForm({Key? key, this.itemToEdit}) : super(key: key);
 
   @override
@@ -30,7 +28,7 @@ class _LostItemFormState extends State<LostItemForm> {
   final AiApiService _aiApiService = AiApiService();
   final ImagePicker _picker = ImagePicker();
 
-  String? _selectedCategory; 
+  String? _selectedCategory;
   String? _selectedCategoryId;
   String? _selectedColor;
   String? _selectedLocation;
@@ -71,14 +69,12 @@ class _LostItemFormState extends State<LostItemForm> {
       _imageUrl = item.image;
     }
     setState(() {
-      _selectedCategory =
-          (item.minorCategory != null && item.minorCategory.isNotEmpty)
-              ? "${item.majorCategory} > ${item.minorCategory}"
-              : "${item.majorCategory}";
-      _selectedCategoryId =
-          (item.minorCategory != null && item.minorCategory.isNotEmpty)
-              ? item.minorCategory
-              : item.majorCategory;
+      _selectedCategory = (item.minorCategory != null && item.minorCategory.isNotEmpty)
+          ? "${item.majorCategory} > ${item.minorCategory}"
+          : "${item.majorCategory}";
+      _selectedCategoryId = (item.minorCategory != null && item.minorCategory.isNotEmpty)
+          ? item.minorCategory
+          : item.majorCategory;
       _selectedColor = item.color;
       _selectedLocation = item.location;
       if (item.lostAt != null) {
@@ -91,7 +87,7 @@ class _LostItemFormState extends State<LostItemForm> {
 
   Future<void> _getCurrentLocation() async {
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
@@ -100,7 +96,7 @@ class _LostItemFormState extends State<LostItemForm> {
           return;
         }
       }
-      final Position position = await Geolocator.getCurrentPosition(
+      final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
       setState(() {
@@ -116,7 +112,7 @@ class _LostItemFormState extends State<LostItemForm> {
 
   Future<void> _pickImage() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
@@ -134,7 +130,7 @@ class _LostItemFormState extends State<LostItemForm> {
   Future<void> _extractExifData(File imageFile) async {
     try {
       final bytes = await imageFile.readAsBytes();
-      final Map<String, IfdTag> exifData = await readExifFromBytes(bytes);
+      final exifData = await readExifFromBytes(bytes);
 
       String? dateTimeString;
       if (exifData.containsKey('EXIF DateTimeOriginal')) {
@@ -214,15 +210,14 @@ class _LostItemFormState extends State<LostItemForm> {
             '네이비': '남색',
             '분홍색': '분홍색',
           };
-          _selectedColor = colorMapping.containsKey(data['color'])
-              ? colorMapping[data['color']]
-              : '기타';
+          _selectedColor =
+              colorMapping.containsKey(data['color']) ? colorMapping[data['color']] : '기타';
           _detailController.text = data['description'] ?? '';
           _selectedCategory = data['category'] ?? '';
           _selectedCategoryId = '';
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('이미지 분석 결과가 반영되었습니다.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('이미지 분석 결과가 반영되었습니다.')));
       } else {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('이미지 분석에 실패했습니다.')));
@@ -266,9 +261,8 @@ class _LostItemFormState extends State<LostItemForm> {
       return false;
     }
     if (_latitude == null || _longitude == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('위치 정보를 가져오는 중입니다. 잠시 후 다시 시도해주세요.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('위치 정보를 가져오는 중입니다. 잠시 후 다시 시도해주세요.')));
       return false;
     }
     return true;
@@ -293,7 +287,6 @@ class _LostItemFormState extends State<LostItemForm> {
       final categoryId = matchingCategory.id;
 
       Map<String, dynamic> lostItemResponseData;
-
       if (widget.itemToEdit != null) {
         // 수정 모드
         lostItemResponseData = await _apiService.updateLostItem(
@@ -332,7 +325,6 @@ class _LostItemFormState extends State<LostItemForm> {
           location: lostItemResponseData['data']["location"],
           image: lostItemResponseData['data']["image"] ?? "",
         );
-        
         print("findSimilar API 호출 결과: $result");
       } catch (e) {
         print("findSimilar API 호출 중 오류 발생: $e");
@@ -351,18 +343,9 @@ class _LostItemFormState extends State<LostItemForm> {
           ),
         ),
       );
-      final newItemId = lostItemResponseData['data']['id'];
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LostItemDetail(
-          itemId: newItemId,
-          onStatusChanged: (id, status) {
-            // 필요하다면 여기서 콜백 처리
-          },
-        ),
-      ),
-    );
+
+      final newItemData = lostItemResponseData['data'];
+      Navigator.pop(context, newItemData);
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -431,11 +414,8 @@ class _LostItemFormState extends State<LostItemForm> {
     );
   }
 
-  Widget _buildTextField(
-    String label,
-    TextEditingController controller, {
-    int maxLines = 1,
-  }) {
+  Widget _buildTextField(String label, TextEditingController controller,
+      {int maxLines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -667,10 +647,7 @@ class _LostItemFormState extends State<LostItemForm> {
                           const SizedBox(height: 8),
                           const Text(
                             '잠시만 기다려주세요...',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.white, fontSize: 14),
                           ),
                         ],
                       ),

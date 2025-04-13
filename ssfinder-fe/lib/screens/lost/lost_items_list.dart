@@ -3,7 +3,7 @@ import 'package:sumsumfinder/models/lost_items_model.dart';
 import 'package:sumsumfinder/widgets/lost/lost_item_card.dart';
 import 'lost_item_detail.dart';
 import 'package:sumsumfinder/widgets/lost/recommended_card.dart';
-import 'recommended.dart'; // Recommended 페이지
+import 'recommended.dart';
 
 class LostItemsList extends StatefulWidget {
   final List<LostItemListModel> items;
@@ -48,7 +48,6 @@ class _LostItemsListState extends State<LostItemsList> {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final lostItem = items[index];
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -57,34 +56,28 @@ class _LostItemsListState extends State<LostItemsList> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (_) => LostItemDetail(
-                          itemId: lostItem.id,
-                          onStatusChanged: (id, status) {
-                            final index = items.indexWhere(
-                              (item) => item.id == id,
-                            );
-                            setState(() {
-                              items[index] = items[index].copyWith(
-                                status: status,
-                              );
-                            });
-                          },
-                        ),
+                    builder: (_) => LostItemDetail(
+                      itemId: lostItem.id,
+                      onStatusChanged: (id, status) {
+                        final index = items.indexWhere((item) => item.id == id);
+                        setState(() {
+                          items[index] = items[index].copyWith(status: status);
+                        });
+                      },
+                    ),
                   ),
                 );
 
-                if (result != null && result is Map<String, dynamic>) {
-                  if (result.containsKey('id') &&
-                      result.containsKey('status')) {
-                    _updateItemStatus(result['id'], result['status']);
-                  }
+                if (result != null &&
+                    result is Map<String, dynamic> &&
+                    result.containsKey('id') &&
+                    result.containsKey('status')) {
+                  _updateItemStatus(result['id'], result['status']);
                 }
               },
               child: LostItemCard(item: lostItem),
             ),
             Divider(height: 1, thickness: 1, color: Colors.grey[200]),
-
             if (lostItem.matched_image_urls != null &&
                 (lostItem.matched_image_urls as List).isNotEmpty)
               GestureDetector(
@@ -98,11 +91,10 @@ class _LostItemsListState extends State<LostItemsList> {
                   );
                 },
                 child: RecommendedCard(
-                  image:
-                      (lostItem.matched_image_urls as List<dynamic>)
-                          .map((url) => url.toString())
-                          .take(3)
-                          .toList(),
+                  image: (lostItem.matched_image_urls as List<dynamic>)
+                      .map((url) => url.toString())
+                      .take(3)
+                      .toList(),
                 ),
               ),
           ],
