@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @EntityListeners(AuditingEntityListener.class)
+@ToString
 public class NotificationHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

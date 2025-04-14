@@ -3,8 +3,9 @@ package com.ssfinder.domain.notification.event;
 import com.ssfinder.domain.notification.service.NotificationHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * packageName    : com.ssfinder.domain.notification.event<br>
@@ -35,7 +36,8 @@ public class NotificationHistoryEventListener {
      *
      * @param event 알림 이력 생성을 위한 이벤트 객체
      */
-    @EventListener
+    @Async
+    @TransactionalEventListener
     public void handleNotificationHistoryEvent(NotificationHistoryEvent event) {
         notificationHistoryService.saveNotificationHistory(event.getUserId(), event.getType(), event.getTitle(), event.getBody());
     }
