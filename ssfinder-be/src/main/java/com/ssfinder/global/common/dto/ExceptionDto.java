@@ -8,10 +8,11 @@ import java.util.Objects;
 
 /**
  * packageName    : com.ssfinder.global.config.exception<br>
- * fileName       : *.java<br>
+ * fileName       : ExceptionDto.java<br>
  * author         : okeio<br>
  * date           : 2025-03-17<br>
- * description    :  <br>
+ * description    : 전역 예외 처리에서 사용되는 예외 응답 DTO 클래스입니다.<br>
+ *                  {@link ErrorCode}의 코드와 메시지를 포함하며, 커스텀 메시지 추가도 지원합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
@@ -41,10 +42,23 @@ public class ExceptionDto {
                 this.message = sb.toString();
         }
 
+        /**
+         * 정적 팩토리 메서드: 기본 메시지 기반 예외 DTO 생성
+         *
+         * @param errorCode {@link ErrorCode}
+         * @return {@link ExceptionDto} 인스턴스
+         */
         public static ExceptionDto of(ErrorCode errorCode) {
                 return new ExceptionDto(errorCode);
         }
 
+        /**
+         * 정적 팩토리 메서드: 기본 + 커스텀 메시지 기반 예외 DTO 생성
+         *
+         * @param errorCode {@link ErrorCode}
+         * @param customMessage 추가 메시지
+         * @return {@link ExceptionDto} 인스턴스
+         */
         public static ExceptionDto of(ErrorCode errorCode, String customMessage) {
                 return new ExceptionDto(errorCode, customMessage);
         }

@@ -8,10 +8,10 @@ import org.mapstruct.*;
 
 /**
  * packageName    : com.ssfinder.domain.user.mapper<br>
- * fileName       : *.java<br>
+ * fileName       : UserMapper.java<br>
  * author         : okeio<br>
  * date           : 2025-03-20<br>
- * description    :  <br>
+ * description    : User 엔티티와 DTO 간의 변환을 담당하는 MapStruct 매퍼 인터페이스입니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

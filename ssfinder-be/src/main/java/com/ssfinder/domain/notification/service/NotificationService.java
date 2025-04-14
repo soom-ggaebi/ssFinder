@@ -29,14 +29,15 @@ import java.util.Map;
  * fileName       : NotificationService.java<br>
  * author         : okeio<br>
  * date           : 2025-03-25<br>
- * description    : 종류별 알림에 대한 Service 클래스입니다. <br>
+ * description    : 종류별 알림 전송 로직을 처리하는 서비스 클래스입니다.<br>
+ *                  습득물 알림, 채팅 알림, AI 매칭 알림, 소지품 리마인더 알림 등을 지원합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
- * 2025-03-25          okeio          최초생성<br>
- * 2025-04-02          okeio          알림 이력 관리를 위한 EventPublisher 추가<br>
- * 2025-04-06          okeio          메세지 타입에 따른 채팅 알림 메세지 변경<br>
- * 2025-04-07          okeio          리팩토링<br>
+ * 2025-03-25          okeio           최초생성<br>
+ * 2025-04-02          okeio           알림 이력 관리를 위한 EventPublisher 추가<br>
+ * 2025-04-06          okeio           메세지 타입에 따른 채팅 알림 메세지 변경<br>
+ * 2025-04-07          okeio           리팩토링<br>
  * <br>
  */
 @Slf4j
@@ -58,7 +59,10 @@ public class NotificationService {
     private final static String CHAT_PLACEHOLDER_LOCATION_MESSAGE = "위치를 공유했습니다.";
     private final static String AI_MATCH_PLACEHOLDER_MESSAGE = "찾고 계신 물건과 비슷한 습득물이 등록되었습니다!";
 
-    // 1. 습득물 게시글 최초 등록일로부터 6일차, 7일차 알림
+    /**
+     * 습득물 게시글 등록일 기준으로 6일차, 7일차에 해당하는 사용자에게 리마인더 알림을 전송합니다.
+     * <p>매일 오전 10시에 스케줄링되어 실행됩니다.</p>
+     */
     @Scheduled(cron = "0 0 10 * * *")
     @Transactional(readOnly = true)
     public void sendFoundItemReminders() {
@@ -73,6 +77,12 @@ public class NotificationService {
         log.info("[알림] 습득물 게시글 7일차 알림 스케쥴링 완료");
     }
 
+    /**
+     * 특정 일 수가 지난 습득물에 대해 알림 메시지를 전송하고, 이력을 저장합니다.
+     *
+     * @param days 기준 일 수 (예: 6 또는 7)
+     * @param messageTemplate 알림 메시지 템플릿
+     */
     private void processFoundItemNotifications(int days, String messageTemplate) {
         List<FoundItem> items = foundItemService.getStoredItemsFoundDaysAgo(days);
         log.info("[알림] {}일차 Found items: {}", days, items.size());
@@ -107,7 +117,12 @@ public class NotificationService {
         }
     }
 
-    // 2. 채팅 알림
+    /**
+     * 채팅 메시지가 도착했을 때 상대방에게 알림을 전송합니다.
+     * <p>메시지 유형에 따라 다른 본문 내용을 생성하고, 수신자 설정 여부와 상태를 확인합니다.</p>
+     *
+     * @param kafkaChatMessage Kafka에서 전달받은 채팅 메시지 객체
+     */
     public void sendChatNotification(KafkaChatMessage kafkaChatMessage) {
         int chatRoomId = kafkaChatMessage.chatRoomId();
         User opponentUser = chatService.getOpponentUser(kafkaChatMessage.senderId(), chatRoomId);
@@ -146,7 +161,12 @@ public class NotificationService {
         }
     }
 
-    // 3. 습득물 게시된 경우 분실자에게 AI 매칭 알림
+    /**
+     * AI 매칭된 습득물에 대해 분실자에게 알림을 전송합니다.
+     * <p>사용자의 알림 설정과 분실물 알림 허용 여부를 기반으로 전송됩니다.</p>
+     *
+     * @param aiMatchNotificationRequests 매칭된 알림 요청 목록
+     */
     // TODO 쿼리 중복 호출 개선
     public void sendItemMatchingNotifications(List<AiMatchNotificationRequest> aiMatchNotificationRequests) {
         List<AiMatchNotificationRequest> enabledNotifications = aiMatchNotificationRequests.stream()
@@ -186,7 +206,12 @@ public class NotificationService {
         }
     }
 
-    // 4. 소지품 알림
+    /**
+     * 날씨 정보에 기반하여 소지품 리마인더 알림을 전송합니다.
+     *
+     * @param userId 알림 수신 대상 사용자 ID
+     * @param weatherCondition 날씨 조건에 따른 알림 메시지 콘텐츠
+     */
     public void sendItemReminderNotification(Integer userId, WeatherCondition weatherCondition) {
         if (!userNotificationSettingService.isNotificationEnabledFor(userId, NotificationType.ITEM_REMINDER))
             return;

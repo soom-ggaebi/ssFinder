@@ -11,7 +11,8 @@ import java.util.List;
  * fileName       : RoutesGetResponse.java<br>
  * author         : okeio<br>
  * date           : 2025-03-28<br>
- * description    : 이동 경로 조회 response DTO 입니다. <br>
+ * description    : 특정 날짜의 사용자 경로 데이터를 반환하는 응답 DTO입니다.<br>
+ *                  경로는 위치 이력 리스트로 구성됩니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

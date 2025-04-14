@@ -15,7 +15,7 @@ import java.util.Objects;
  * fileName       : NotificationMapper.java<br>
  * author         : okeio<br>
  * date           : 2025-04-02<br>
- * description    :  <br>
+ * description    : 알림 내역 엔티티를 DTO로 변환하는 Mapper 인터페이스입니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

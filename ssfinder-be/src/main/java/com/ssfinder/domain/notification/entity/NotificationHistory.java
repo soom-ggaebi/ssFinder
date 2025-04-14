@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
  * fileName       : NotificationHistory.java<br>
  * author         : okeio<br>
  * date           : 2025-04-01<br>
- * description    : 알림 이력을 관리하는 Entity 클래스입니다. <br>
+ * description    : 사용자에게 발송된 알림 내역을 저장하는 엔티티입니다.<br>
+ *                  알림 제목, 내용, 유형, 발송 시각, 삭제 여부 등을 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

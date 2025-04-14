@@ -12,14 +12,14 @@ import java.util.Objects;
  * fileName       : NotificationHistoryGetRequest.java<br>
  * author         : okeio<br>
  * date           : 2025-04-03<br>
- * description    :  <br>
+ * description    : 알림 내역 조회 요청 정보를 담는 DTO입니다.<br>
+ *                  알림 유형, 페이지 번호, 페이지 크기, 마지막 알림 ID를 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
  * 2025-04-03          okeio           최초생성<br>
  * <br>
  */
-
 public record NotificationHistoryGetRequest(
         NotificationType type,
         @Min(value = 0) Integer page,

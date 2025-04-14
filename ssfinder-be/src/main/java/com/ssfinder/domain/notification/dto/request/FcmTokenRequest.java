@@ -4,11 +4,11 @@ import jakarta.validation.constraints.NotBlank;
 import org.hibernate.validator.constraints.Length;
 
 /**
- * packageName    : com.ssfinder.domain.notification.dto<br>
- * fileName       : *.java<br>
+ * packageName    : com.ssfinder.domain.notification.dto.request<br>
+ * fileName       : FcmTokenRequest.java<br>
  * author         : okeio<br>
  * date           : 2025-03-24<br>
- * description    :  <br>
+ * description    : FCM 토큰 등록 및 삭제 요청을 위한 DTO입니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

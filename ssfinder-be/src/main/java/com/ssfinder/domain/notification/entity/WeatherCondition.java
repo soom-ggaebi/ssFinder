@@ -8,7 +8,8 @@ import lombok.Getter;
  * fileName       : WeatherCondition.java<br>
  * author         : okeio<br>
  * date           : 2025-04-01<br>
- * description    :  <br>
+ * description    : 날씨 상태에 따른 알림 메시지를 정의한 열거형입니다.<br>
+ *                  비, 눈, 미세먼지 등 상황에 맞는 문구를 제공합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

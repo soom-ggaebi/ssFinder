@@ -17,7 +17,8 @@ import java.time.LocalDateTime;
  * fileName       : UserLocation.java<br>
  * author         : okeio<br>
  * date           : 2025-03-28<br>
- * description    : 회원의 경로를 저장하는 UserLocation entity 클래스입니다. <br>
+ * description    : 사용자의 위치 정보를 저장하는 MongoDB 도큐먼트 엔티티입니다.<br>
+ *                  위치 좌표, 이벤트 유형, 생성 시간 등을 포함하며, 7일 후 자동 삭제됩니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

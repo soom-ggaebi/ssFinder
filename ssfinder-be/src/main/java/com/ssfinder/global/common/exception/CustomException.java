@@ -8,7 +8,8 @@ import lombok.Getter;
  * fileName       : CustomException.java<br>
  * author         : okeio<br>
  * date           : 2025-03-17<br>
- * description    :  <br>
+ * description    : 애플리케이션 전반에서 공통적으로 사용하는 사용자 정의 예외 클래스입니다.<br>
+ *                  {@link ErrorCode}와 함께 사용되어 예외 발생 시 일관된 응답을 제공합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

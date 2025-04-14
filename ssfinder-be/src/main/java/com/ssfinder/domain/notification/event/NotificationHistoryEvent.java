@@ -9,7 +9,8 @@ import org.springframework.context.ApplicationEvent;
  * fileName       : NotificationHistoryEvent.java<br>
  * author         : okeio<br>
  * date           : 2025-04-01<br>
- * description    :  <br>
+ * description    : 알림 발송 후 알림 내역 저장을 위해 발행되는 이벤트 클래스입니다.<br>
+ *                  사용자 ID, 알림 제목, 내용, 유형 정보를 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>

@@ -16,7 +16,7 @@ import java.io.IOException;
  * fileName       : FirebaseConfig.java<br>
  * author         : okeio<br>
  * date           : 2025-03-24<br>
- * description    :  <br>
+ * description    : Firebase Admin SDK 초기화를 담당하는 설정 클래스입니다. <br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
@@ -26,9 +26,20 @@ import java.io.IOException;
 @Configuration
 @Slf4j
 public class FirebaseConfig {
+
+    /**
+     * Firebase 서비스 계정 JSON 파일 경로
+     */
     @Value("${fcm.firebase-config-path}")
     private String firebaseConfigPath;
 
+    /**
+     * FirebaseApp 초기화 메서드
+     *
+     * <p>Spring 컨텍스트가 시작되면 {@code @PostConstruct} 어노테이션을 통해 호출됩니다.
+     * 서비스 계정 파일을 기반으로 Firebase 인증을 설정하며,
+     * FirebaseApp이 이미 초기화된 경우 중복 초기화를 방지합니다.</p>
+     */
     @PostConstruct
     public void init() {
         try {

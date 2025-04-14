@@ -8,7 +8,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  * fileName       : RoutesOverlapResponse.java<br>
  * author         : okeio<br>
  * date           : 2025-03-28<br>
- * description    : 습득자와 분실자 간 이동 경로 크로스 체크에 대한 response DTO 입니다. <br>
+ * description    : 경로 겹침 여부 및 검증 결과를 반환하는 응답 DTO입니다.<br>
+ *                  실제 겹침 여부와 일치 상태 코드 정보를 포함합니다.<br>
  * ===========================================================<br>
  * DATE              AUTHOR             NOTE<br>
  * -----------------------------------------------------------<br>
