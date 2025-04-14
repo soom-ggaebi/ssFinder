@@ -190,6 +190,7 @@ public class ChatRoomService {
     private ChatRoom createChatRoom(User user, FoundItem foundItem) {
         ChatRoom chatRoom = ChatRoom.builder()
                 .foundItem(foundItem)
+                .latestSentAt(LocalDateTime.now())
                 .build();
 
         chatRoomRepository.save(chatRoom);
