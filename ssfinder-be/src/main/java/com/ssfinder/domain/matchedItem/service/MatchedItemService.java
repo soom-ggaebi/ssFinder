@@ -22,6 +22,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.scheduling.annotation.Async;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -52,9 +53,10 @@ public class MatchedItemService {
     @Value("${matching.huggingface.url}")
     private String matchinghuggingFaceUrl;
 
+    @Async("aiMatchingExecutor")
     @Transactional
-    public MatchedItemResponse findSimilarItems(MatchedItemRequest request) {
-        log.info("AI 매칭 요청: {}", request);
+    public void findSimilarItems(MatchedItemRequest request) {
+        log.info("비동기 AI 매칭 요청: {}", request);
 
         try {
             // HTTP 요청 헤더 설정
@@ -91,13 +93,11 @@ public class MatchedItemService {
                     matchingResponse.getResult() != null && request.getLostItemId() != null) {
                 // 매칭 결과를 DB에 저장
                 saveMatchingResults(request.getLostItemId(), matchingResponse);
+                log.info("AI 매칭 결과 저장 완료: lostItemId={}", request.getLostItemId());
             }
 
-            return matchingResponse;
-
         } catch (Exception e) {
-            log.error("Hugging Face API 요청 중 오류 발생: {}", e.getMessage(), e);
-            throw new CustomException(ErrorCode.EXTERNAL_API_ERROR);
+            log.error("비동기 Hugging Face API 요청 중 오류 발생: {}", e.getMessage(), e);
         }
     }
 
@@ -156,6 +156,7 @@ public class MatchedItemService {
         if (lostItemId == null || response == null || response.getResult() == null) {
             return;
         }
+        log.info("saveMatchingResults - lostItemId: {}", lostItemId);
 
         // 분실물 엔티티 조회
         LostItem lostItem = lostItemRepository.findById(lostItemId)
