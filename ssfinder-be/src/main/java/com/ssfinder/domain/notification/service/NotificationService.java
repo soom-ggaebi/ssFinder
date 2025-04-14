@@ -194,6 +194,7 @@ public class NotificationService {
                     request.toAiMatchNotificationMap()
             );
 
+            log.info("notification sent: {}", notificationSent);
             if (notificationSent) {
                 eventPublisher.publishEvent(new NotificationHistoryEvent(
                         this,

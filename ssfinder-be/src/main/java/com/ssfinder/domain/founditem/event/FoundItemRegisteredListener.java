@@ -7,9 +7,8 @@ import com.ssfinder.domain.matchedItem.service.MatchedItemSaveService;
 import com.ssfinder.domain.matchedItem.service.MatchedItemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
@@ -32,7 +31,8 @@ public class FoundItemRegisteredListener {
     private final MatchedItemService matchedItemService;
     private final MatchedItemSaveService matchedItemSaveService;
 
-    @EventListener
+    @Async
+    @TransactionalEventListener
     public void handleFoundItemRegisteredEvent(FoundItemRegisteredEvent event) {
         FoundItem foundItem = event.getFoundItem();
         // 습득물 업로드 시, 분실물들 간의 매칭 진행

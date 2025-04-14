@@ -100,10 +100,6 @@ public class MatchedItemSaveService {
         // 한 번에 모든 항목 저장
         if (!matchedItemsToSave.isEmpty()) {
             matchedItemRepository.saveAll(matchedItemsToSave);
-            for (MatchedItemResponse.MatchItem match : matches) {
-                log.info("match item : {}", match.getItem().toString());
-            }
-
             for (MatchedItem item : matchedItemsToSave) {
                 log.info("FoundItem: {}", item.getFoundItem());
                 log.info("LostItem: {}", item.getLostItem());
@@ -114,8 +110,8 @@ public class MatchedItemSaveService {
 
         matchedItemRepository.flush();
 
-        eventPublisher.publishEvent(new MatchedItemEvent(this, matchedItemsToSave));
+        if (!matchedItemsToSave.isEmpty()) {
+            eventPublisher.publishEvent(new MatchedItemEvent(this, matchedItemsToSave));
+        }
     }
-
-
 }
