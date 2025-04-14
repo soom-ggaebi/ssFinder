@@ -66,8 +66,12 @@ public class NotificationHistoryService {
                 .type(type)
                 .body(body)
                 .build();
+        log.info("[엔티티 객체]: {}", notificationHistory.toString());
 
-        return notificationHistoryRepository.save(notificationHistory);
+        NotificationHistory nh = notificationHistoryRepository.save(notificationHistory);
+        Integer id = nh.getId();
+        log.info("[알림 이력 id 확인] id : {}", id);
+        return nh;
     }
 
     /**
