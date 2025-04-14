@@ -325,24 +325,12 @@ class _FoundItemFormState extends State<FoundItemForm> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('습득물이 성공적으로 등록되었습니다.')));
-      
+
       final data = foundItemResponseData['data'];
-      // id가 int 타입이면 그대로 사용, 아니면 mysqlId를 int로 변환
-      final int? newFoundItemId = data['id'] is int
-          ? data['id'] as int
-          : int.tryParse(data['mysqlId']?.toString() ?? '');
 
-      if (newFoundItemId == null) {
-        throw Exception('새로운 습득물 ID를 변환하는데 실패했습니다.');
-      }
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FoundItemDetailSumsumfinder(id: newFoundItemId),
-        ),
-      );
-
+      // 결과를 이전 페이지로 전달
+      print("New item data: $data");
+      Navigator.pop(context, data);
     } catch (e) {
       setState(() {
         _isLoading = false;

@@ -40,12 +40,12 @@ class _FoundPageState extends State<FoundPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialSearchQuery != null && widget.initialSearchQuery!.isNotEmpty) {
+    if (widget.initialSearchQuery != null &&
+        widget.initialSearchQuery!.isNotEmpty) {
       _searchQuery = widget.initialSearchQuery!;
       _searchPlaceByKakao(_searchQuery);
-    }
-    else {
-    _getLocationData();
+    } else {
+      _getLocationData();
     }
   }
 

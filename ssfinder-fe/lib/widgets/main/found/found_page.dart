@@ -35,6 +35,7 @@ class _FoundPageState extends State<FoundPage>
     super.dispose();
   }
 
+  /// API를 호출하여 내 습득물 목록을 불러옵니다.
   Future<void> _loadFoundItems() async {
     try {
       final response = await _apiService.getMyFoundItems();
@@ -63,6 +64,7 @@ class _FoundPageState extends State<FoundPage>
     }
   }
 
+  /// 탭별 필터링 함수
   List<FoundItemListModel> _getFilteredItems(String tab) {
     if (tab == '전체') {
       return _foundItems;
@@ -74,6 +76,7 @@ class _FoundPageState extends State<FoundPage>
     return [];
   }
 
+  /// 상세 페이지에서 반환된 결과를 받아 상태 업데이트 처리
   void _handleItemStatusChanged(int itemId, String newStatus) {
     setState(() {
       for (int i = 0; i < _foundItems.length; i++) {
@@ -125,7 +128,7 @@ class _FoundPageState extends State<FoundPage>
                       ),
                     ],
                   ),
-                  // 습득물 등록 버튼
+                  // 습득물 등록 버튼 (하단 오른쪽)
                   Positioned(
                     bottom: 20,
                     right: 20,
@@ -133,13 +136,18 @@ class _FoundPageState extends State<FoundPage>
                       elevation: 2,
                       shape: const CircleBorder(),
                       child: InkWell(
-                        onTap: () {
-                          Navigator.push(
+                        onTap: () async {
+                          // FoundItemForm 페이지로 이동 후 결과값을 기다립니다.
+                          final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const FoundItemForm(),
                             ),
                           );
+                          // 생성된 습득물 데이터가 반환되면 전체 목록을 새로고침합니다.
+                          if (result != null) {
+                            await _loadFoundItems();
+                          }
                         },
                         customBorder: const CircleBorder(),
                         child: Container(

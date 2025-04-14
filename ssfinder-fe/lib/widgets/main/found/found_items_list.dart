@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:sumsumfinder/models/found_items_model.dart'; // FoundItemListModel이 정의되어 있습니다.
-import 'package:sumsumfinder/widgets/main/found/found_item_card.dart';      // 개별 습득물 카드를 표시하는 위젯
-import '../../../screens/found/found_item_detail_sumsumfinder.dart';         // 습득물 상세 페이지 (예시)
+import 'package:sumsumfinder/models/found_items_model.dart'; // FoundItemListModel 정의
+import 'package:sumsumfinder/widgets/main/found/found_item_card.dart'; // 개별 습득물 카드 위젯
+import '../../../screens/found/found_item_detail_sumsumfinder.dart'; // 습득물 상세 페이지 (예시)
 
 class FoundItemsList extends StatefulWidget {
   final List<FoundItemListModel> items;
@@ -54,20 +54,14 @@ class _FoundItemsListState extends State<FoundItemsList> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => FoundItemDetailSumsumfinder(
-                      id: foundItem.id,
-                      // onStatusChanged: (id, status) {
-                      //   final index = items.indexWhere((item) => item.id == id);
-                      //   setState(() {
-                      //     items[index] = items[index].copyWith(status: status);
-                      //   });
-                      // },
-                    ),
+                    builder:
+                        (_) => FoundItemDetailSumsumfinder(id: foundItem.id),
                   ),
                 );
 
                 if (result != null && result is Map<String, dynamic>) {
-                  if (result.containsKey('id') && result.containsKey('status')) {
+                  if (result.containsKey('id') &&
+                      result.containsKey('status')) {
                     _updateItemStatus(result['id'], result['status']);
                   }
                 }

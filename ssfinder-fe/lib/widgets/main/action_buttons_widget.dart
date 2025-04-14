@@ -28,7 +28,6 @@ class ActionButtonsWidget extends StatelessWidget {
                 context,
                 MaterialPageRoute(builder: (context) => const LostItemForm()),
               ).then((result) {
-                print("LostItemForm returned result: $result");
                 if (result != null && onRegistrationSuccess != null) {
                   onRegistrationSuccess!();
                 }
@@ -65,7 +64,11 @@ class ActionButtonsWidget extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const FoundItemForm()),
-              );
+              ).then((result) {
+                if (result != null && onRegistrationSuccess != null) {
+                  onRegistrationSuccess!();
+                }
+              });
             },
             child: Container(
               padding: EdgeInsets.symmetric(vertical: getHeightPercent(0.035)),
