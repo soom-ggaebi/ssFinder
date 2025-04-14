@@ -70,7 +70,7 @@ class _LocationSelectState extends State<LocationSelect> {
     });
 
     await _reverseGeocode(_selectedLatLng!);
-    
+
     if (_mapController != null) {
       _mapController!.animateCamera(
         CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
@@ -97,7 +97,7 @@ class _LocationSelectState extends State<LocationSelect> {
                 polylineId: PolylineId('route'),
                 points: routeCoordinates,
                 width: 4,
-                color: Colors.blue,
+                color: Colors.deepOrangeAccent,
               ),
             );
             _selectedLatLng = routeCoordinates[0];

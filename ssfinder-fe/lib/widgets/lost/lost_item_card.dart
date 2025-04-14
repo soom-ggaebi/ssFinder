@@ -65,7 +65,9 @@ class LostItemCard extends StatelessWidget {
               ),
               // 분실물 제목
               Text(
-                item.title,
+                item.title.length > 10
+                    ? item.title.substring(0, 10) + "..."
+                    : item.title,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,

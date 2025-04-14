@@ -22,7 +22,9 @@ class UserStatsWidgetState extends State<UserStatsWidget> {
   }
 
   void _fetchUserStats() {
-    _userStatsFuture = _getUserItemCounts();
+    if (KakaoLoginService().isLoggedIn.value) {
+      _userStatsFuture = _getUserItemCounts();
+    }
   }
 
   Future<Map<String, dynamic>> _getUserItemCounts() async {
@@ -141,7 +143,7 @@ class UserStatsWidgetState extends State<UserStatsWidget> {
                         MaterialPageRoute(
                           builder: (context) => const LostPage(),
                         ),
-                      );
+                      ).then((_) => refresh());
                     },
                     child: Container(
                       width: double.infinity,
@@ -178,7 +180,7 @@ class UserStatsWidgetState extends State<UserStatsWidget> {
                         MaterialPageRoute(
                           builder: (context) => const FoundPage(),
                         ),
-                      );
+                      ).then((_) => refresh());
                     },
                     child: Container(
                       width: double.infinity,

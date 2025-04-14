@@ -42,13 +42,19 @@ class _MainPageState extends State<MainPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
+                          // 로그인 위젯
                           const LoginWidget(),
+                          // 날씨 위젯
                           const WeatherWidget(),
+                          // 하단 배너
                           _buildBottomBanner(screenHeight),
+                          // UserStatsWidget에 GlobalKey를 할당
                           UserStatsWidget(key: userStatsKey),
+                          // 액션 버튼 위젯 (여기서 등록 성공 시 refresh() 호출)
                           ActionButtonsWidget(
                             availableHeight: constraints.maxHeight * 0.8,
                             onRegistrationSuccess: () {
+                              print("onRegistrationSuccess called");
                               userStatsKey.currentState?.refresh();
                             },
                           ),
@@ -71,6 +77,7 @@ class _MainPageState extends State<MainPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        // 좌측: 로고
         Padding(
           padding: EdgeInsets.only(left: screenWidth * 0.02),
           child: SvgPicture.asset(
@@ -79,6 +86,7 @@ class _MainPageState extends State<MainPage> {
             height: screenWidth * 0.08,
           ),
         ),
+        // 우측: 아이콘 버튼들 (알림, 마이페이지)
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
