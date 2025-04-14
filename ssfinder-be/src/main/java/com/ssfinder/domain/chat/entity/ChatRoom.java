@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.springframework.data.annotation.CreatedBy;
 
 import java.time.LocalDateTime;
 
@@ -38,6 +39,7 @@ public class ChatRoom {
     private FoundItem foundItem;
 
     @Column(name = "latest_sent_at")
+    @CreatedBy
     private LocalDateTime latestSentAt;
 
     @Column(name = "latest_message")
