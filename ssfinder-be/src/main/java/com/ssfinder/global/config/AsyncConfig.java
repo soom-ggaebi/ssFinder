@@ -21,7 +21,7 @@ import java.util.concurrent.Executor;
  * <br>
  */
 @Configuration
-@EnableAsync
+@EnableAsync(proxyTargetClass = true)
 @EnableScheduling
 public class AsyncConfig {
 
@@ -32,6 +32,17 @@ public class AsyncConfig {
         executor.setMaxPoolSize(10);
         executor.setQueueCapacity(25);
         executor.setThreadNamePrefix("Elasticsearch-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "aiMatchingExecutor")
+    public Executor aiMatchingExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(25);
+        executor.setThreadNamePrefix("AIMatching-");
         executor.initialize();
         return executor;
     }

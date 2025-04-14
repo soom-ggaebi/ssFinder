@@ -36,16 +36,18 @@ public class MatchedItemController {
     private final MatchedItemService matchedItemService;
 
     @PostMapping("/find-similar")
-    public ApiResponse<MatchedItemResponse> findSimilarItems(@Valid @RequestBody MatchedItemRequest request) {
+    public ApiResponse<String> findSimilarItems(@Valid @RequestBody MatchedItemRequest request) {
         log.info("유사 습득물 찾기 요청: {}", request);
 
-        MatchedItemResponse response = matchedItemService.findSimilarItems(request);
+        // 비동기로 AI 매칭 프로세스 시작
+        matchedItemService.findSimilarItems(request);
 
-        return ApiResponse.ok(response);
+        // 즉시 응답 반환
+        return ApiResponse.ok("AI 매칭이 백그라운드에서 처리 중입니다.");
     }
 
     @GetMapping("/matched-items/{lostId}")
-    public ApiResponse<List<MatchedItemsTopFiveResponse>> getMatchedItems(@PathVariable @Min(1) Integer lostId) {
+    public ApiResponse<List<MatchedItemsTopFiveResponse>> getMatchedItems(@PathVariable("lostId") @Min(1) Integer lostId) {
         log.info("매칭된 습득물 목록 조회: lostItemId={}", lostId);
 
         List<MatchedItemsTopFiveResponse> response = matchedItemService.getMatchedItems(lostId);
