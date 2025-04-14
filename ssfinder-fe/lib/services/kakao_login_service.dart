@@ -311,7 +311,6 @@ class KakaoLoginService {
           }
         }
       }
-
       print('새로운 토큰 발급 시도');
 
       // fcm 토큰 가져오기
@@ -563,7 +562,7 @@ class KakaoLoginService {
       } catch (e) {
         print('FCM 토큰 삭제 중 오류 발생: $e');
       }
-      
+
       // 1. 백엔드 로그아웃 (토큰 무효화)
       final backendLogoutSuccess = await logoutFromBackend();
 
