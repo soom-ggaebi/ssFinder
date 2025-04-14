@@ -87,7 +87,24 @@ class NotificationApiService {
       );
 
       // 한국어 처리를 위한 UTF-8 디코딩
+      // UTF-8 디코딩 후 JSON 파싱
       final decodedBody = utf8.decode(response.bodyBytes);
+      final Map<String, dynamic> jsonMap = jsonDecode(decodedBody);
+
+      // data 값 안전하게 체크
+      final data = jsonMap['data'];
+      if (data != null && data is Map<String, dynamic>) {
+        final content = data['content'];
+        if (content != null && content is List) {
+          for (var notification in content) {
+            print('알림 데이터: $notification');
+          }
+        } else {
+          print('content 필드가 null 이거나 리스트가 아닙니다.');
+        }
+      } else {
+        print('data 필드가 null 이거나 Map 타입이 아닙니다.');
+      }
 
       if (response.statusCode == 200) {
         return NotificationResponse.fromJson(json.decode(decodedBody));

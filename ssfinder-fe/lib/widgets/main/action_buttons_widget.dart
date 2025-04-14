@@ -6,9 +6,13 @@ import 'package:sumsumfinder/screens/found/found_item_form.dart';
 
 class ActionButtonsWidget extends StatelessWidget {
   final double availableHeight;
+  final VoidCallback? onRegistrationSuccess;
 
-  const ActionButtonsWidget({Key? key, required this.availableHeight})
-    : super(key: key);
+  const ActionButtonsWidget({
+    Key? key,
+    required this.availableHeight,
+    this.onRegistrationSuccess,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +27,12 @@ class ActionButtonsWidget extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const LostItemForm()),
-              );
+              ).then((result) {
+                print("LostItemForm returned result: $result");
+                if (result != null && onRegistrationSuccess != null) {
+                  onRegistrationSuccess!();
+                }
+              });
             },
             child: Container(
               padding: EdgeInsets.symmetric(vertical: getHeightPercent(0.035)),

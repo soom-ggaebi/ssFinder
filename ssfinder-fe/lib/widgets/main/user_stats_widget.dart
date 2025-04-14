@@ -9,19 +9,37 @@ class UserStatsWidget extends StatefulWidget {
   const UserStatsWidget({Key? key}) : super(key: key);
 
   @override
-  _UserStatsWidgetState createState() => _UserStatsWidgetState();
+  UserStatsWidgetState createState() => UserStatsWidgetState();
 }
 
-class _UserStatsWidgetState extends State<UserStatsWidget> {
+class UserStatsWidgetState extends State<UserStatsWidget> {
+  late Future<Map<String, dynamic>> _userStatsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserStats();
+  }
+
+  void _fetchUserStats() {
+    _userStatsFuture = _getUserItemCounts();
+  }
+
   Future<Map<String, dynamic>> _getUserItemCounts() async {
     return await LostItemsApiService().getUserItemCounts();
+  }
+
+  void refresh() {
+    setState(() {
+      _fetchUserStats();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final verticalSpacing = screenHeight * 0.02;
-    
+
     return ValueListenableBuilder<bool>(
       valueListenable: KakaoLoginService().isLoggedIn,
       builder: (context, isLoggedIn, child) {
@@ -101,7 +119,7 @@ class _UserStatsWidgetState extends State<UserStatsWidget> {
           );
         } else {
           return FutureBuilder<Map<String, dynamic>>(
-            future: _getUserItemCounts(),
+            future: _userStatsFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -120,7 +138,9 @@ class _UserStatsWidgetState extends State<UserStatsWidget> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const LostPage()),
+                        MaterialPageRoute(
+                          builder: (context) => const LostPage(),
+                        ),
                       );
                     },
                     child: Container(
@@ -155,7 +175,9 @@ class _UserStatsWidgetState extends State<UserStatsWidget> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const FoundPage()),
+                        MaterialPageRoute(
+                          builder: (context) => const FoundPage(),
+                        ),
                       );
                     },
                     child: Container(
