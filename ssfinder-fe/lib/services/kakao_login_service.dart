@@ -223,6 +223,7 @@ class KakaoLoginService {
   Future<void> logout() async {
     try {
       await UserApi.instance.logout();
+
       isLoggedIn.value = false;
       user = null;
       print('로그아웃 성공');
@@ -535,6 +536,13 @@ class KakaoLoginService {
   // 토큰 삭제 메서드
   Future<void> _clearTokens() async {
     try {
+      // FCM 토큰 삭제
+      try {
+        await deleteFcmToken();
+      } catch (e) {
+        print('FCM 토큰 삭제 중 오류 발생: $e');
+      }
+
       // 현재 계정 ID 가져오기
       String? accountId = await _storage.read(key: 'current_account_id');
 
@@ -556,18 +564,14 @@ class KakaoLoginService {
   // 통합 로그아웃 프로세스 (카카오 로그아웃 + 백엔드 로그아웃)
   Future<bool> fullLogout() async {
     try {
-      // 0. FCM 토큰 삭제
-      try {
-        await deleteFcmToken();
-      } catch (e) {
-        print('FCM 토큰 삭제 중 오류 발생: $e');
-      }
-
       // 1. 백엔드 로그아웃 (토큰 무효화)
       final backendLogoutSuccess = await logoutFromBackend();
 
       // 2. 카카오 로그아웃 (백엔드 로그아웃 성공 여부와 관계없이 진행)
       await logout();
+
+      // 3. 전체 토큰 삭제
+      await _clearTokens();
 
       // 로그인 상태 false로 변경
       isLoggedIn.value = false;
