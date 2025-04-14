@@ -76,6 +76,12 @@ class _ChatPageState extends State<ChatPage> {
   String? _nextCursor;
   final int _pageSize = 20;
   bool _disposed = false;
+  bool _isInitializingClient = false;
+  bool _isReconnecting = false;
+  bool _isSubscribingToReadStatus = false;
+  bool _isSubscribingToChatRoom = false;
+  bool _isSubscribingToErrors = false;
+  Timer? _reconnectTimer;
 
   // 권한 확인 메서드 추가
   Future<void> _checkPermissions() async {
@@ -177,7 +183,7 @@ class _ChatPageState extends State<ChatPage> {
           } catch (e) {
             print('에러 구독 취소 오류: $e');
           }
-          errorSubscriptionId = null;
+          errorUnsubscribeFn = null;
         }
         if (readStatusUnsubscribeFn != null) {
           try {
@@ -290,8 +296,6 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-  bool _isInitializingClient = false;
-
   Future<void> initStompClient() async {
     if (_isInitializingClient) {
       print('🟡 STOMP 클라이언트 초기화가 이미 진행 중입니다.');
@@ -308,6 +312,9 @@ class _ChatPageState extends State<ChatPage> {
 
     _isInitializingClient = true;
     try {
+      // 이전 연결이 있다면 완전히 정리
+      _cleanupExistingConnection();
+
       await _loginService.ensureAuthenticated();
       _currentToken = await _loginService.getAccessToken();
 
@@ -318,38 +325,52 @@ class _ChatPageState extends State<ChatPage> {
       }
 
       final String serverUrl = 'wss://ssfinder.site/app/';
+      print('🔌 STOMP 클라이언트 초기화 시작: $serverUrl');
+
       stompClient = StompClient(
         config: StompConfig(
           url: serverUrl,
           onConnect: (frame) {
-            print('🟢 STOMP 연결 성공');
+            print('🟢 STOMP 연결 성공: ${frame.headers}');
+
             if (mounted) {
               setState(() {
                 isConnected = true;
                 reconnectAttempts = 0;
               });
 
-              // 연결 후 즉시 구독 시작
-              if (!_isSubscribingToChatRoom) {
-                _isSubscribingToChatRoom = true;
-                subscribeToChatRoom();
-              }
-              if (!_isSubscribingToErrors) {
-                _isSubscribingToErrors = true;
-                subscribeToErrors();
-              }
-              if (!_isSubscribingToReadStatus) {
-                _isSubscribingToReadStatus = true;
-                subscribeToReadStatus();
-              }
+              // 구독 시작 전 약간의 지연을 주어 연결이 완전히 설정될 시간을 확보
+              Future.delayed(Duration(milliseconds: 500), () {
+                if (!mounted || !stompClient.connected) return;
 
-              // 온라인 상태 전송 및 읽지 않은 메시지 처리
-              _sendOnlineStatus();
-              _processUnreadMessages();
+                print('🔄 구독 설정 시작...');
+
+                // 채팅방 구독
+                if (!_isSubscribingToChatRoom) {
+                  _isSubscribingToChatRoom = true;
+                  subscribeToChatRoom();
+                }
+
+                // 에러 구독
+                if (!_isSubscribingToErrors) {
+                  _isSubscribingToErrors = true;
+                  subscribeToErrors();
+                }
+
+                // 읽음 상태 구독
+                if (!_isSubscribingToReadStatus) {
+                  _isSubscribingToReadStatus = true;
+                  subscribeToReadStatus();
+                }
+
+                // 온라인 상태 전송 및 읽지 않은 메시지 처리
+                _sendOnlineStatus();
+                _processUnreadMessages();
+              });
             }
           },
           onDisconnect: (frame) {
-            print('🔴 STOMP 연결 해제');
+            print('🔴 STOMP 연결 해제: ${frame.headers}');
             if (mounted) {
               setState(() {
                 isConnected = false;
@@ -358,8 +379,15 @@ class _ChatPageState extends State<ChatPage> {
                 _isSubscribingToErrors = false;
               });
 
-              // 의도적으로 연결을 해제한 것이 아니라면 재연결 시도
-              _checkAndReconnect();
+              // 의도적 연결 해제가 아니면 재연결 시도
+              _chatService.shouldAttemptReconnect(widget.roomId).then((
+                shouldReconnect,
+              ) {
+                if (shouldReconnect && mounted) {
+                  print('🔄 연결 해제 감지, 재연결 시도...');
+                  _checkAndReconnect();
+                }
+              });
             }
           },
           onWebSocketError: (error) {
@@ -367,7 +395,11 @@ class _ChatPageState extends State<ChatPage> {
             if (mounted) {
               setState(() {
                 isConnected = false;
+                _isSubscribingToChatRoom = false;
+                _isSubscribingToReadStatus = false;
+                _isSubscribingToErrors = false;
               });
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('연결 오류가 발생했습니다: $error'),
@@ -376,7 +408,14 @@ class _ChatPageState extends State<ChatPage> {
               );
 
               // 웹소켓 오류 시 재연결 시도
-              _checkAndReconnect();
+              _chatService.shouldAttemptReconnect(widget.roomId).then((
+                shouldReconnect,
+              ) {
+                if (shouldReconnect && mounted) {
+                  print('🔄 웹소켓 오류 감지, 재연결 시도...');
+                  _checkAndReconnect();
+                }
+              });
             }
           },
           onStompError: (frame) {
@@ -390,12 +429,11 @@ class _ChatPageState extends State<ChatPage> {
             }
           },
           onDebugMessage: (String message) {
-            // 디버그 메시지 활성화
             print('🔍 STOMP 디버그: $message');
           },
           stompConnectHeaders: {
             'accept-version': '1.0,1.1,1.2',
-            'heart-beat': '5000,5000',
+            'heart-beat': '10000,10000', // 하트비트 간격 증가 (10초)
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $_currentToken',
             'chat_room_id': '${widget.roomId}',
@@ -404,10 +442,19 @@ class _ChatPageState extends State<ChatPage> {
       );
 
       _isStompClientInitialized = true;
+      print('🚀 STOMP 클라이언트 활성화 시작');
       stompClient.activate();
-      print('🚀 STOMP 클라이언트 활성화');
+      print('✅ STOMP 클라이언트 활성화 완료');
     } catch (e) {
       print('💥 STOMP 클라이언트 초기화 중 오류: $e');
+      if (mounted) {
+        setState(() {
+          isConnected = false;
+          _isSubscribingToChatRoom = false;
+          _isSubscribingToReadStatus = false;
+          _isSubscribingToErrors = false;
+        });
+      }
     } finally {
       _isInitializingClient = false;
     }
@@ -459,41 +506,29 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  bool _isSubscribingToReadStatus = false;
-  bool _isSubscribingToChatRoom = false;
-  bool _isSubscribingToErrors = false;
+  // 연결 재시도 및 구독 재시도 함수
+  Future<void> _refreshConnectionAndRetry() async {
+    if (_disposed) return;
 
-  void onConnect(StompFrame frame) {
-    if (isConnected) {
-      print('🟡 이미 연결된 상태에서 추가 연결 이벤트 수신. 무시합니다.');
-      return;
-    }
+    print('🔄 연결 및 구독 재시도 중...');
 
-    addLog('연결 성공: ${frame.body}');
-    if (!mounted) return;
+    // 기존 연결 정리
+    _cleanupExistingConnection();
 
+    // 플래그 초기화
     setState(() {
-      isConnected = true;
-      reconnectAttempts = 0;
+      isConnected = false;
+      _isSubscribingToChatRoom = false;
+      _isSubscribingToReadStatus = false;
+      _isSubscribingToErrors = false;
     });
 
-    Future.delayed(Duration(milliseconds: 500), () {
-      if (!mounted || !stompClient.connected) return;
-      if (!_isSubscribingToChatRoom) {
-        _isSubscribingToChatRoom = true;
-        subscribeToChatRoom();
-      }
-      if (!_isSubscribingToErrors) {
-        _isSubscribingToErrors = true;
-        subscribeToErrors();
-      }
-      if (!_isSubscribingToReadStatus) {
-        _isSubscribingToReadStatus = true;
-        subscribeToReadStatus();
-      }
-      _sendOnlineStatus();
-      _processUnreadMessages();
-    });
+    // 잠시 대기 후 재연결 시도
+    await Future.delayed(Duration(seconds: 1));
+    if (_disposed) return;
+
+    // 새 연결 시도
+    await initStompClient();
   }
 
   void _sendOnlineStatus() {
@@ -558,164 +593,272 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  // 수정된 부분: subscribeToReadStatus에서 ChatMessage 생성 시 "sentAt:" 사용 (기존에 잘못되어 있던 "time:" 제거)
   void subscribeToReadStatus() {
-    if (readStatusUnsubscribeFn != null) {
-      try {
-        readStatusUnsubscribeFn!();
-        readStatusUnsubscribeFn = null;
-      } catch (e) {
-        print('읽음 상태 구독 취소 오류: $e');
-      }
+    if (!stompClient.connected) {
+      print('⚠️ 읽음 상태 구독 시도 실패: STOMP 클라이언트가 연결되지 않았습니다.');
+      _isSubscribingToReadStatus = false;
+      return;
     }
 
-    final String topic = '/sub/chat-room/${widget.roomId}/read';
-    readStatusUnsubscribeFn = stompClient.subscribe(
-      destination: topic,
-      callback: (StompFrame frame) {
-        if (frame.body == null || frame.body!.isEmpty) return;
-        addLog('읽음 상태 업데이트 수신: ${frame.body}');
-        final jsonData = json.decode(frame.body!);
-        final int userId = jsonData['user_id'];
-        final List<String> messageIds = List<String>.from(
-          jsonData['message_ids'],
-        );
-        final int chatRoomId = jsonData['chat_room_id'];
-        if (userId != currentUserId) {
-          addLog('상대방(ID: $userId)이 메시지 ${messageIds.length}개를 읽음');
-          if (chatRoomId != widget.roomId) return;
-          if (userId == currentUserId) return;
-          setState(() {
-            for (int i = 0; i < _messages.length; i++) {
-              if (_messages[i].isSent &&
-                  messageIds.contains(_messages[i].messageId)) {
-                _messages[i] = ChatMessage(
-                  text: _messages[i].text,
-                  isSent: _messages[i].isSent,
-                  sentAt: _messages[i].sentAt, // 수정: "sentAt:" 사용
-                  type: _messages[i].type,
-                  status: 'READ',
-                  messageId: _messages[i].messageId,
-                  imageUrl: _messages[i].imageUrl,
-                  locationUrl: _messages[i].locationUrl,
-                );
-              }
-            }
-          });
+    try {
+      // 이전 구독이 있으면 해제
+      if (readStatusUnsubscribeFn != null) {
+        try {
+          readStatusUnsubscribeFn!();
+          print('✓ 이전 읽음 상태 구독 해제 완료');
+        } catch (e) {
+          print('⚠️ 이전 읽음 상태 구독 해제 중 오류: $e');
         }
-      },
-    );
-    addLog('읽음 상태 구독 완료: $topic');
+        readStatusUnsubscribeFn = null;
+      }
+
+      final String topic = '/sub/chat-room/${widget.roomId}/read';
+      print('👁️ 읽음 상태 구독 시도: $topic');
+
+      try {
+        readStatusUnsubscribeFn = stompClient.subscribe(
+          destination: topic,
+          callback: (StompFrame frame) {
+            if (frame.body == null || frame.body!.isEmpty) {
+              print('⚠️ 빈 읽음 상태 프레임을 받았습니다.');
+              return;
+            }
+
+            print('👁️ 읽음 상태 업데이트 수신: ${frame.body}');
+
+            try {
+              final jsonData = json.decode(frame.body!);
+              final int userId = jsonData['user_id'];
+              final List<String> messageIds = List<String>.from(
+                jsonData['message_ids'],
+              );
+              final int chatRoomId = jsonData['chat_room_id'];
+
+              print(
+                '👁️ 읽음 상태 정보: 사용자=$userId, 메시지 수=${messageIds.length}, 채팅방=$chatRoomId',
+              );
+
+              // 상대방이 내 메시지를 읽었을 때만 처리
+              if (userId != currentUserId && chatRoomId == widget.roomId) {
+                print('👁️ 상대방이 메시지 읽음: 메시지 ID=$messageIds');
+
+                if (mounted) {
+                  setState(() {
+                    for (int i = 0; i < _messages.length; i++) {
+                      if (_messages[i].isSent &&
+                          messageIds.contains(_messages[i].messageId)) {
+                        _messages[i] = ChatMessage(
+                          text: _messages[i].text,
+                          isSent: _messages[i].isSent,
+                          sentAt: _messages[i].sentAt,
+                          type: _messages[i].type,
+                          status: 'READ',
+                          messageId: _messages[i].messageId,
+                          imageUrl: _messages[i].imageUrl,
+                          locationUrl: _messages[i].locationUrl,
+                        );
+                        print('✓ 메시지 읽음 상태 업데이트: ${_messages[i].messageId}');
+                      }
+                    }
+                  });
+                }
+              }
+            } catch (e) {
+              print('⚠️ 읽음 상태 처리 중 오류: $e');
+            }
+          },
+        );
+
+        print('✅ 읽음 상태 구독 완료: $topic');
+      } catch (e) {
+        print('❌ STOMP 읽음 상태 구독 실패: $e');
+        readStatusUnsubscribeFn = null;
+        _isSubscribingToReadStatus = false;
+
+        // 3초 후 재시도
+        Future.delayed(Duration(seconds: 3), () {
+          if (mounted && stompClient.connected && !_isSubscribingToReadStatus) {
+            _isSubscribingToReadStatus = true;
+            subscribeToReadStatus();
+          }
+        });
+      }
+    } catch (e) {
+      print('❌ 읽음 상태 구독 중 일반 예외 발생: $e');
+      _isSubscribingToReadStatus = false;
+    }
   }
 
   void subscribeToChatRoom() {
-    try {
-      if (!stompClient.connected) {
-        addLog('⚠️ 채팅방 구독 시도 실패: STOMP 클라이언트가 연결되지 않았습니다.');
-        _isSubscribingToChatRoom = false;
-        Future.delayed(Duration(seconds: 2), () {
-          if (mounted && isConnected && !_isSubscribingToChatRoom) {
-            _isSubscribingToChatRoom = true;
-            subscribeToChatRoom();
-          }
-        });
-        return;
-      }
+    if (!stompClient.connected) {
+      print(
+        '⚠️ 채팅방 구독 시도 실패: STOMP 클라이언트가 연결되지 않았습니다. 연결 상태: ${stompClient.connected}',
+      );
+      _isSubscribingToChatRoom = false;
 
-      // 이전 구독이 있으면, 깨끗하게 해제
+      // 재연결 로직 추가
+      if (mounted && !isConnected) {
+        Future.delayed(Duration(seconds: 2), () {
+          print('🔄 연결 안 됨 감지, 재연결 시도...');
+          _refreshConnectionAndRetry();
+        });
+      }
+      return;
+    }
+
+    try {
+      print('📌 채팅방 구독 시작 - 클라이언트 연결 상태: ${stompClient.connected}');
+
+      // 이전 구독이 있으면 해제
       if (chatRoomUnsubscribeFn != null) {
         try {
           chatRoomUnsubscribeFn!();
-          chatRoomUnsubscribeFn = null;
+          print('✓ 이전 채팅방 구독 해제 완료');
         } catch (e) {
-          print('채팅방 구독 취소 오류: $e');
+          print('⚠️ 이전 채팅방 구독 해제 중 오류: $e');
         }
+        chatRoomUnsubscribeFn = null;
       }
 
       final String topic = '/sub/chat-room/${widget.roomId}';
-      addLog('📝 채팅방 구독 시도: $topic');
+      print('📝 채팅방 구독 주소: $topic');
 
-      // 새 구독 생성
-      chatRoomUnsubscribeFn = stompClient.subscribe(
-        destination: topic,
-        callback: (StompFrame frame) {
-          try {
-            // 수신된 프레임이 비어있는지 확인
-            if (frame.body == null || frame.body!.isEmpty) {
-              print('⚠️ 빈 메시지 프레임을 받았습니다.');
-              return;
-            }
-
-            // JSON 디코딩 시도
-            Map<String, dynamic> jsonData;
-            try {
-              jsonData = json.decode(frame.body!);
-              addLog('메시지 수신 성공: ${frame.body}');
-            } catch (e) {
-              print('⚠️ JSON 파싱 오류: $e');
-              print('⚠️ 원본 데이터: ${frame.body}');
-              return;
-            }
-
-            // 메시지 객체 생성
-            final int senderId = jsonData['sender_id'];
-            final String content = jsonData['content'] as String? ?? '';
-            final String type = jsonData['type'] as String? ?? 'NORMAL';
-
-            // 시간 파싱
-            DateTime sentAt;
-            try {
-              sentAt = DateTime.parse(jsonData['sent_at']);
-            } catch (_) {
-              sentAt = DateTime.now();
-            }
-
-            // 채팅 메시지 객체 생성
-            final ChatMessage message = ChatMessage(
-              text: (type == 'IMAGE' || type == 'LOCATION') ? '' : content,
-              isSent: senderId == currentUserId,
-              sentAt: sentAt,
-              type: type,
-              status: jsonData['status'] ?? 'UNREAD',
-              messageId: jsonData['message_id'],
-              imageUrl: type == 'IMAGE' ? content : null,
-              locationUrl: type == 'LOCATION' ? content : null,
+      try {
+        chatRoomUnsubscribeFn = stompClient.subscribe(
+          destination: topic,
+          callback: (StompFrame frame) {
+            print(
+              '📨 채팅 메시지 수신: ${frame.body?.substring(0, min(30, frame.body?.length ?? 0))}...',
             );
 
-            // UI 업데이트
-            if (mounted) {
-              // 메시지 디버그 로그
-              addLog(
-                '메시지 처리: id=${message.messageId}, type=${message.type}, isSent=${message.isSent}',
+            try {
+              if (frame.body == null || frame.body!.isEmpty) {
+                print('⚠️ 빈 메시지 프레임을 받았습니다.');
+                return;
+              }
+
+              Map<String, dynamic> jsonData;
+              try {
+                jsonData = json.decode(frame.body!);
+                print('✓ 메시지 JSON 파싱 성공');
+              } catch (e) {
+                print('⚠️ JSON 파싱 오류: $e');
+                print('⚠️ 원본 데이터: ${frame.body}');
+                return;
+              }
+
+              // 메시지 필드 추출
+              final int senderId = jsonData['sender_id'];
+              final String content = jsonData['content'] as String? ?? '';
+              final String type = jsonData['type'] as String? ?? 'NORMAL';
+
+              // 시간 파싱
+              DateTime sentAt;
+              try {
+                sentAt = DateTime.parse(jsonData['sent_at']);
+              } catch (_) {
+                sentAt = DateTime.now();
+              }
+
+              // 채팅 메시지 객체 생성
+              final ChatMessage message = ChatMessage(
+                text: (type == 'IMAGE' || type == 'LOCATION') ? '' : content,
+                isSent: senderId == currentUserId,
+                sentAt: sentAt,
+                type: type,
+                status: jsonData['status'] ?? 'UNREAD',
+                messageId: jsonData['message_id'],
+                imageUrl: type == 'IMAGE' ? content : null,
+                locationUrl: type == 'LOCATION' ? content : null,
               );
 
-              // 수신한 메시지를 UI에 추가
-              _addOrUpdateMessage(message);
+              print(
+                '✓ 메시지 객체 생성 완료: id=${message.messageId}, type=${message.type}',
+              );
 
-              // 상대방 메시지이고 읽지 않았으면 읽음 처리
-              if (!message.isSent && message.messageId != null) {
-                addLog('읽음 처리: ${message.messageId}');
-                sendReadReceipt([message.messageId!]);
+              if (mounted) {
+                // UI 업데이트는 메인 스레드에서 비동기적으로 처리
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+
+                  setState(() {
+                    // 기존 메시지 찾기
+                    int existingIndex = -1;
+                    if (message.messageId != null) {
+                      existingIndex = _messages.indexWhere(
+                        (msg) => msg.messageId == message.messageId,
+                      );
+                    }
+
+                    if (existingIndex == -1 && message.isSent) {
+                      existingIndex = _messages.indexWhere(
+                        (msg) =>
+                            msg.messageId != null &&
+                            msg.messageId!.startsWith('temp_') &&
+                            msg.type == message.type &&
+                            msg.text == message.text,
+                      );
+                    }
+
+                    // 기존 메시지 업데이트 또는 새 메시지 추가
+                    if (existingIndex != -1) {
+                      _messages[existingIndex] = message;
+                      print('✓ 기존 메시지 업데이트: 인덱스=$existingIndex');
+                    } else {
+                      _messages.insert(0, message);
+                      print('✓ 새 메시지 추가: 총 메시지 수=${_messages.length}');
+
+                      // 새 메시지가 상대방으로부터 온 경우 자동 스크롤 및 읽음 처리
+                      if (!message.isSent) {
+                        _scrollToBottom();
+                        if (message.messageId != null) {
+                          sendReadReceipt([message.messageId!]);
+                        }
+                      }
+                    }
+
+                    // 메시지 정렬
+                    _sortMessages();
+                  });
+
+                  // 로컬 저장소에 메시지 저장
+                  _chatService.addMessageToLocal(widget.roomId, message);
+                });
+              }
+            } catch (e) {
+              print('⚠️ 메시지 처리 중 오류: $e');
+              if (frame.body != null) {
+                print('⚠️ 문제가 발생한 메시지: ${frame.body}');
               }
             }
-          } catch (e) {
-            print('⚠️ 메시지 처리 중 오류: $e');
-            if (frame.body != null) {
-              print('⚠️ 문제가 발생한 메시지: ${frame.body}');
+          },
+        );
+
+        print('✅ 채팅방 구독 완료: $topic');
+      } catch (e) {
+        print('❌ STOMP 구독 오류: $e');
+        chatRoomUnsubscribeFn = null;
+        _isSubscribingToChatRoom = false;
+
+        if (e.toString().contains('StompBadStateException') ||
+            e.toString().contains('no active connection')) {
+          // 연결 문제로 인한 구독 실패, 재연결 시도
+          Future.delayed(Duration(seconds: 2), () {
+            if (mounted) {
+              print('🔄 구독 실패로 인한 재연결 시도...');
+              _refreshConnectionAndRetry();
             }
-          }
-        },
-      );
-
-      addLog('✅ 채팅방 구독 완료: $topic');
+          });
+        }
+      }
     } catch (e) {
+      print('❌ 채팅방 구독 중 예외 발생: $e');
       _isSubscribingToChatRoom = false;
-      addLog('❌ 채팅방 구독 중 오류: $e');
 
-      // 오류 발생 시 재시도 로직
-      Future.delayed(Duration(seconds: 2), () {
-        if (mounted && isConnected && !_isSubscribingToChatRoom) {
-          _isSubscribingToChatRoom = true;
+      // 오류 발생 시 재시도
+      Future.delayed(Duration(seconds: 3), () {
+        if (mounted && !_isSubscribingToChatRoom) {
+          print('🔄 예외 발생 후 재시도...');
           subscribeToChatRoom();
         }
       });
@@ -723,97 +866,62 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void subscribeToErrors() {
-    final String topic = '/user/queue/errors';
-    addLog('에러 구독 시도: $topic');
-    try {
-      errorUnsubscribeFn = stompClient.subscribe(
-        destination: topic,
-        callback: (StompFrame frame) {
-          addLog('에러 수신: ${frame.body}');
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('서버 오류: ${frame.body}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        },
-      );
-      addLog('에러 구독 성공');
-    } catch (e) {
-      addLog('에러 구독 오류: $e');
-    }
-  }
-
-  void onDisconnect(StompFrame frame) {
-    addLog('연결 종료: ${frame.body}');
-    if (!mounted) return;
-    setState(() {
-      isConnected = false;
-      _isSubscribingToChatRoom = false;
-      _isSubscribingToReadStatus = false;
+    if (!stompClient.connected) {
+      print('⚠️ 에러 구독 시도 실패: STOMP 클라이언트가 연결되지 않았습니다.');
       _isSubscribingToErrors = false;
-    });
-  }
-
-  void onWebSocketError(dynamic error) {
-    addLog('WebSocket 오류: $error');
-    if (!mounted) return;
-    setState(() {
-      isConnected = false;
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('연결 오류가 발생했습니다: $error'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      return;
     }
-  }
 
-  void onStompError(StompFrame frame) {
-    addLog('STOMP 오류: ${frame.body}');
-    if (!mounted) return;
-    if (frame.body != null &&
-        (frame.body!.toLowerCase().contains('token') ||
-            frame.body!.toLowerCase().contains('auth') ||
-            frame.body!.toLowerCase().contains('unauthorized'))) {
-      addLog('토큰 관련 오류 감지. 토큰 갱신 후 재연결 시도');
-      _refreshTokenAndReconnect();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('STOMP 프로토콜 오류가 발생했습니다'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-  }
-
-  Future<void> _refreshTokenAndReconnect() async {
-    if (!mounted) return;
-    addLog('토큰 갱신 및 재연결 시도');
     try {
-      final refreshed = await _loginService.refreshAccessToken();
-      if (refreshed) {
-        addLog('토큰 갱신 성공, 웹소켓 재연결 시도');
-        await reconnect();
-      } else {
-        addLog('토큰 갱신 실패');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('인증 오류가 발생했습니다. 다시 로그인해주세요.'),
-            backgroundColor: Colors.red,
-          ),
+      // 이전 구독이 있으면 해제
+      if (errorUnsubscribeFn != null) {
+        try {
+          errorUnsubscribeFn!();
+          print('✓ 이전 에러 구독 해제 완료');
+        } catch (e) {
+          print('⚠️ 이전 에러 구독 해제 중 오류: $e');
+        }
+        errorUnsubscribeFn = null;
+      }
+
+      final String topic = '/user/queue/errors';
+      print('🚨 에러 구독 시도: $topic');
+
+      try {
+        errorUnsubscribeFn = stompClient.subscribe(
+          destination: topic,
+          callback: (StompFrame frame) {
+            print('⚠️ 에러 메시지 수신: ${frame.body}');
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('서버 오류: ${frame.body}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          },
         );
+
+        print('✅ 에러 구독 완료: $topic');
+      } catch (e) {
+        print('❌ STOMP 에러 구독 실패: $e');
+        errorUnsubscribeFn = null;
+        _isSubscribingToErrors = false;
+
+        // 3초 후 재시도
+        Future.delayed(Duration(seconds: 3), () {
+          if (mounted && stompClient.connected && !_isSubscribingToErrors) {
+            _isSubscribingToErrors = true;
+            subscribeToErrors();
+          }
+        });
       }
     } catch (e) {
-      addLog('토큰 갱신 및 재연결 중 오류: $e');
+      print('❌ 에러 구독 중 일반 예외 발생: $e');
+      _isSubscribingToErrors = false;
     }
   }
-
-  Timer? _reconnectTimer;
 
   Future<void> setupAutoReconnect() async {
     if (_reconnectTimer != null) {
@@ -853,7 +961,27 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-  bool _isReconnecting = false;
+  Future<void> _refreshTokenAndReconnect() async {
+    if (!mounted) return;
+    addLog('토큰 갱신 및 재연결 시도');
+    try {
+      final refreshed = await _loginService.refreshAccessToken();
+      if (refreshed) {
+        addLog('토큰 갱신 성공, 웹소켓 재연결 시도');
+        await reconnect();
+      } else {
+        addLog('토큰 갱신 실패');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('인증 오류가 발생했습니다. 다시 로그인해주세요.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      addLog('토큰 갱신 및 재연결 중 오류: $e');
+    }
+  }
 
   Future<void> reconnect() async {
     if (_disposed) return;

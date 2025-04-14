@@ -312,7 +312,6 @@ class KakaoLoginService {
           }
         }
       }
-
       print('새로운 토큰 발급 시도');
 
       // fcm 토큰 가져오기
