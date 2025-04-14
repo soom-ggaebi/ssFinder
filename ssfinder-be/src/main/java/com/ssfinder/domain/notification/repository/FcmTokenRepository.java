@@ -46,9 +46,9 @@ public interface FcmTokenRepository extends JpaRepository<FcmToken, Integer> {
      * </p>
      *
      * @param token 조회할 FCM 토큰 문자열
-     * @return 일치하는 FCM 토큰 정보가 존재하면 Optional로 반환, 없으면 빈 Optional 반환
+     * @return 일치하는 FCM 토큰 정보가 존재하면 List로 반환, 없으면 빈 Optional 반환
      */
-    Optional<FcmToken> findByToken(String token);
+    List<FcmToken> findByToken(String token);
 
     /**
      * 사용자 ID 기준으로 등록된 모든 FCM 토큰 목록을 조회합니다.
@@ -61,5 +61,6 @@ public interface FcmTokenRepository extends JpaRepository<FcmToken, Integer> {
      * @param user 조회할 사용자 엔티티
      * @return 해당 사용자와 연관된 모든 FCM 토큰 리스트
      */
+
     List<FcmToken> findAllByUser(User user);
 }

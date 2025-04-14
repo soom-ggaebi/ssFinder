@@ -88,8 +88,13 @@ public class FcmTokenService {
      * @param token 삭제할 FCM 토큰 문자열
      */
     public void deleteFcmToken(String token) {
-        Optional<FcmToken> fcmTokenOpt = fcmTokenRepository.findByToken(token);
-        fcmTokenOpt.ifPresent(fcmTokenRepository::delete);
+        List<FcmToken> fcmTokens = fcmTokenRepository.findByToken(token);
+        if (!fcmTokens.isEmpty()) {
+            fcmTokenRepository.deleteAll(fcmTokens);
+            log.info("총 {}개의 FCM 토큰 삭제 완료: {}", fcmTokens.size(), token);
+        } else {
+            log.info("삭제할 FCM 토큰이 없음: {}", token);
+        }
     }
 
     /**

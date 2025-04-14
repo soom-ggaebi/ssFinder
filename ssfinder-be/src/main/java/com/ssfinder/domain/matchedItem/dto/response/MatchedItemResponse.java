@@ -1,10 +1,9 @@
 package com.ssfinder.domain.matchedItem.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.*;
 
 import java.util.List;
 
@@ -22,9 +21,11 @@ import java.util.List;
  */
 @Getter
 @Builder
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class MatchedItemResponse {
     private boolean success;           // 요청 성공 여부
     private String message;            // 응답 메시지
@@ -32,6 +33,7 @@ public class MatchedItemResponse {
 
     @Getter
     @Builder
+    @ToString
     @NoArgsConstructor
     @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -43,18 +45,20 @@ public class MatchedItemResponse {
 
     @Getter
     @Builder
+    @ToString
     @NoArgsConstructor
     @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class MatchItem {
         private Integer lostItemId;        // 분실물 ID
         private Integer foundItemId;       // 습득물 ID
-        private FoundItemInfo item;        // 습득물 정보
+        private FoundItemInfo item;        // 습득물 정보 - 분실물 정보
         private float similarity;          // 유사도 점수
     }
 
     @Getter
     @Builder
+    @ToString
     @NoArgsConstructor
     @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -69,6 +73,6 @@ public class MatchedItemResponse {
         private String detail;
         private String image;
         private String status;
-        private String storedAt;
+        private String stored_at;
     }
 }

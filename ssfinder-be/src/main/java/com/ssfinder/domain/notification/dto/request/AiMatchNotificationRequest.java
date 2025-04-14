@@ -1,6 +1,7 @@
 package com.ssfinder.domain.notification.dto.request;
 
 import com.ssfinder.domain.notification.entity.NotificationType;
+import lombok.Builder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +18,7 @@ import java.util.Map;
  * 2025-04-07          okeio           최초생성<br>
  * <br>
  */
+@Builder
 public record AiMatchNotificationRequest(
         Integer foundItemId,
         Integer lostItemId

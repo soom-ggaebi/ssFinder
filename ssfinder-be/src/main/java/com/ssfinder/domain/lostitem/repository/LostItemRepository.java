@@ -26,4 +26,6 @@ public interface LostItemRepository extends JpaRepository<LostItem, Integer> {
             "LEFT JOIN FETCH ic.itemCategory parent " +
             "WHERE l.user.id = :userId")
     List<LostItem> findAllByUserIdWithCategories(@Param("userId") Integer userId);
+
+
 }
