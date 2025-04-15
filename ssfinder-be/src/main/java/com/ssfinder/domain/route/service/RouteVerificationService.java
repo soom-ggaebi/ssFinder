@@ -42,7 +42,7 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class RouteVerificationService {
-    private static final double MAX_DISTANCE_METERS = 10;
+    private static final double MAX_DISTANCE_METERS = 500;
     private static final double METERS_TO_KILOMETERS = 1000.0;
     private static final double MAX_DISTANCE_KILOMETERS = MAX_DISTANCE_METERS / METERS_TO_KILOMETERS;
 
@@ -71,7 +71,7 @@ public class RouteVerificationService {
         Distance searchDistance = new Distance(MAX_DISTANCE_KILOMETERS, Metrics.KILOMETERS);
         Optional<LocalDateTime> foundTimeOpt = getLatestTimeBetween(finderUserId, geoPoint, searchDistance, foundAt.atStartOfDay(), foundAt.plusDays(1).atStartOfDay());
         if (foundTimeOpt.isEmpty()) {
-            return createResponse(false, VerificationStatus.NO_FINDER_LOCATION);
+            return createResponse(false, VerificationStatus.NO_FINDER_LOCATION, finderUserId);
         }
         log.info("[습득 추정 시간] foundTIme: {}", foundTimeOpt.get());
 
@@ -79,12 +79,12 @@ public class RouteVerificationService {
         LocalDateTime foundTime = foundTimeOpt.get();
         Optional<LocalDateTime> lostTimeOpt = getEarliestTimeBefore(loserUserId, geoPoint, searchDistance, foundTime);
         if (lostTimeOpt.isEmpty()) {
-            return createResponse(false, VerificationStatus.NO_LOSER_LOCATION);
+            return createResponse(false, VerificationStatus.NO_LOSER_LOCATION, finderUserId);
         }
         LocalDateTime lostTime = lostTimeOpt.get();
         log.info("[경로 검증] VERIFIED - 분실 시간: {}, 습득 시간: {}", lostTime, foundTime);
 
-        return createResponse(true, VerificationStatus.VERIFIED);
+        return createResponse(true, VerificationStatus.VERIFIED, finderUserId);
     }
 
     /**
@@ -188,7 +188,7 @@ public class RouteVerificationService {
      * @param status 검증 상태
      * @return {@link RoutesOverlapResponse}
      */
-    private RoutesOverlapResponse createResponse(boolean overlapExists, VerificationStatus status) {
-        return new RoutesOverlapResponse(overlapExists, status);
+    private RoutesOverlapResponse createResponse(boolean overlapExists, VerificationStatus status, int finderUserId) {
+        return new RoutesOverlapResponse(overlapExists, status, finderUserId);
     }
 }
