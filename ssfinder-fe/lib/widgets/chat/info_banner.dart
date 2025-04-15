@@ -218,7 +218,10 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
         return;
       }
 
+      // 서버의 baseUrl을 EnvironmentConfig에서 가져오기
       final baseUrl = EnvironmentConfig.baseUrl;
+
+      // 토큰 가져오기
       final token = await KakaoLoginService().getAccessToken();
       if (token == null) {
         _log('🚫 토큰을 가져올 수 없음');
@@ -231,9 +234,10 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
       _log('✅ 토큰 획득 성공');
 
       _log('📡 API 요청 URL: $baseUrl/api/users/routes/overlap');
-      _log('📤 요청 데이터: lost_user_id=$lostUserId, found_user_id=$foundUserId, found_item_id=$foundItemId');
+      _log(
+        '📤 요청 데이터: lost_user_id=$lostUserId, found_user_id=$foundUserId, found_item_id=$foundItemId',
+      );
 
-      // 최초 API 호출
       final response = await http.post(
         Uri.parse('$baseUrl/api/users/routes/overlap'),
         headers: {
@@ -241,8 +245,8 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'lost_user_id': lostUserId,
-          'found_user_id': foundUserId,
+          'my_id': lostUserId,
+          'opponent_id': foundUserId,
           'found_item_id': foundItemId,
         }),
       );
@@ -251,70 +255,21 @@ class _InfoBannerWidgetState extends State<InfoBannerWidget> {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
-        _log('📄 최초 응답 데이터 success: ${jsonResponse['success']}');
+        _log('📄 응답 데이터 success: ${jsonResponse['success']}');
 
-        // 만약 응답에 포함된 found_user_id가 내 lostUserId와 동일하다면 (즉, 내 ID와 같으면)
-        if (jsonResponse['success'] == true &&
-            jsonResponse['data'] != null &&
-            jsonResponse['data']['found_user_id'] == lostUserId) {
-          _log('⚠️ found_user_id가 내 사용자 ID와 동일합니다. lostUserId와 foundUserId를 교환 후 재요청합니다.');
-
-          // lostUserId와 foundUserId를 서로 바꾼 값을 사용하여 재요청
-          final swappedResponse = await http.post(
-            Uri.parse('$baseUrl/api/users/routes/overlap'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({
-              'lost_user_id': foundUserId, // 교환
-              'found_user_id': lostUserId,  // 교환
-              'found_item_id': foundItemId,
-            }),
-          );
-
-          _log('📊 재요청 응답 상태 코드: ${swappedResponse.statusCode}');
-          if (swappedResponse.statusCode == 200) {
-            final swappedJsonResponse = jsonDecode(utf8.decode(swappedResponse.bodyBytes));
-            _log('📄 재요청 응답 데이터 success: ${swappedJsonResponse['success']}');
-
-            if (swappedJsonResponse['success'] == true && swappedJsonResponse['data'] != null) {
-              final status = swappedJsonResponse['data']['verified_status'] ?? "";
-              _log('📋 재요청 검증 상태: $status');
-              setState(() {
-                verifiedStatus = status;
-                isVerified = verifiedStatus == "VERIFIED";
-                isLoading = false;
-              });
-              _log('✅ 경로 일치 여부 (재요청 결과): $isVerified');
-              return;
-            } else {
-              _log('🚫 재요청 API 응답 오류: ${swappedJsonResponse['message']}');
-              setState(() {
-                errorMessage = swappedJsonResponse['message'] ?? "재요청 처리 중 오류가 발생했습니다.";
-                isLoading = false;
-              });
-              return;
-            }
-          } else {
-            _log('🚫 재요청 API 실패');
-            setState(() {
-              errorMessage = "재요청 API 실패: ${swappedResponse.statusCode}";
-              isLoading = false;
-            });
-            return;
-          }
-        } else if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+        if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
           final status = jsonResponse['data']['verified_status'] ?? "";
-          _log('📋 최초 검증 상태: $status');
+          _log('📋 검증 상태: $status');
+
           setState(() {
             verifiedStatus = status;
             isVerified = verifiedStatus == "VERIFIED";
             isLoading = false;
           });
+
           _log('✅ 경로 일치 여부: $isVerified');
         } else {
-          _log('🚫 최초 API 응답 오류: ${jsonResponse['message']}');
+          _log('🚫 API 응답 오류: ${jsonResponse['message']}');
           setState(() {
             errorMessage = jsonResponse['message'] ?? "요청 처리 중 오류가 발생했습니다.";
             isLoading = false;
