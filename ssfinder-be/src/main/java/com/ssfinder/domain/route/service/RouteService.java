@@ -90,8 +90,8 @@ public class RouteService {
     public RoutesOverlapResponse checkOverlapRoutes(RoutesOverlapRequest request) {
         FoundItem foundItem = foundItemService.findFoundItemById(request.foundItemId());
         return routeVerificationService.verifyRouteOverlap(
-                request.foundUserId(),
-                request.lostUserId(),
+                request.myId(),
+                request.opponentId(),
                 foundItem
         );
     }
