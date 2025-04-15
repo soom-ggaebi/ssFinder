@@ -36,7 +36,7 @@ public record KafkaChatMessage(
 ) {
     public Map<String, String> toChatNotificationMap() {
         Map<String, String> map = new HashMap<>();
-        map.put("notificationType", NotificationType.CHAT.name());
+        map.put("type", NotificationType.CHAT.name());
         map.put("chatRoomId", String.valueOf(chatRoomId));
         map.put("messageId", messageId);
         map.put("messageType", type.name());
