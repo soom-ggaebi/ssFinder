@@ -4,6 +4,8 @@ import com.ssfinder.domain.founditem.entity.FoundItem;
 import com.ssfinder.domain.route.dto.response.RoutesOverlapResponse;
 import com.ssfinder.domain.route.dto.response.VerificationStatus;
 import com.ssfinder.domain.route.entity.UserLocation;
+import com.ssfinder.global.common.exception.CustomException;
+import com.ssfinder.global.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.geo.Distance;
@@ -56,12 +58,26 @@ public class RouteVerificationService {
      * 시간 순서에 따라 경로가 일치하는지 여부를 검사하고 결과를 반환합니다.
      * </p>
      *
-     * @param finderUserId 습득자 사용자 ID
-     * @param loserUserId 분실자 사용자 ID
+     * @param myId 사용자 ID
+     * @param opponentId 상대 사용자 ID
      * @param foundItem 습득물 엔티티
      * @return 경로 겹침 여부와 검증 결과 상태가 포함된 {@link RoutesOverlapResponse}
      */
-    public RoutesOverlapResponse verifyRouteOverlap(int finderUserId, int loserUserId, FoundItem foundItem) {
+    public RoutesOverlapResponse verifyRouteOverlap(int myId, int opponentId, FoundItem foundItem) {
+        int finderId = -1;
+        int loserId = -1;
+
+        if (isFoundItemOwnedBy(myId, foundItem)) {
+            finderId = myId;
+            loserId = opponentId;
+        } else if (isFoundItemOwnedBy(opponentId, foundItem)) {
+            finderId = opponentId;
+            loserId = myId;
+        } else {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        log.info("[경로 검증 사용자 구분] finderId: {}, loserId: {}", finderId, loserId);
         // 1. 습득 날짜 및 위치 조회
         LocalDate foundAt = foundItem.getFoundAt();
         org.locationtech.jts.geom.Point foundPoint = foundItem.getCoordinates();
@@ -69,22 +85,26 @@ public class RouteVerificationService {
 
         // 2. 습득자가 지나간 여부 및 시간 확인(습득 날짜의 일시 중 가장 이후 시간으로 채택)
         Distance searchDistance = new Distance(MAX_DISTANCE_KILOMETERS, Metrics.KILOMETERS);
-        Optional<LocalDateTime> foundTimeOpt = getLatestTimeBetween(finderUserId, geoPoint, searchDistance, foundAt.atStartOfDay(), foundAt.plusDays(1).atStartOfDay());
+        Optional<LocalDateTime> foundTimeOpt = getLatestTimeBetween(finderId, geoPoint, searchDistance, foundAt.atStartOfDay(), foundAt.plusDays(1).atStartOfDay());
         if (foundTimeOpt.isEmpty()) {
-            return createResponse(false, VerificationStatus.NO_FINDER_LOCATION, finderUserId);
+            return createResponse(false, VerificationStatus.NO_FINDER_LOCATION);
         }
         log.info("[습득 추정 시간] foundTIme: {}", foundTimeOpt.get());
 
         // 3. 추정된 습득 시간을 기반으로 분실자가 지나간 여부 및 시간 확인(저장된 모든 일자에 대해 적용)
         LocalDateTime foundTime = foundTimeOpt.get();
-        Optional<LocalDateTime> lostTimeOpt = getEarliestTimeBefore(loserUserId, geoPoint, searchDistance, foundTime);
+        Optional<LocalDateTime> lostTimeOpt = getEarliestTimeBefore(loserId, geoPoint, searchDistance, foundTime);
         if (lostTimeOpt.isEmpty()) {
-            return createResponse(false, VerificationStatus.NO_LOSER_LOCATION, finderUserId);
+            return createResponse(false, VerificationStatus.NO_LOSER_LOCATION);
         }
         LocalDateTime lostTime = lostTimeOpt.get();
         log.info("[경로 검증] VERIFIED - 분실 시간: {}, 습득 시간: {}", lostTime, foundTime);
 
-        return createResponse(true, VerificationStatus.VERIFIED, finderUserId);
+        return createResponse(true, VerificationStatus.VERIFIED);
+    }
+
+    private boolean isFoundItemOwnedBy(int userId, FoundItem foundItem) {
+        return userId == foundItem.getUser().getId();
     }
 
     /**
@@ -188,7 +208,7 @@ public class RouteVerificationService {
      * @param status 검증 상태
      * @return {@link RoutesOverlapResponse}
      */
-    private RoutesOverlapResponse createResponse(boolean overlapExists, VerificationStatus status, int finderUserId) {
-        return new RoutesOverlapResponse(overlapExists, status, finderUserId);
+    private RoutesOverlapResponse createResponse(boolean overlapExists, VerificationStatus status) {
+        return new RoutesOverlapResponse(overlapExists, status);
     }
 }
