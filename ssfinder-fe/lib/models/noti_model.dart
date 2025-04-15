@@ -110,6 +110,14 @@ class NotificationItem {
   final bool isRead;
   final String? readAt;
   final String imagePath;
+  final int? chatRoomId; // 채팅 알림일 때 채팅방 id (서버에서 문자열로 보내더라도 int로 변환할 수 있음)
+  final int? messageId; // 채팅 알림일 때 메시지 id
+  final String? messageType; // 채팅 알림일 때 메시지 타입
+  final String? messageStatus; // 채팅 알림일 때 메시지 상태
+  final int?
+  foundItemId; // AI 매칭 알림 또는 인계 알림일 때, 인계 또는 매칭 시 사용 (예: 인계의 경우 foundItemId)
+  final int? lostItemId; // AI 매칭 알림일 때, lostItemId 값
+  final int? itemId; // 인계 알림일 때 itemId 값
 
   NotificationItem({
     required this.id,
@@ -119,6 +127,13 @@ class NotificationItem {
     required this.sendAt,
     required this.isRead,
     this.readAt,
+    this.chatRoomId,
+    this.messageId,
+    this.messageType,
+    this.messageStatus,
+    this.foundItemId,
+    this.lostItemId,
+    this.itemId,
     String? imagePath,
   }) : imagePath = imagePath ?? type.defaultImagePath;
 
@@ -149,6 +164,13 @@ class NotificationItem {
       sendAt: json['send_at'],
       isRead: json['is_read'],
       readAt: json['read_at'],
+      chatRoomId: json['chateRoomId'], // 채팅 알림에 사용
+      messageId: json['messageId'], // 채팅 알림에 사용
+      messageType: json['messageType'], // 채팅 알림에 사용
+      messageStatus: json['messageStatus'], // 채팅 알림에 사용
+      foundItemId: json['foundItemId'], // AI 매칭 알림에 사용
+      lostItemId: json['lostItemId'], // AI 매칭 알림에 사용
+      itemId: json['itemId'], // 인계 알림에 사용
     );
   }
 }

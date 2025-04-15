@@ -207,8 +207,8 @@ class LocationService {
         channelId: LocationConstants.channelId,
         channelName: LocationConstants.channelName,
         channelDescription: '위치 서비스 실행 시 표시되는 알림입니다.',
-        channelImportance: NotificationChannelImportance.LOW,
-        priority: NotificationPriority.LOW,
+        channelImportance: NotificationChannelImportance.HIGH,
+        priority: NotificationPriority.HIGH,
       ),
       iosNotificationOptions: IOSNotificationOptions(
         showNotification: true,

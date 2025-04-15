@@ -89,6 +89,7 @@ class NotificationApiService {
       // 한국어 처리를 위한 UTF-8 디코딩
       // UTF-8 디코딩 후 JSON 파싱
       final decodedBody = utf8.decode(response.bodyBytes);
+      print('# ${decodedBody}');
       final Map<String, dynamic> jsonMap = jsonDecode(decodedBody);
 
       // data 값 안전하게 체크

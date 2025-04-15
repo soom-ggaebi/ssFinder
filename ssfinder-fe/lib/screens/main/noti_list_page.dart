@@ -10,6 +10,8 @@ import 'package:sumsumfinder/widgets/main/noti_item_widget.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sumsumfinder/screens/home_page.dart';
 import 'package:sumsumfinder/utils/time_formatter.dart'; // TimeFormatter import 추가
+import 'package:sumsumfinder/screens/lost/recommended.dart';
+import 'package:sumsumfinder/screens/found/found_item_detail_sumsumfinder.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({Key? key}) : super(key: key);
@@ -515,18 +517,56 @@ class _NotificationPageState extends State<NotificationPage>
             'NotificationPage: Transfer notification tapped (not implemented)',
           );
           // TODO: 인계 관련 페이지로 이동
+          // Navigator.of(context).push(
+          //   MaterialPageRoute(
+          //     builder:
+          //         (context) => FoundItemDetailSumsumfinder(
+          //           id:
+          //               notification
+          //                   .itemId!,
+          //         ),
+          //   ),
+          // );
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => HomePage(initialIndex: 2), // 채팅 탭 인덱스는 3
+            ),
+            (route) => false, // 모든 이전 라우트 제거
+          );
           break;
         case NotificationType.AI_MATCH:
           print(
             'NotificationPage: AI Match notification tapped (not implemented)',
           );
           // TODO: AI 매칭 관련 페이지로 이동
+          // Navigator.of(context).push(
+          //   MaterialPageRoute(
+          //     builder:
+          //         (context) => Recommended(
+          //           lostItemId:
+          //               notification
+          //                   .lostItemId!,
+          //         ),
+          //   ),
+          // );
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => HomePage(initialIndex: 1), // 채팅 탭 인덱스는 3
+            ),
+            (route) => false, // 모든 이전 라우트 제거
+          );
           break;
         case NotificationType.ITEM_REMINDER:
           print(
             'NotificationPage: Item Reminder notification tapped (not implemented)',
           );
           // TODO: 소지품 관련 페이지로 이동
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => HomePage(initialIndex: 0), // 채팅 탭 인덱스는 3
+            ),
+            (route) => false, // 모든 이전 라우트 제거
+          );
           break;
         default:
           print('NotificationPage: Unknown notification type');

@@ -12,7 +12,6 @@ import '../../widgets/selects/category_select.dart';
 import '../../widgets/selects/color_select.dart';
 import '../../widgets/selects/location_select.dart';
 import '../../widgets/selects/date_select.dart';
-import '../../screens/found/found_item_detail_sumsumfinder.dart';
 
 class FoundItemForm extends StatefulWidget {
   final dynamic itemToEdit;
