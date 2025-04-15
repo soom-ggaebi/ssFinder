@@ -24,6 +24,8 @@ class UserStatsWidgetState extends State<UserStatsWidget> {
   void _fetchUserStats() {
     if (KakaoLoginService().isLoggedIn.value) {
       _userStatsFuture = _getUserItemCounts();
+    } else {
+      _userStatsFuture = Future.value({});
     }
   }
 

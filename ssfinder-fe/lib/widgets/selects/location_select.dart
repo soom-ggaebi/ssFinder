@@ -130,7 +130,7 @@ class _LocationSelectState extends State<LocationSelect> {
         headers: {'Authorization': 'KakaoAK ${EnvironmentConfig.kakaoApiKey}'},
       );
       final data = json.decode(response.body);
-
+      print(data);
       if (data['meta'] != null && data['meta']['total_count'] > 0) {
         String address = "";
         String addressName = "";
