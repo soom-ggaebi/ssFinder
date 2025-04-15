@@ -106,10 +106,12 @@ public class ChatRoomService {
 
         ChatRoomParticipant chatRoomParticipant = getChatRoomParticipant(chatRoomId, userId);
 
+        User user = userService.findUserById(userId);
+
         ItemCategoryInfo itemCategoryInfo = itemCategoryService
                 .findWithParentById(foundItem.getItemCategory().getId());
 
-        User opponentUser = chatRoomParticipant.getUser();
+        User opponentUser = chatRoomParticipantRepository.getChatRoomParticipantByChatRoomAndUserIsNot(chatRoom, user).getUser();
 
         ChatRoomFoundItem chatRoomFoundItem = foundItemMapper
                 .mapToChatRoomFoundItem(foundItem, itemCategoryInfo);
