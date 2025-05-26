@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-multipart
+torch
+pillow
+transformers==4.50.3
+python-dotenv
+requests
