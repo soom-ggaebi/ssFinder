@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  fastapi-app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    extra_hosts:
+      - "nn1:43.201.252.40"
+      - "dn1:43.201.252.40"
+      - "j12c105a.p.ssafy.io:43.201.252.40"

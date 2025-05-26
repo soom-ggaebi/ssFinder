@@ -1,0 +1,16 @@
+confluent-kafka==2.3.0
+elasticsearch==7.17.0
+requests==2.31.0
+pymysql==1.1.0
+python-dotenv==1.0.0
+fastapi==0.104.1
+uvicorn==0.23.2
+boto3==1.28.57
+hdfs==2.7.0
+numpy==1.26.0
+opencv-python==4.8.1.78
+rapidfuzz==3.4.0
+pydantic==2.4.2
+pandas
+DBUtils==2.0
+cryptography
